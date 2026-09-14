@@ -1,0 +1,8 @@
+node_modules/
+*.pid
+server/*.log
+server/config.json
+downloads/
+.tmp-build/
+.tmp-run/
+.trash/
