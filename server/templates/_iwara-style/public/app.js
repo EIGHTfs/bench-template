@@ -1384,8 +1384,8 @@ function formatIwaraLoginBlock(r) {
   L.push("───");
   L.push("完整 Cookie: " + (cred.cookieChars || 0) + " 字符 / " + (cred.cookieItems || 0) + " 项 ｜ 存于服务器（不回传明文）");
   L.push("含 cf_clearance: " + (cred.hasCfClearance ? "✅ 有" : "❌ 无"));
-  L.push("refresh_token: " + (cred.hasToken ? "✅ 有" : "❌ 无"));
-  L.push("access_token: " + (cred.hasAccessToken ? "✅ 有" : "❌ 无"));
+  L.push("refresh_token: " + (cred.hasToken ? "✅ 有" : "❌ 无")); // dsh-skip-sensitive（纯文本标签，非凭据）
+  L.push("access_token: " + (cred.hasAccessToken ? "✅ 有" : "❌ 无")); // dsh-skip-sensitive（纯文本标签，非凭据）
   return L.join("\n");
 }
 
