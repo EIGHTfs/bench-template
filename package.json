@@ -1,0 +1,11 @@
+{
+  "name": "dl-server-template",
+  "version": "0.1.0",
+  "description": "零依赖 Node.js 下载器服务脚手架模板",
+  "type": "commonjs",
+  "private": true,
+  "scripts": {
+    "start": "node server/project/app.js",
+    "test": "node --test test/"
+  }
+}

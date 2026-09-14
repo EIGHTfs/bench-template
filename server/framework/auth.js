@@ -1,118 +1,94 @@
 // ============================================================
-// gbmd-v3 - 鉴权（零依赖，自旧项目保留）
+// 鉴权框架（通用）
 // 密码 scrypt 哈希存储；登录成功签发随机 session token
-// 存内存 Map + HttpOnly Cookie；持久化 session 到磁盘（重启免登录）
+// 存内存 Map + HttpOnly Cookie；可选持久化到磁盘。
+// 来源：从 gbmd/iwara auth.js 提炼共用接口。
 // ============================================================
 "use strict";
 
 const crypto = require("crypto");
 const path = require("path");
-const fsAsync = require("./utils/fs-async");
+const fs = require("fs");
 
-const jsonDir = require("./lib/json-dir");
-const SESSION_FILE = jsonDir.migrateRuntimeJson("sessions.json");
-const sessions = new Map(); // token -> { expiresAt }
+let SESSION_FILE = null; // 持久化文件路径（init 时设置）
+const sessions = new Map(); // token -> { expiresAt, hours, deviceId }
 
-async function loadSessions() {
-  try {
-    const exists = await fsAsync.exists(SESSION_FILE);
-    if (!exists) return;
-    const data = await fsAsync.readJson(SESSION_FILE, {});
-    const now = Date.now();
-    for (const [token, s] of Object.entries(data)) {
-      if (s.expiresAt > now) sessions.set(token, { expiresAt: s.expiresAt });
-    }
-  } catch (_) {}
+/**
+ * 初始化鉴权模块。
+ * @param {object} opts
+ * @param {string} [opts.sessionFile] 持久化文件路径（不传则纯内存）
+ */
+function init(opts = {}) {
+  SESSION_FILE = opts.sessionFile || null;
+  if (SESSION_FILE) {
+    try {
+      const data = JSON.parse(fs.readFileSync(SESSION_FILE, "utf-8"));
+      for (const [token, info] of Object.entries(data)) {
+        if (info.expiresAt > Date.now()) sessions.set(token, info);
+      }
+    } catch {}
+  }
 }
 
-async function saveSessions() {
-  const data = {};
-  for (const [token, s] of sessions) data[token] = { expiresAt: s.expiresAt };
+function persist() {
+  if (!SESSION_FILE) return;
   try {
-    await fsAsync.writeJson(SESSION_FILE, data);
-  } catch (_) {}
+    fs.mkdirSync(path.dirname(SESSION_FILE), { recursive: true });
+    fs.writeFileSync(SESSION_FILE, JSON.stringify(Object.fromEntries(sessions), null, 2));
+  } catch {}
 }
 
-async function createSession(hours) {
+function createSession(opts = {}) {
+  const hours = opts.hours || 72;
   const token = crypto.randomBytes(32).toString("hex");
-  const expiresAt = Date.now() + (hours || 72) * 3600 * 1000;
-  sessions.set(token, { expiresAt });
-  await saveSessions();
-  return token;
+  sessions.set(token, {
+    expiresAt: Date.now() + hours * 3600 * 1000,
+    hours,
+    deviceId: opts.deviceId || null,
+  });
+  persist();
+  return { token, hours };
 }
 
-async function isValidSession(token) {
-  if (!token) return false;
+function isValidSession(token) {
   const s = sessions.get(token);
   if (!s) return false;
-  if (s.expiresAt < Date.now()) {
+  if (s.expiresAt <= Date.now()) {
     sessions.delete(token);
-    await saveSessions();
+    persist();
     return false;
   }
   return true;
 }
 
-async function destroySession(token) {
-  if (token) sessions.delete(token);
-  await saveSessions();
+function destroySession(token) {
+  sessions.delete(token);
+  persist();
 }
 
 function extractToken(req) {
+  // Cookie
   const cookie = req.headers.cookie || "";
-  const m = cookie.match(/(?:^|;\s*)session=([^;]+)/);
-  return m ? m[1] : null;
+  const m = cookie.match(/(?:^|;\s*)token=([^;]+)/);
+  if (m) return m[1];
+  // Authorization header
+  const auth = req.headers.authorization || "";
+  if (auth.startsWith("Bearer ")) return auth.slice(7);
+  return null;
 }
 
-/**
- * 清理过期 session（内存 + 磁盘）
- * 返回删除数量
- */
-async function cleanupExpired() {
-  const now = Date.now();
-  let removed = 0;
+function pruneExpired() {
+  let count = 0;
   for (const [token, s] of sessions) {
-    if (s.expiresAt <= now) {
-      sessions.delete(token);
-      removed++;
-    }
+    if (s.expiresAt <= Date.now()) { sessions.delete(token); count++; }
   }
-  if (removed > 0) {
-    await saveSessions();
-    console.log(`[auth] 清理 ${removed} 个过期 session`);
-  }
-  return removed;
+  if (count) persist();
+  return count;
 }
 
-let cleanupTimer = null;
-
-/**
- * 启动定期清理（默认每小时）
- * 返回 timer 引用以便测试停止
- */
-function startCleanup(intervalMs) {
-  if (cleanupTimer) clearInterval(cleanupTimer);
-  const ms = intervalMs || 3600 * 1000; // 1 小时
-  cleanupTimer = setInterval(async () => { await cleanupExpired(); }, ms);
-  cleanupTimer.unref(); // 不阻止进程退出
-  return cleanupTimer;
+function loadSessions() {
+  // 兼容旧接口：返回当前会话数
+  return sessions.size;
 }
 
-function stopCleanup() {
-  if (cleanupTimer) {
-    clearInterval(cleanupTimer);
-    cleanupTimer = null;
-  }
-}
-
-module.exports = {
-  loadSessions,
-  createSession,
-  isValidSession,
-  destroySession,
-  extractToken,
-  cleanupExpired,
-  startCleanup,
-  stopCleanup,
-  sessions // 测试用
-};
+module.exports = { init, createSession, isValidSession, destroySession, extractToken, pruneExpired, loadSessions };

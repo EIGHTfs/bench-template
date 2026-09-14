@@ -1,8 +1,8 @@
 // ============================================================
-// gbmd - HTTP 工具（P1 从 app.js 抽出）
-// sendJson：统一 JSON 响应；readBody：流式读请求体（bug#3 修复：chunk 落临时文件，
-//   不累积内存，避免大 body O(n²) 字符串拼接与 512MB OOM）
-// parseCredentialText / cleanCookie：cookie 脏值清洗（bug#6 写读边界 unwrap）
+// HTTP 工具（框架层）
+// sendJson：统一 JSON 响应（sendJson(res, data, status)）
+// readBody：流式读请求体
+// parseCredentialText / cleanCookie：cookie 清洗
 // ============================================================
 "use strict";
 
@@ -10,11 +10,14 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
-const BODY_SIZE_LIMIT = 10 * 1024 * 1024; // 请求体大小限制：10MB
+const BODY_SIZE_LIMIT = 10 * 1024 * 1024;
 
-function sendJson(res, status, obj) {
+function sendJson(res, obj, status) {
+  // 兼容旧调用 sendJson(res, status_code, data)
+  if (typeof obj === "number") { const tmp = obj; obj = status; status = tmp; }
+  const code = status || 200;
   const body = JSON.stringify(obj);
-  res.writeHead(status, {
+  res.writeHead(code, {
     "Content-Type": "application/json; charset=utf-8",
     "Content-Length": Buffer.byteLength(body),
     "Cache-Control": "no-store"

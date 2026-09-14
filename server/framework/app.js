@@ -1,7 +1,6 @@
 // ============================================================
 // HTTP 服务骨架（框架层）
-// 项目只需传配置 + 路由，框架负责：HTTP 服务、静态文件、鉴权门、MIME。
-// 来源：从 gbmd/iwara server/app.js 提炼共用骨架。
+// 项目只需传：config + routes + publicDir，框架负责其他一切。
 // ============================================================
 "use strict";
 
@@ -11,10 +10,9 @@ const path = require("path");
 const urlMod = require("url");
 
 const { sendJson } = require("./http-utils");
-const { isBrowsableDir, isBlocked } = require("./path-safe");
 
-// 完整 MIME 集合（合并 gbmd + iwara）
-const MIME = {
+// 完整 MIME 集合（合并 gbmd + iwara，项目可追加）
+const DEFAULT_MIME = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -42,59 +40,59 @@ const MIME = {
 
 /**
  * 创建 HTTP 服务。
+ *
  * @param {object} opts
- * @param {string} opts.publicDir 静态文件目录
- * @param {object} opts.config 配置管理器（createConfig 返回值）
- * @param {object} opts.auth 鉴权模块
- * @param {function} opts.routes 路由处理器 (req, res, url, ctx) => boolean
- * @param {function} [opts.onReady] 启动回调 (port)
- * @param {string} [opts.loginPath] 登录页路径（默认 /login.html）
- * @param {object} [opts.extraMime] 额外 MIME 类型
+ * @param {object}   opts.config       - 配置管理器（createConfig 返回值）
+ * @param {object}   opts.auth         - 鉴权模块
+ * @param {string}   opts.publicDir    - 静态文件目录（绝对路径）
+ * @param {Array}    opts.routes       - 路由列表，每项 { prefix, handler }
+ *   - prefix: "/api/auth"（匹配 pathname 前缀）
+ *   - handler: createRoute() 返回的函数
+ * @param {string}   [opts.loginPath]  - 登录页路径（默认 /login.html）
+ * @param {object}   [opts.extraMime]  - 额外 MIME 类型
+ * @param {function} [opts.onReady]    - 启动回调 (port)
  * @returns {http.Server}
  */
 function createServer(opts) {
   const {
-    publicDir,
     config,
     auth,
-    routes,
-    onReady,
+    publicDir,
+    routes = [],
     loginPath = "/login.html",
     extraMime = {},
+    onReady,
   } = opts;
 
-  const mime = { ...MIME, ...extraMime };
+  const mime = { ...DEFAULT_MIME, ...extraMime };
 
-  // 鉴权白名单（不需要登录就能访问的路径）
-  const authWhitelist = new Set([loginPath, "/api/auth/login", "/api/auth/status"]);
+  // 鉴权白名单（不需要登录就能访问）
+  const authWhitelist = [
+    loginPath,
+    "/api/auth/",
+  ];
 
-  function isWhitelisted(pathname) {
-    if (authWhitelist.has(pathname)) return true;
-    if (pathname.startsWith("/api/auth/")) return true;
-    // 静态资源（.html/.js/.css/.png 等）在登录页前可访问
-    const ext = path.extname(pathname);
-    if (ext && mime[ext]) return true;
-    return false;
+  function needsAuth(pathname) {
+    for (const w of authWhitelist) {
+      if (pathname === w || pathname.startsWith(w)) return false;
+    }
+    // 静态资源（有扩展名）不鉴权
+    if (path.extname(pathname)) return false;
+    return true;
   }
 
-  // 静态文件服务
+  // 静态文件
   function serveStatic(res, pathname) {
     let filePath = path.join(publicDir, pathname);
     if (pathname.endsWith("/")) filePath = path.join(filePath, "index.html");
-
-    // 安全检查
-    if (!filePath.startsWith(publicDir)) {
-      sendJson(res, { error: "禁止访问" }, 403);
-      return true;
-    }
+    if (!filePath.startsWith(publicDir)) return false;
 
     try {
       if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) return false;
       const ext = path.extname(filePath).toLowerCase();
-      const contentType = mime[ext] || "application/octet-stream";
       const content = fs.readFileSync(filePath);
       res.writeHead(200, {
-        "Content-Type": contentType,
+        "Content-Type": mime[ext] || "application/octet-stream",
         "Content-Length": content.length,
         "Cache-Control": ext === ".html" ? "no-cache" : "public, max-age=3600",
       });
@@ -111,23 +109,26 @@ function createServer(opts) {
     const pathname = decodeURIComponent(url.pathname);
 
     // 鉴权检查
-    if (!isWhitelisted(pathname)) {
+    if (needsAuth(pathname)) {
       const token = auth.extractToken(req);
       if (!token || !auth.isValidSession(token)) {
-        // API 请求返回 401，页面请求重定向登录
         if (pathname.startsWith("/api/")) {
-          sendJson(res, { ok: false, error: "未登录" }, 401);
-        } else {
-          res.writeHead(302, { Location: loginPath });
-          res.end();
+          return sendJson(res, { ok: false, error: "未登录" }, 401);
         }
-        return;
+        res.writeHead(302, { Location: loginPath });
+        return res.end();
       }
     }
 
-    // 路由处理
+    // 路由分发：按 prefix 匹配，去掉前缀后传给 handler
     const ctx = { cfg: config, auth, sendJson };
-    if (await routes(req, res, url, ctx)) return;
+    for (const { prefix, handler } of routes) {
+      if (!pathname.startsWith(prefix)) continue;
+      const subPath = pathname.slice(prefix.length) || "/";
+      const subUrl = urlMod.parse(subPath + (url.search || ""), true);
+      req._originalUrl = url;
+      if (await handler(req, res, subUrl, ctx)) return;
+    }
 
     // 静态文件
     if (serveStatic(res, pathname)) return;
@@ -136,11 +137,10 @@ function createServer(opts) {
     sendJson(res, { error: "未找到" }, 404);
   }
 
-  // 创建 HTTP 服务
+  // 创建服务
   const server = http.createServer(handleRequest);
-
-  // 启动
   const port = config.get("port") || 3000;
+
   server.listen(port, () => {
     console.log(`服务启动: http://localhost:${port}`);
     if (onReady) onReady(port);
@@ -149,4 +149,4 @@ function createServer(opts) {
   return server;
 }
 
-module.exports = { createServer, MIME };
+module.exports = { createServer, DEFAULT_MIME };

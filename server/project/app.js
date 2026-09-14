@@ -1,27 +1,52 @@
 // ============================================================
-// 示例项目入口（使用框架）
-// 新项目 clone 后改这个文件，注册自己的业务路由。
+// 项目入口（正确接入方式）
+//
+// 项目只做三件事：
+//   1. 定义配置 schema（config.schema.json）
+//   2. 定义业务路由（用 createRoute 写 handler）
+//   3. 调用 createServer() 传入配置
+//
+// 框架负责：HTTP 服务、鉴权门、静态文件、MIME、错误处理。
+// 不改框架代码，只用框架接口。
 // ============================================================
 "use strict";
 
 const path = require("path");
 const {
-  createConfig, createServer, createRoute, groupRoutes, sendJson,
-  appLog, auth,
+  createConfig,   // ① 创建配置（传 schema 即可）
+  createServer,   // ③ 启动服务（传配置 + 路由 + 静态目录）
+  createRoute,    // ② 定义路由（传 handler 函数）
+  sendJson,
+  appLog,
+  auth,
 } = require("../framework");
 
-// ---------- 安装日志 ----------
+// ---------- ① 配置 ----------
 appLog.install();
 
-// ---------- 加载配置（项目只需传 schema） ----------
 const config = createConfig({
   configFile: path.join(__dirname, "..", "config.json"),
   schema: require("./config.schema.json"),
 });
 
-// ---------- 业务路由示例 ----------
+// 初始化鉴权（持久化会话到磁盘，重启免登录）
+auth.init({
+  sessionFile: path.join(__dirname, "..", "sessions.json"),
+});
 
-// 认证路由
+// ---------- CLI 参数 ----------
+if (process.argv.includes("--set-password")) {
+  const idx = process.argv.indexOf("--set-password");
+  const pwd = process.argv[idx + 1];
+  if (!pwd) { console.error("用法: node app.js --set-password \"密码\""); process.exit(1); }
+  config.setPassword(pwd);
+  console.log("密码已设置");
+  process.exit(0);
+}
+
+// ---------- ② 业务路由 ----------
+
+// 认证路由（挂到 /api/auth）
 const authRoutes = createRoute({
   "POST /login": async (req, res, ctx) => {
     const { password } = req.body || {};
@@ -47,7 +72,7 @@ const authRoutes = createRoute({
   },
 });
 
-// 示例数据路由
+// 数据路由（挂到 /api/data）
 const dataRoutes = createRoute({
   "GET /info": async (req, res, ctx) => {
     sendJson(res, {
@@ -59,57 +84,32 @@ const dataRoutes = createRoute({
   },
 });
 
-// ---------- 启动服务 ----------
-const routes = groupRoutes(
-  createRoute({}), // 无匹配时返回 false
-);
+// 下载路由（挂到 /api/download）——项目在这里实现下载逻辑
+const downloadRoutes = createRoute({
+  "GET /list": async (req, res, ctx) => {
+    sendJson(res, { ok: true, items: [] });
+  },
 
-// 注册业务路由到 app.js 骨架（这里简化为直接写路由分发）
-// 实际项目中，routes 由 createServer 的 opts.routes 传入
-// 这里为了演示，直接在 createServer 外面处理
-
-const server = require("http").createServer(async (req, res) => {
-  const urlMod = require("url");
-  const url = urlMod.parse(req.url, true);
-  const pathname = decodeURIComponent(url.pathname);
-
-  const ctx = { cfg: config, auth, sendJson };
-
-  // 认证路由
-  if (pathname.startsWith("/api/auth/")) {
-    const sub = pathname.replace("/api/auth", "");
-    req.url = sub || "/";
-    if (await authRoutes(req, res, urlMod.parse(req.url, true), ctx)) return;
-  }
-
-  // 数据路由
-  if (pathname.startsWith("/api/data/")) {
-    const sub = pathname.replace("/api/data", "");
-    req.url = sub || "/";
-    if (await dataRoutes(req, res, urlMod.parse(req.url, true), ctx)) return;
-  }
-
-  // 静态文件
-  const publicDir = path.join(__dirname, "public");
-  let filePath = path.join(publicDir, pathname);
-  if (pathname.endsWith("/")) filePath = path.join(filePath, "index.html");
-
-  const fs = require("fs");
-  const { MIME } = require("../framework");
-  try {
-    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-      const ext = path.extname(filePath).toLowerCase();
-      const content = fs.readFileSync(filePath);
-      res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream" });
-      res.end(content);
-      return;
-    }
-  } catch {}
-
-  sendJson(res, { error: "未找到" }, 404);
+  "POST /start": async (req, res, ctx) => {
+    const { url } = req.body || {};
+    if (!url) return sendJson(res, { ok: false, error: "缺少 url" });
+    // TODO: 项目实现下载逻辑
+    sendJson(res, { ok: true, taskId: "demo-001" });
+  },
 });
 
-const port = config.get("port") || 3000;
-server.listen(port, () => {
-  console.log(`示例服务启动: http://localhost:${port}`);
+// ---------- ③ 启动服务 ----------
+createServer({
+  config,
+  auth,
+  publicDir: path.join(__dirname, "public"),
+  routes: [
+    { prefix: "/api/auth",     handler: authRoutes },
+    { prefix: "/api/data",     handler: dataRoutes },
+    { prefix: "/api/download", handler: downloadRoutes },
+    // 新路由加这里：{ prefix: "/api/xxx", handler: xxxRoutes },
+  ],
+  onReady(port) {
+    console.log(`项目就绪，端口 ${port}`);
+  },
 });
