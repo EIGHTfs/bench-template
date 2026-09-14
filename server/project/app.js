@@ -8,10 +8,14 @@
 //
 // 框架负责：HTTP 服务、鉴权门、静态文件、MIME、错误处理。
 // 不改框架代码，只用框架接口。
+//
+// 注意：config.schema.json / public/ / routes/ / lib/ 是 setup.sh
+//   的生成物（不入库）。clone 后先运行 ./setup.sh <风格> 再启动。
 // ============================================================
 "use strict";
 
 const path = require("path");
+const fs = require("fs");
 const {
   createConfig,   // ① 创建配置（传 schema 即可）
   createServer,   // ③ 启动服务（传配置 + 路由 + 静态目录）
@@ -24,9 +28,15 @@ const {
 // ---------- ① 配置 ----------
 appLog.install();
 
+const SCHEMA_FILE = path.join(__dirname, "config.schema.json");
+if (!fs.existsSync(SCHEMA_FILE)) {
+  console.error("❌ 未找到 config.schema.json —— 请先运行 ./setup.sh <gbmd|iwara> 组装项目层");
+  process.exit(1);
+}
+
 const config = createConfig({
   configFile: path.join(__dirname, "..", "config.json"),
-  schema: require("./config.schema.json"),
+  schema: require(SCHEMA_FILE),
 });
 
 // 初始化鉴权（持久化会话到磁盘，重启免登录）

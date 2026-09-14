@@ -17,22 +17,26 @@ dl-server-template/              ← 模板仓库（本仓库）
 │   │   ├── app.js               # HTTP 服务骨架（路由注册 + 静态文件 + 鉴权门）
 │   │   ├── config-loader.js     # 配置加载器（schema 驱动，项目传 schema）
 │   │   ├── auth.js              # 鉴权框架（session CRUD + cookie + 过期清理）
-│   │   ├── app-log.js           # 日志（console 重定向到文件 + stderr）
-│   │   ├── json-dir.js          # JSON 目录存储（读/写/列表）
-│   │   ├── data-backup.js       # 数据备份（定时 + 旋转 + 通知）
-│   │   ├── http-utils.js        # HTTP 工具（sendJson/readBody/parseCredentialText）
-│   │   ├── path-safe.js         # 路径安全（防遍历/系统目录拦截）
-│   │   ├── fs-async.js          # fs 异步封装（ensureDir/copyRecursive 等）
-│   │   ├── html-utils.js        # HTML 工具（escape/index.html 生成）
+│   │   ├── route-factory.js     # 路由工厂（createRoute/'GET /path': fn）
+│   │   ├── data-backup.js       # 数据备份（createBackup，配置驱动）
+│   │   ├── app-log.js           # 日志（console 加时间戳）
+│   │   ├── json-dir.js          # JSON 目录存储（读/写/迁移）
+│   │   ├── http-utils.js        # HTTP 工具（sendJson/readBody/cookie 清洗）
+│   │   ├── fs-async.js          # fs 异步封装
+│   │   ├── html-utils.js        # HTML 工具
 │   │   └── index.js             # 框架统一出口
-│   └── project/                 ← 项目层（每个项目只填这里）
-│       ├── app.js               # 项目入口（require 框架 + 注册业务路由）
-│       ├── config.schema.json   # 配置 schema（字段/默认值/类型）
-│       ├── lib/                 # 业务模块（API 客户端、索引、下载器等）
-│       ├── routes/              # 业务路由（搜索、下载、设置等）
-│       └── public/              # 前端（HTML/CSS/JS）
+│   ├── templates/               ← 变体素材（只读，setup.sh 组装）
+│   │   ├── _shared/             # 两端共用前端（login.html / search-date-range.js）
+│   │   ├── _gbmd-style/         # gbmd 完整前端 + 路由 + lib + config.schema
+│   │   └── _iwara-style/        # iwara 完整前端 + 路由 + lib + config.schema
+│   └── project/                 ← 组装目标（生成的业务层，可反复重装）
+│       ├── app.js               # 项目入口骨架（require 框架 + 注册业务路由）
+│       ├── config.schema.json   # 由 setup.sh 按风格生成
+│       ├── public/              # 由 setup.sh 组装（前端静态文件）
+│       ├── routes/              # 由 setup.sh 组装（业务路由素材）
+│       └── lib/                 # 由 setup.sh 组装（业务模块素材）
+├── setup.sh                     # 风格组装脚本（支持 --with 混搭组件）
 ├── start.sh                     # 启停脚本（直接复用，只需改 PROJECT_NAME）
-├── test/                        # 测试
 └── README.md
 ```
 
@@ -139,24 +143,60 @@ export function downloadJsonFile(obj, filename) { /* JSON 文件下载 */ }
 | `MIME 类型` | app.js 内 | app.js 内 (多视频类型) | 合并为完整集合 |
 | 前端公共函数 | `public/app.js` 开头 | `public/app.js` 开头 | 抽为 `framework.js` |
 
+## 风格与混搭
+
+模板内置两套完整前端/业务变体，新项目用 `setup.sh` 一键组装到 `server/project/`：
+
+```bash
+./setup.sh              # 查看可用风格与组件
+./setup.sh gbmd         # GameBanana mod 下载器风格（搜索列表/下载列表/路径选择/设置向导）
+./setup.sh iwara        # iwara 视频下载器风格（视频列表/播放页/封面缓存）
+./setup.sh reset        # 清空 server/project/ 恢复骨架
+```
+
+### 混搭组件（--with）
+
+两套风格的**前端附加页可跨风格叠加**，后端特有路由/lib 作为参考素材一并加入（同名文件以主风格为准不覆盖）：
+
+```bash
+./setup.sh gbmd --with play        # gbmd 风格 + iwara 播放器（play.html + artplayer.js + 视频路由素材）
+./setup.sh iwara --with setup      # iwara 风格 + gbmd 设置向导（setup.html + path-picker.js + 配套路由素材）
+./setup.sh iwara --with setup,search   # 多组件逗号分隔
+```
+
+| 组件 | 来源 | 内容 |
+|---|---|---|
+| `play` | iwara | 播放页 + artplayer.js + 播放/视频路由素材 |
+| `setup` | gbmd | 设置向导 + 目录选择器 + 配置路由素材 |
+| `video` | iwara | 视频索引/封面/改名功能素材 |
+| `merge` | gbmd | 映射/哈希/合并目录/整理素材 |
+| `search` | iwara | 搜索缓存/iwara-api 素材 |
+
+**混搭边界**：
+- **前端主应用**（`index.html + app.js + style.css`）是整体，二选一不可拆
+- **前端附加页**（play.html/setup.html/path-picker.js/vendor/）可自由跨风格叠加，即插即用
+- **后端路由/lib** 是参考素材：原项目用 `register(api)` 依赖注入，模板用 `createRoute` 接口，需按下方接口改造后挂载
+
 ## 项目迁移步骤
 
-### gbmd 迁移
+### gbmd 迁移（已有项目 → 模板结构）
 
-1. clone dl-server-template
-2. 把 `server/config.js` 的字段搬到 `config.schema.json`
-3. 把 `server/lib/gb-api.js`、`search.js`、`mapping.js` 等搬到 `server/project/lib/`
-4. 把 `server/routes/games.js`、`merge.js` 等搬到 `server/project/routes/`
-5. 写 `server/project/app.js`（require 框架 + 注册路由）
-6. `start.sh` 改 PROJECT_NAME
-7. 测试通过后替换原仓库
+1. `git clone <dl-server-template 地址> gbmd-tmp`（或直接在新仓库目录初始化）
+2. `./setup.sh gbmd`（自动组装前端 + 路由素材 + lib 素材 + config.schema）
+3. 按 `server/project/app.js` 骨架，把 `routes/` 的 `register(api)` 接口改造成 `createRoute` handler（框架接口见上文）
+4. 把业务 lib 的 `require("../config")` 改为从 `ctx.cfg` 取值（框架注入）
+5. `./start.sh start` 验证，通过后替换原仓库
 
 ### iwara 迁移
 
-1. clone dl-server-template
-2. 同上，把 iwara 特有模块搬到 `server/project/`
-3. 写 `server/project/app.js`
-4. 测试通过后替换原仓库
+同上，`./setup.sh iwara` 即可，其余步骤一致。iwara 特有 `play`/`video` 组件已随主风格组装。
+
+### 新项目（从零开始）
+
+1. clone 模板，`./setup.sh <gbmd|iwara>`（或加 `--with` 混搭）
+2. 改 `server/project/app.js` 注册业务路由
+3. 改 README / start.sh PROJECT_NAME
+4. 提交为新仓库
 
 ## 优先级
 
