@@ -1,16 +1,13 @@
-// ============================================================
 // 鉴权框架（通用）
 // 密码 scrypt 哈希存储；登录成功签发随机 session token
 // 存内存 Map + HttpOnly Cookie；可选持久化到磁盘。
-// 来源：从 gbmd/iwara auth.js 提炼共用接口。
-// ============================================================
 "use strict";
 
 const crypto = require("crypto");
 const path = require("path");
 const fs = require("fs");
 
-let SESSION_FILE = null; // 持久化文件路径（init 时设置）
+let SESSION_FILE = null;
 const sessions = new Map(); // token -> { expiresAt, hours, deviceId }
 
 /**
@@ -20,14 +17,13 @@ const sessions = new Map(); // token -> { expiresAt, hours, deviceId }
  */
 function init(opts = {}) {
   SESSION_FILE = opts.sessionFile || null;
-  if (SESSION_FILE) {
-    try {
-      const data = JSON.parse(fs.readFileSync(SESSION_FILE, "utf-8"));
-      for (const [token, info] of Object.entries(data)) {
-        if (info.expiresAt > Date.now()) sessions.set(token, info);
-      }
-    } catch {}
-  }
+  if (!SESSION_FILE) return;
+  try {
+    const data = JSON.parse(fs.readFileSync(SESSION_FILE, "utf-8"));
+    for (const [token, info] of Object.entries(data)) {
+      if (info.expiresAt > Date.now()) sessions.set(token, info);
+    }
+  } catch (_) { /* 文件不存在或损坏，从空会话开始 */ }
 }
 
 function persist() {
@@ -35,7 +31,7 @@ function persist() {
   try {
     fs.mkdirSync(path.dirname(SESSION_FILE), { recursive: true });
     fs.writeFileSync(SESSION_FILE, JSON.stringify(Object.fromEntries(sessions), null, 2));
-  } catch {}
+  } catch (_) { /* 写盘失败不影响内存会话 */ }
 }
 
 function createSession(opts = {}) {
@@ -51,9 +47,9 @@ function createSession(opts = {}) {
 }
 
 function isValidSession(token) {
-  const s = sessions.get(token);
-  if (!s) return false;
-  if (s.expiresAt <= Date.now()) {
+  const session = sessions.get(token);
+  if (!session) return false;
+  if (session.expiresAt <= Date.now()) {
     sessions.delete(token);
     persist();
     return false;
@@ -67,27 +63,24 @@ function destroySession(token) {
 }
 
 function extractToken(req) {
-  // Cookie
   const cookie = req.headers.cookie || "";
-  const m = cookie.match(/(?:^|;\s*)token=([^;]+)/);
-  if (m) return m[1];
-  // Authorization header
-  const auth = req.headers.authorization || "";
-  if (auth.startsWith("Bearer ")) return auth.slice(7);
+  const match = cookie.match(/(?:^|;\s*)token=([^;]+)/);
+  if (match) return match[1];
+  const header = req.headers.authorization || "";
+  if (header.startsWith("Bearer ")) return header.slice(7);
   return null;
 }
 
 function pruneExpired() {
   let count = 0;
-  for (const [token, s] of sessions) {
-    if (s.expiresAt <= Date.now()) { sessions.delete(token); count++; }
+  for (const [token, session] of sessions) {
+    if (session.expiresAt <= Date.now()) { sessions.delete(token); count++; }
   }
   if (count) persist();
   return count;
 }
 
 function loadSessions() {
-  // 兼容旧接口：返回当前会话数
   return sessions.size;
 }
 

@@ -1,10 +1,11 @@
-// 「两边都改 日志功能没有记录时间，也没记录所有前端触发的操作」
+// 日志工具：console 重定向加时间戳
 "use strict";
 
 function stamp() {
-  const d = new Date();
-  const p = (n) => String(n).padStart(2, "0");
-  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate())
+    + " " + pad(now.getHours()) + ":" + pad(now.getMinutes()) + ":" + pad(now.getSeconds());
 }
 
 function install() {
@@ -23,15 +24,4 @@ function install() {
   console.error = wrap(console.error);
 }
 
-function shouldLogApi(method, pathname) {
-  if (!pathname || pathname.indexOf("/api/") !== 0) return false;
-  if (method === "GET" && (pathname === "/api/task" || pathname === "/api/clock" || pathname === "/api/gb-login-status" || pathname === "/api/login-status")) return false;
-  return true;
-}
-
-function apiLine(method, pathname) {
-  console.log("[api] " + method + " " + pathname);
-}
-
-module.exports = { install, shouldLogApi, apiLine, stamp };
-
+module.exports = { install, stamp };
