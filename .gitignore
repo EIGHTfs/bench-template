@@ -12,3 +12,7 @@ server/project/public/
 server/project/routes/
 server/project/lib/
 server/project/config.schema.json
+
+# 安全删除回收站 + setup.sh 备份
+server/templates/.trash-*/
+setup.sh.bak*
