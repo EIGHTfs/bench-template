@@ -122,6 +122,13 @@ fi
 STYLE_DIR="$TEMPLATES_DIR/_${STYLE}-style"
 [ -d "$STYLE_DIR" ] || { err "❌ 模板目录缺失: $STYLE_DIR"; exit 1; }
 
+# 品牌参数（login/setup/topbar 品牌区通用：logo 统一相对路径 brand.png + 标题占位符）
+case "$STYLE" in
+  gbmd)  STYLE_LOGO="logo.png";       STYLE_TITLE="GameBanana Mod Downloader" ;;
+  iwara) STYLE_LOGO="iwara-logo.png"; STYLE_TITLE="iwara-downloader" ;;
+  *)     STYLE_LOGO="logo.png";       STYLE_TITLE="app" ;;
+esac
+
 echo "══ 组装 $STYLE 风格 → $TARGET ══"
 
 # 1. 目标初始化：目录 + 蓝图复制（app.js / config.schema.json 不存在才复制）
@@ -155,13 +162,21 @@ BOOT
   fi
 fi
 
-# 2. 复制共用前端（源自蓝图：_shared/ 已并入 blueprint/，login/theme-init/search-date-range 等
-#    两风格共用的静态文件统一由蓝图提供，不再有独立 _shared/ 目录）
+# 2. 复制共用前端（源自蓝图：_shared/ 已并入 blueprint/，login/setup/theme-init/
+#    search-date-range 等两风格共用的静态文件统一由蓝图提供，不再有独立 _shared/ 目录）
 mkdir -p "$TARGET/public"
 cp -f "$BLUEPRINT_DIR/login.html" "$BLUEPRINT_DIR/login.js" \
+      "$BLUEPRINT_DIR/setup.html" "$BLUEPRINT_DIR/setup-init.js" \
       "$BLUEPRINT_DIR/search-date-range.js" "$BLUEPRINT_DIR/theme-init.js" \
       "$TARGET/public/" 2>/dev/null || true
-echo "  ✓ blueprint/ 共用前端（login/theme-init/search-date-range）→ public/"
+# 品牌 logo：统一相对路径 brand.png（各风格提供自己的 logo 源文件，组装时拷成 brand.png）
+if [ -f "$STYLE_DIR/public/$STYLE_LOGO" ]; then
+  cp -f "$STYLE_DIR/public/$STYLE_LOGO" "$TARGET/public/brand.png"
+  echo "  ✓ 品牌 logo ${STYLE_LOGO} → public/brand.png"
+fi
+# 品牌标题：{{APP_TITLE}} 占位符按风格替换（login.html / setup.html）
+sed -i "s/{{APP_TITLE}}/${STYLE_TITLE}/g" "$TARGET/public/login.html" "$TARGET/public/setup.html" 2>/dev/null || true
+echo "  ✓ blueprint/ 共用前端（login/setup/theme-init/search-date-range）→ public/ + 品牌参数注入"
 
 # 3. 复制风格前端（覆盖共用文件；-r 支持 vendor/ 子目录）
 cp -rf "$STYLE_DIR/public/." "$TARGET/public/"
