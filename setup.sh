@@ -174,9 +174,10 @@ if [ -f "$STYLE_DIR/public/$STYLE_LOGO" ]; then
   cp -f "$STYLE_DIR/public/$STYLE_LOGO" "$TARGET/public/brand.png"
   echo "  ✓ 品牌 logo ${STYLE_LOGO} → public/brand.png"
 fi
-# 品牌标题：{{APP_TITLE}} 占位符按风格替换（login.html / setup.html）
-sed -i "s/{{APP_TITLE}}/${STYLE_TITLE}/g" "$TARGET/public/login.html" "$TARGET/public/setup.html" 2>/dev/null || true
-echo "  ✓ blueprint/ 共用前端（login/setup/theme-init/search-date-range）→ public/ + 品牌参数注入"
+# 品牌配置：brand.json 供组装器 @brand:key 注释指令替换（title/icon/logo）
+printf '{"title":"%s","icon":"%s","logo":"%s"}' "$STYLE_TITLE" "favicon.png" "brand.png" > "$TARGET/public/brand.json"
+echo "  ✓ brand.json（title/icon/logo）→ public/（组装器 @brand 指令替换）"
+echo "  ✓ blueprint/ 共用前端（login/setup/theme-init/search-date-range）→ public/"
 
 # 3. 复制风格前端（覆盖共用文件；-r 支持 vendor/ 子目录）
 cp -rf "$STYLE_DIR/public/." "$TARGET/public/"
