@@ -24,7 +24,12 @@ function sendJson(res, obj, status) {
 }
 
 function readBody(req, limit = BODY_SIZE_LIMIT) {
-  return new Promise((resolve, reject) => {
+  // 已读过（createRoute 预读后 handler 再次调用）直接复用结果：
+  // 请求流只能消费一次，二次读会永远等不到 end 事件导致请求挂死。
+  if (req._bodyCache !== undefined) return Promise.resolve(req._bodyCache);
+  if (req._bodyPromise) return req._bodyPromise;
+
+  req._bodyPromise = new Promise((resolve, reject) => {
     const tmpName = "dl-body-" + process.pid + "-" + Date.now() + "-" + Math.random().toString(RADIX_36).slice(2);
     const tmpPath = path.join(os.tmpdir(), tmpName);
     const ws = fs.createWriteStream(tmpPath);
@@ -69,14 +74,20 @@ function readBody(req, limit = BODY_SIZE_LIMIT) {
         fs.readFile(tmpPath, "utf8", (err, data) => {
           cleanup();
           if (err) return reject(err);
-          try { resolve(data ? JSON.parse(data) : {}); }
-          catch (_) { reject(new Error("无效的 JSON")); }
+          try {
+            const parsed = data ? JSON.parse(data) : {};
+            req._bodyCache = parsed;
+            resolve(parsed);
+          } catch (_) {
+            reject(new Error("无效的 JSON"));
+          }
         });
       });
     });
 
     req.on("error", fail);
   });
+  return req._bodyPromise;
 }
 
 function parseCredentialText(text) {

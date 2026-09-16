@@ -43,8 +43,18 @@ function createRoute(handlers) {
       await parseBody(req);
       req.params = match.groups || {};
 
+      // 请求上下文：query / pathname / params / url（handler 第三参数直接取用）
+      const reqCtx = Object.assign({}, ctx, {
+        query: (url && url.query) || {},
+        pathname: pathname,
+        params: req.params,
+        url: url,
+        req: req,
+        res: res,
+      });
+
       try {
-        await entry.fn(req, res, ctx);
+        await entry.fn(req, res, reqCtx);
       } catch (err) {
         console.error("[route] " + method + " " + pathname + " error:", err.message);
         sendJson(res, { ok: false, error: err.message || "内部错误" }, 500);

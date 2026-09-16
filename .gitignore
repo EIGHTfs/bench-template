@@ -14,3 +14,7 @@ server/project/*
 # 安全删除回收站 + setup.sh 备份
 server/templates/.trash-*/
 setup.sh.bak*
+
+# Python 缓存
+__pycache__/
+*.pyc

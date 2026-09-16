@@ -8,15 +8,19 @@ const path = require("path");
 const fs = require("fs");
 
 let SESSION_FILE = null;
+let COOKIE_NAME = "token";   // 会话 cookie 名（init 可覆盖，兼容旧项目用 session）
+let cleanupTimer = null;
 const sessions = new Map(); // token -> { expiresAt, hours, deviceId }
 
 /**
  * 初始化鉴权模块。
  * @param {object} opts
  * @param {string} [opts.sessionFile] 持久化文件路径（不传则纯内存）
+ * @param {string} [opts.cookieName]  会话 cookie 名（默认 token）
  */
 function init(opts = {}) {
   SESSION_FILE = opts.sessionFile || null;
+  if (opts.cookieName) COOKIE_NAME = opts.cookieName;
   if (!SESSION_FILE) return;
   try {
     const data = JSON.parse(fs.readFileSync(SESSION_FILE, "utf-8"));
@@ -64,11 +68,33 @@ function destroySession(token) {
 
 function extractToken(req) {
   const cookie = req.headers.cookie || "";
-  const match = cookie.match(/(?:^|;\s*)token=([^;]+)/);
+  const re = new RegExp("(?:^|;\\s*)" + COOKIE_NAME.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "=([^;]+)");
+  const match = cookie.match(re);
   if (match) return match[1];
   const header = req.headers.authorization || "";
   if (header.startsWith("Bearer ")) return header.slice(7);
   return null;
+}
+
+/** 定时清理过期会话（unref 不阻止进程退出）；intervalMs 默认 1 小时 */
+function startCleanup(intervalMs) {
+  if (cleanupTimer) clearInterval(cleanupTimer);
+  const ms = intervalMs || 3600 * 1000;
+  cleanupTimer = setInterval(() => { pruneExpired(); }, ms);
+  if (cleanupTimer.unref) cleanupTimer.unref();
+  return cleanupTimer;
+}
+
+function stopCleanup() {
+  if (cleanupTimer) {
+    clearInterval(cleanupTimer);
+    cleanupTimer = null;
+  }
+}
+
+/** 会话 cookie 名（当前生效值） */
+function cookieName() {
+  return COOKIE_NAME;
 }
 
 function pruneExpired() {
@@ -84,4 +110,7 @@ function loadSessions() {
   return sessions.size;
 }
 
-module.exports = { init, createSession, isValidSession, destroySession, extractToken, pruneExpired, loadSessions };
+module.exports = {
+  init, createSession, isValidSession, destroySession, extractToken,
+  pruneExpired, loadSessions, startCleanup, stopCleanup, cookieName,
+};

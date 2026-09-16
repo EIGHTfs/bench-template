@@ -45,7 +45,7 @@ function isWhitelisted(pathname, whitelist) {
   return false;
 }
 
-function serveStaticFile(res, publicDir, pathname, mime) {
+function serveStaticFile(res, publicDir, pathname, mime, transformHtml) {
   let filePath = path.join(publicDir, pathname);
   if (pathname.endsWith("/")) filePath = path.join(filePath, "index.html");
   if (!filePath.startsWith(publicDir)) return false;
@@ -53,7 +53,12 @@ function serveStaticFile(res, publicDir, pathname, mime) {
   try {
     if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) return false;
     const ext = path.extname(filePath).toLowerCase();
-    const content = fs.readFileSync(filePath);
+    let content = fs.readFileSync(filePath);
+    // HTML 二次处理钩子（资源版本注入等），返回字符串或 Buffer
+    if (ext === ".html" && typeof transformHtml === "function") {
+      const out = transformHtml(content.toString("utf8"), pathname);
+      if (out != null) content = Buffer.from(out);
+    }
     const cacheControl = ext === ".html" ? "no-cache" : "public, max-age=" + CACHE_MAX_AGE;
     res.writeHead(200, {
       "Content-Type": mime[ext] || "application/octet-stream",
@@ -65,10 +70,14 @@ function serveStaticFile(res, publicDir, pathname, mime) {
   } catch (_) { return false; }
 }
 
-function dispatchAuth(req, res, pathname, auth, loginPath) {
+function dispatchAuth(req, res, pathname, auth, loginPath, extraPaths, needsSetup) {
   const hasExt = path.extname(pathname);
   if (hasExt) return true; // 静态资源不鉴权
-  if (isWhitelisted(pathname, [loginPath, "/api/auth/"])) return true;
+  // 未设置密码（首次初始化阶段）：不做鉴权，允许设置密码/进入页面
+  if (typeof needsSetup === "function" && needsSetup()) return true;
+
+  const whitelist = [loginPath, "/api/auth/"].concat(extraPaths || []);
+  if (isWhitelisted(pathname, whitelist)) return true;
 
   const token = auth.extractToken(req);
   if (token && auth.isValidSession(token)) return true;
@@ -96,18 +105,26 @@ async function dispatchRoutes(req, res, url, pathname, routes, ctx) {
 /**
  * 创建 HTTP 服务。
  * @param {object} opts
- * @param {object}   opts.config       - 配置管理器
- * @param {object}   opts.auth         - 鉴权模块
- * @param {string}   opts.publicDir    - 静态文件目录
- * @param {Array}    opts.routes       - 路由列表 [{ prefix, handler }]
- * @param {string}   [opts.loginPath]  - 登录页路径
- * @param {object}   [opts.extraMime]  - 额外 MIME
- * @param {function} [opts.onReady]    - 启动回调
+ * @param {object}   opts.config         - 配置管理器
+ * @param {object}   opts.auth           - 鉴权模块
+ * @param {string}   opts.publicDir      - 静态文件目录
+ * @param {Array}    opts.routes         - 路由列表 [{ prefix, handler }]
+ * @param {Array}    [opts.publicRoutes] - 认证前放行的路径前缀（如 /api/status）
+ * @param {string}   [opts.loginPath]    - 登录页路径
+ * @param {object}   [opts.extraMime]    - 额外 MIME
+ * @param {function} [opts.transformHtml]- HTML 二次处理 (html, pathname) => string
+ * @param {function} [opts.needsSetup]   - 返回 true 时未配置密码：页面请求重定向到
+ *                                         opts.setupPath（默认 /setup.html）
+ * @param {string}   [opts.setupPath]    - 首次设置页路径
+ * @param {string}   [opts.port]         - 覆盖监听端口（缺省读 config.port）
+ * @param {function} [opts.onReady]      - 启动回调 (port)
  */
 function createServer(opts) {
   const {
     config, auth, publicDir, routes = [],
-    loginPath = "/login.html", extraMime = {}, onReady,
+    publicRoutes = [], loginPath = "/login.html", extraMime = {},
+    transformHtml, needsSetup, setupPath = "/setup.html",
+    port: portOpt, onReady,
   } = opts;
 
   const mime = { ...DEFAULT_MIME, ...extraMime };
@@ -116,17 +133,28 @@ function createServer(opts) {
     const url = urlMod.parse(req.url, true);
     const pathname = decodeURIComponent(url.pathname);
 
-    if (!dispatchAuth(req, res, pathname, auth, loginPath)) return;
+    // 未设置密码：页面请求先导向首次设置页（先于鉴权门，否则会被重定向到登录页死循环）
+    if (typeof needsSetup === "function" && needsSetup() && !pathname.startsWith("/api/")) {
+      if (pathname === "/" || pathname === "/index.html" || pathname === setupPath) {
+        if (serveStaticFile(res, publicDir, setupPath, mime, transformHtml)) return;
+      }
+    }
+
+    if (!dispatchAuth(req, res, pathname, auth, loginPath, publicRoutes, needsSetup)) return;
 
     const ctx = { cfg: config, auth, sendJson };
     if (await dispatchRoutes(req, res, url, pathname, routes, ctx)) return;
-    if (serveStaticFile(res, publicDir, pathname, mime)) return;
+    if (serveStaticFile(res, publicDir, pathname, mime, transformHtml)) return;
 
     sendJson(res, { error: "未找到" }, 404);
   }
 
   const server = http.createServer(handleRequest);
-  const port = config.get("port") || DEFAULT_PORT;
+  // 端口解析：显式 port > config.get(key)（createConfig 风格）> config.readConfig()[key]（项目自研风格）
+  const cfgPort = typeof config.get === "function"
+    ? config.get("port")
+    : (typeof config.readConfig === "function" ? (config.readConfig() || {}).port : null);
+  const port = portOpt || cfgPort || process.env.PORT || DEFAULT_PORT;
 
   server.listen(port, () => {
     console.log("服务启动: http://localhost:" + port);

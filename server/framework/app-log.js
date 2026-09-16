@@ -24,4 +24,24 @@ function install() {
   console.error = wrap(console.error);
 }
 
-module.exports = { install, stamp };
+// API 访问日志过滤：高频轮询端点不打日志（避免刷屏），其余 /api/* 记一行。
+// 轮询端点可通过 install({ quietApis: [...] }) 增补。
+const DEFAULT_QUIET_APIS = [
+  "/api/task",
+  "/api/clock",
+  "/api/login-status",
+  "/api/gb-login-status",
+];
+let _quietApis = DEFAULT_QUIET_APIS.slice();
+
+function shouldLogApi(method, pathname) {
+  if (!pathname || pathname.indexOf("/api/") !== 0) return false;
+  if (method === "GET" && _quietApis.indexOf(pathname) >= 0) return false;
+  return true;
+}
+
+function apiLine(method, pathname) {
+  console.log("[api] " + method + " " + pathname);
+}
+
+module.exports = { install, stamp, shouldLogApi, apiLine, DEFAULT_QUIET_APIS };
