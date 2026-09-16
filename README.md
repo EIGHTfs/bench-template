@@ -184,15 +184,33 @@ createServer({
 | `git` | 定时 `git pull` → 有变更则重启 | 项目有 `.git` |
 | `github` | 定时查 GitHub 最新 commit → 拉 tarball 应用 → 重启 | 配 `githubRepo`；私有仓库才需 `githubToken` |
 
-**github 模式保护**：`server/config.json`、`json/` 运行态数据、`*.log`、`*.pid`、`.bak`、`node_modules` 等不会被覆盖；项目特有运行态文件用 `extraExclude` 追加：
+**github 模式保护**：`server/config.json`、`json/` 运行态数据、`*.log`、`*.pid`、`.bak`、`node_modules` 等不会被覆盖；项目特有运行态文件用 `extraExclude` 追加。
+
+**项目侧只写传参，不复制框架代码**——`server/lib/auto-update.js` 从 framework 引入工厂后传项目参数：
 
 ```js
-const autoUpdate = createAutoUpdate({
+// server/lib/auto-update.js（项目实例，约 20 行）
+const { createAutoUpdate } = require("../framework/auto-update.js");
+
+module.exports = createAutoUpdate({
   projectName: "my-downloader",       // 日志前缀 + User-Agent
   defaultRepo: "owner/my-downloader", // github 模式缺省仓库
-  extraExclude: ["json/my-data.json"],// 绝不覆盖的运行态文件
+  extraExclude: ["json/my-data.json"], // github 模式绝不覆盖的运行态文件
+  // watch 模式不重启的路径（前端框架文件改由组装器热更新）
+  extraWatchExclude: ["index.html", "public/index.html", "style.css", "public/style.css"],
+  // tarball 解压后需恢复可执行位的脚本
+  extraChmodScripts: ["crx/native-host/install-linux.sh"],
 });
 ```
+
+两个参数的区别：
+
+| 参数 | 作用范围 | 用途 |
+|---|---|---|
+| `extraExclude` | **github 模式** | 列出的路径**绝不覆盖**（运行态数据、本机权威配置） |
+| `extraWatchExclude` | **watch 模式** | 列出的路径**改动不触发重启**（前端框架/片段，由组装器 mtime 热更新） |
+
+框架实现只有一份（`framework/auto-update.js`），改框架代码全部项目受益；项目侧别再拷贝框架主体。
 
 重启走 `./start.sh restart`（项目唯一启停入口）。
 
