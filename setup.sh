@@ -162,6 +162,25 @@ echo "  ✓ _shared/ → public/"
 cp -rf "$STYLE_DIR/public/." "$TARGET/public/"
 echo "  ✓ _${STYLE}-style/public/ → public/"
 
+# 3b. 前端片段组装（蓝图框架 + 通用分片 + 风格特有分片）
+#     框架 index.html 含 <!-- @frag:片段名 --> 指令，运行期由 framework 组装器替换插入
+FRAMEWORK_SRC="$BLUEPRINT_DIR/index.html/downloader/index.html"
+if [ -f "$FRAMEWORK_SRC" ]; then
+  mkdir -p "$TARGET/public"
+  cp -f "$FRAMEWORK_SRC" "$TARGET/public/index.html"
+  echo "  ✓ 蓝图框架 → public/index.html"
+fi
+if [ -d "$BLUEPRINT_DIR/fragments" ]; then
+  mkdir -p "$TARGET/public/fragments"
+  cp -f "$BLUEPRINT_DIR/fragments/"*.html "$TARGET/public/fragments/" 2>/dev/null || true
+  echo "  ✓ blueprint/fragments/ → public/fragments/（通用分片）"
+fi
+if [ -d "$STYLE_DIR/fragments" ]; then
+  mkdir -p "$TARGET/public/fragments"
+  cp -rf "$STYLE_DIR/fragments/." "$TARGET/public/fragments/"
+  echo "  ✓ _${STYLE}-style/fragments/ → public/fragments/（特有分片）"
+fi
+
 # 4. 混搭组件叠加（同名不覆盖，以主风格为准；只叠加前端）
 if [ -n "$WITH" ]; then
   echo ""

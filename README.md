@@ -200,11 +200,19 @@ const autoUpdate = createAutoUpdate({
 
 ## 前端部件组织
 
-每个风格一个 `public/` 目录：
+主页面由「蓝图框架 + 片段」组装而成（运行期由 framework 组装器按注释指令拼接）：
+
+| 位置 | 内容 |
+|---|---|
+| `blueprint/index.html/downloader/index.html` | **共同框架**：页面骨架 + `<!-- @frag:片段名 -->` 注释指令（两个风格共用，唯一权威） |
+| `blueprint/fragments/` | **通用分片**：两风格逐字相同的块（`tabs` / `no-pwd-warn` / `global-hud` / `browse-mask` / `topbar` 骨架） |
+| `templates/_gbmd-style/fragments/` | **gbmd 特有分片**：`head-extra` / `topbar/{brand,badge,time,userscript}` / `tab-panel/panel-*` / `scripts` |
+| `templates/_iwara-style/fragments/` | iwara 特有分片（迁移中） |
+
+各风格仍带 `public/` 目录放非分片部件：
 
 | 部件 | 说明 |
 |---|---|
-| `index.html` | 主页面 |
 | `app.js` | 主应用逻辑（外部文件，避免内联 XSS） |
 | `style.css` | 样式（CSS 变量） |
 | `theme-init.js` | 主题初始化（独立 script） |
@@ -212,12 +220,29 @@ const autoUpdate = createAutoUpdate({
 | `setup.html` / `setup-init.js` / `path-picker.js` | 设置向导（gbmd 风格） |
 | `play.html` / `play-app.js` / `vendor/` | 播放页（iwara 风格） |
 
+**片段指令约定**：框架里写 `<!-- @frag:片段名 -->`（可不带 `.html` 后缀；子目录写 `topbar/brand`），
+片段内可再嵌 `@frag` 指令（递归展开，深度上限 8）。片段路径相对片段根目录（目标 `public/fragments/`）。
+
 **HTML 部件约定**：JS 一律外部文件（`<script src="x.js"></script>`），不写内联 `<script>` 代码——内联代码在 XSS 抽取改造时容易残留裸 JS 文本被浏览器当页面内容渲染。仓库提供自检脚本：
 
 ```bash
 node scripts/scan-bare-js-html.js server/templates        # 扫描裸 JS 残留
 python3 scripts/fix-bare-js-html.py                       # 修复（含 .bak 备份）
 ```
+
+**组装后目录**（目标 `public/`）：
+
+```
+public/
+  index.html          ← 蓝图框架（含 @frag 指令，不是完整页面）
+  fragments/          ← 通用分片 + 特有分片合并后的片段根
+    topbar.html       ← 统一 topbar 骨架（含 topbar/* 子指令）
+    topbar/brand.html ← 各风格品牌区（三行换行标题）
+    tabs.html         ← 通用
+    tab-panel/panel-*.html
+```
+
+改任一片段 → 刷新页面即生效（mtime 热更新，不重启服务）；改框架文件同理。
 
 ---
 
@@ -278,10 +303,16 @@ dl-server-template/
 │   │   └── index.js               # 统一出口
 │   ├── templates/                 # 前端素材
 │   │   ├── _shared/               # 共用部件（login / theme-init）
-│   │   ├── _gbmd-style/public/    # gbmd 风格部件
+│   │   ├── _gbmd-style/
+│   │   │   ├── public/            # gbmd 非分片部件（app.js / style.css 等）
+│   │   │   └── fragments/         # gbmd 特有分片（topbar/ tab-panel/ 等）
 │   │   └── _iwara-style/public/   # iwara 风格部件
 │   └── project/
-│       └── blueprint/             # 组装蓝图（app.js + config.schema.json，入库）
+│       └── blueprint/             # 组装蓝图（入库）
+│           ├── app.js             # 项目入口骨架
+│           ├── config.schema.json # 配置 schema
+│           ├── index.html/downloader/index.html   # 共同框架（@frag 指令）
+│           └── fragments/         # 通用分片（tabs / topbar 骨架 等）
 ├── scripts/
 │   ├── sync-to-project.sh         # 素材同步到项目
 │   ├── scan-bare-js-html.js       # 裸 JS 残留扫描
