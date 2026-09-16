@@ -33,7 +33,7 @@ TARGETS = [
     "/vol2/1000/DeepSeek Harness/dsh-v0.1.2-alpha.4/.dsh-home/工作区/dl-server-template/server/templates/_gbmd-style/public/setup.html",
     "/vol2/1000/DeepSeek Harness/dsh-v0.1.2-alpha.4/.dsh-home/工作区/dl-server-template/server/templates/_iwara-style/public/index.html",
     "/vol2/1000/DeepSeek Harness/dsh-v0.1.2-alpha.4/.dsh-home/工作区/dl-server-template/server/templates/_iwara-style/public/play.html",
-    "/vol2/1000/DeepSeek Harness/dsh-v0.1.2-alpha.4/.dsh-home/工作区/dl-server-template/server/templates/_shared/login.html",
+    "/vol2/1000/DeepSeek Harness/dsh-v0.1.2-alpha.4/.dsh-home/工作区/dl-server-template/server/project/blueprint/login.html",
 ]
 
 

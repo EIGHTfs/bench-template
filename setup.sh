@@ -21,10 +21,11 @@
 # 原理：
 #   server/framework/            ← 通用 JS（两个风格共用，直接引用）
 #   server/templates/            ← 前端素材（只读，不改）
-#     _shared/                   ← 两端共用的前端文件
-#     _gbmd-style/public/        ← gbmd 前端（HTML 部件）
-#     _iwara-style/public/       ← iwara 前端（HTML 部件）
-#   server/project/blueprint/    ← 组装蓝图（app.js / config.schema.json 骨架，入库）
+#     _gbmd-style/public/        ← gbmd 前端（非分片部件）
+#     _iwara-style/public/       ← iwara 前端（非分片部件）
+#   server/project/blueprint/    ← 组装蓝图（共用框架/分片/静态资源 + app.js 骨架，入库）：
+#                                  login.html/login.js、theme-init.js、search-date-range.js
+#                                  等两风格共用文件也从这里拷（_shared/ 已并入 blueprint/）
 #   server/project/              ← 缺省组装目标（生成物，不入库）
 #
 # 后端 JS 不在模板：通用 JS 在 framework/（createServer/createRoute 接口），
@@ -154,9 +155,13 @@ BOOT
   fi
 fi
 
-# 2. 复制共用前端
-cp -f "$TEMPLATES_DIR/_shared/"* "$TARGET/public/" 2>/dev/null || true
-echo "  ✓ _shared/ → public/"
+# 2. 复制共用前端（源自蓝图：_shared/ 已并入 blueprint/，login/theme-init/search-date-range 等
+#    两风格共用的静态文件统一由蓝图提供，不再有独立 _shared/ 目录）
+mkdir -p "$TARGET/public"
+cp -f "$BLUEPRINT_DIR/login.html" "$BLUEPRINT_DIR/login.js" \
+      "$BLUEPRINT_DIR/search-date-range.js" "$BLUEPRINT_DIR/theme-init.js" \
+      "$TARGET/public/" 2>/dev/null || true
+echo "  ✓ blueprint/ 共用前端（login/theme-init/search-date-range）→ public/"
 
 # 3. 复制风格前端（覆盖共用文件；-r 支持 vendor/ 子目录）
 cp -rf "$STYLE_DIR/public/." "$TARGET/public/"

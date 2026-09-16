@@ -50,8 +50,8 @@ cd .. && ./start.sh start
 | 概念 | 位置 | 说明 |
 |---|---|---|
 | **framework** | `server/framework/` | 通用后端 JS（HTTP 服务/鉴权/配置/路由工厂/备份/自动更新）。两个风格共用，改它两个项目同时受益 |
-| **templates** | `server/templates/` | 前端素材：`_shared/`（两端共用）+ `_gbmd-style/public/` + `_iwara-style/public/`（各风格 HTML 部件） |
-| **blueprint** | `server/project/blueprint/` | 组装蓝图：`app.js`（项目入口骨架）+ `config.schema.json`。组装时目标没有就从这里复制 |
+| **templates** | `server/templates/` | 前端素材：`_gbmd-style/`（gbmd 风格）+ `_iwara-style/`（iwara 风格），每个风格含 `public/`（非分片部件）+ `fragments/`（特有分片） |
+| **blueprint** | `server/project/blueprint/` | 组装蓝图：共用框架/分片/静态资源 + `app.js`（入口骨架）+ `config.schema.json`。两风格共用文件（login、theme-init、search-date-range）在这里；组装时目标没有就从这里复制 |
 | **组装产物** | `server/public/`、`server/app.js`、`server/config.schema.json` | 由 setup.sh 生成，**不入库**，可反复重装 |
 
 后端业务代码（`server/routes/`、`server/lib/`）由项目自己实现，**不在模板仓库**。
@@ -79,7 +79,7 @@ cd .. && ./start.sh start
 ./setup.sh iwara --with play,search    # iwara 风格 + 混搭组件
 ```
 
-组装逻辑：`_shared/` → 复制进目标 `public/` → 风格部件覆盖同名 → `--with` 组件从另一风格叠加（同名不覆盖，以主风格为准）。
+组装逻辑：蓝图共用前端（login/theme-init/search-date-range）→ 复制进目标 `public/` → 风格部件覆盖同名 → 蓝图框架与分片（HTML/CSS @frag）→ `public/` → `--with` 组件从另一风格叠加（同名不覆盖，以主风格为准）。
 
 ### 混搭组件（`--with`）
 
@@ -234,7 +234,7 @@ module.exports = createAutoUpdate({
 | `app.js` | 主应用逻辑（外部文件，避免内联 XSS） |
 | `style.css` | 样式（CSS 变量） |
 | `theme-init.js` | 主题初始化（独立 script） |
-| `login.html` / `login.js` | 登录页（`_shared/` 共用） |
+| `login.html` / `login.js` | 登录页（蓝图共用） |
 | `setup.html` / `setup-init.js` / `path-picker.js` | 设置向导（gbmd 风格） |
 | `play.html` / `play-app.js` / `vendor/` | 播放页（iwara 风格） |
 
@@ -320,17 +320,18 @@ dl-server-template/
 │   │   ├── cjs-bootstrap.cjs      # CJS 强制引导
 │   │   └── index.js               # 统一出口
 │   ├── templates/                 # 前端素材
-│   │   ├── _shared/               # 共用部件（login / theme-init）
 │   │   ├── _gbmd-style/
 │   │   │   ├── public/            # gbmd 非分片部件（app.js / style.css 等）
-│   │   │   └── fragments/         # gbmd 特有分片（topbar/ tab-panel/ 等）
+│   │   │   └── fragments/         # gbmd 特有分片（topbar/ tab-panel/ styles/ 等）
 │   │   └── _iwara-style/public/   # iwara 风格部件
 │   └── project/
-│       └── blueprint/             # 组装蓝图（入库）
+│       └── blueprint/             # 组装蓝图（入库；两风格共用文件都在这里，无独立 _shared/）
 │           ├── app.js             # 项目入口骨架
 │           ├── config.schema.json # 配置 schema
+│           ├── style.css          # CSS 框架（/* @frag:styles/xxx.css */ 指令）
+│           ├── login.html / login.js / theme-init.js / search-date-range.js  # 共用静态资源
 │           ├── index.html/downloader/index.html   # 共同框架（@frag 指令）
-│           └── fragments/         # 通用分片（tabs / topbar 骨架 等）
+│           └── fragments/         # 通用分片（tabs / topbar 骨架 / styles/ 等）
 ├── scripts/
 │   ├── sync-to-project.sh         # 素材同步到项目
 │   ├── scan-bare-js-html.js       # 裸 JS 残留扫描
