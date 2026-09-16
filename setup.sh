@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
 # ============================================================
-# 模板组装脚本：按风格生成 server/project/，只组装前端 public
+# 模板组装脚本：把前端部件组装到目标 server/ 目录
 #
 # 用法：
-#   ./setup.sh                              # 查看可用风格与组件
-#   ./setup.sh gbmd                         # 组装 gbmd 风格 → server/project/
-#   ./setup.sh iwara                        # 组装 iwara 风格 → server/project/
-#   ./setup.sh gbmd --with play             # gbmd 风格 + iwara 播放组件（混搭）
-#   ./setup.sh iwara --with setup,search    # iwara 风格 + gbmd 设置向导等组件
-#   ./setup.sh reset                        # 清空 server/project/ 恢复纯净骨架
+#   ./setup.sh <gbmd|iwara> [--to <目标server目录>] [--with <组件,...>]
 #
-# 组件（从另一风格叠加前端，同名文件以主风格为准不覆盖）：
+# 目标说明（--to）：
+#   - 省略 --to：组装到模板仓库自身 server/project/（测试/参考用）
+#   - --to /path/to/project/server：组装到旧项目（gamebanana-mods-downloader /
+#     iwara-downloader 等），把前端部件写进对方的 server/public/
+#   - 目标 server/ 没有 app.js / config.schema.json 时，从 blueprint/ 复制初始化
+#
+# 组件（--with，从另一风格叠加前端，同名以主风格为准）：
 #   play   = iwara 播放页（play.html + play-app.js + vendor/artplayer.js）
 #   setup  = gbmd 设置向导（setup.html + setup-init.js + path-picker.js）
 #   video  = iwara 视频功能（video 相关前端）
@@ -18,21 +19,30 @@
 #   search = 从另一风格叠加搜索（search-date-range.js）
 #
 # 原理：
-#   server/framework/            ← 通用 JS（共用，两个风格都引用）
+#   server/framework/            ← 通用 JS（两个风格共用，直接引用）
 #   server/templates/            ← 前端素材（只读，不改）
 #     _shared/                   ← 两端共用的前端文件
-#     _gbmd-style/public/        ← gbmd 前端（HTML 部件组装）
-#     _iwara-style/public/       ← iwara 前端（HTML 部件组装）
-#   server/project/              ← 组装目标（前端生成物，可反复重装）
+#     _gbmd-style/public/        ← gbmd 前端（HTML 部件）
+#     _iwara-style/public/       ← iwara 前端（HTML 部件）
+#   server/project/blueprint/    ← 组装蓝图（app.js / config.schema.json 骨架，入库）
+#   server/project/              ← 缺省组装目标（生成物，不入库）
 #
-# 后端 JS 不在模板：特有 JS 在各自旧项目（gamebanana-mods-downloader /
-#   iwara-downloader），模板只负责前端组装。
+# 后端 JS 不在模板：通用 JS 在 framework/（createServer/createRoute 接口），
+#   业务后端 JS 在旧项目/新项目自己实现。
 # ============================================================
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TEMPLATES_DIR="$ROOT/server/templates"
-PROJECT_DIR="$ROOT/server/project"
+
+# 素材路径自动探测（两种布局都能跑）：
+#   - 模板仓库：<root>/server/templates + <root>/server/project/blueprint
+#   - 已同步素材的项目（scripts/sync-to-project.sh）：<root>/templates + <root>/project/blueprint
+detect_dir() {
+  if [ -d "$1" ]; then echo "$1"; elif [ -d "$2" ]; then echo "$2"; else echo "$1"; fi
+}
+TEMPLATES_DIR="$(detect_dir "$ROOT/server/templates" "$ROOT/templates")"
+BLUEPRINT_DIR="$(detect_dir "$ROOT/server/project/blueprint" "$ROOT/project/blueprint")"
+if [ -d "$ROOT/server" ]; then DEFAULT_TARGET="$ROOT/server/project"; else DEFAULT_TARGET="$ROOT/project"; fi
 
 # ---------- 颜色 ----------
 C_GREEN="" C_YELLOW="" C_RED="" C_DIM="" C_RESET=""
@@ -47,7 +57,6 @@ err()  { printf '%s%s%s\n' "$C_RED" "$*" "$C_RESET"; }
 STYLES="gbmd iwara"
 
 # 组件定义：每个组件 = 来源风格 + 前端文件列表
-# 键名即组件名，值格式: 来源风格|前端文件列表
 declare -A COMPONENTS
 COMPONENTS[play]="iwara|play.html,play-app.js,vendor/artplayer.js,vendor/NOTICE.md,iwara-logo.png"
 COMPONENTS[setup]="gbmd|setup.html,setup-init.js,path-picker.js,logo.png"
@@ -55,15 +64,22 @@ COMPONENTS[video]="iwara|"
 COMPONENTS[merge]="gbmd|"
 COMPONENTS[search]="iwara|search-date-range.js"
 
-if [ $# -eq 0 ]; then
+usage() {
+  echo "用法:"
+  echo "  ./setup.sh <gbmd|iwara> [--to <目标server目录>] [--with <组件,...>]"
+  echo "  ./setup.sh --list                          # 查看风格与组件"
+  echo ""
+  echo "示例:"
+  echo "  ./setup.sh gbmd                            # 组装到 server/project/（缺省）"
+  echo "  ./setup.sh gbmd --to /path/to/proj/server  # 组装到旧项目 server/"
+  echo "  ./setup.sh iwara --to ../iwara-downloader/server --with play"
+}
+
+if [ $# -eq 0 ] || [ "$1" = "--list" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+  usage
+  echo ""
   echo "可用风格: $STYLES"
   echo "可用组件: ${!COMPONENTS[@]}"
-  echo ""
-  echo "用法:"
-  echo "  ./setup.sh <风格>                    # 纯风格"
-  echo "  ./setup.sh <风格> --with <组件,...>  # 风格 + 混搭组件"
-  echo "  ./setup.sh reset                     # 清空恢复骨架"
-  echo ""
   echo "组件说明:"
   for k in $(echo "${!COMPONENTS[@]}" | tr ' ' '\n' | sort); do
     case "$k" in
@@ -80,20 +96,17 @@ fi
 STYLE="$1"
 shift
 
-# 解析 --with 组件
+# 解析参数
+TARGET="$DEFAULT_TARGET"
 WITH=""
 while [ $# -gt 0 ]; do
   case "$1" in
+    --to) TARGET="${2:-}"; [ -n "$TARGET" ] || { err "❌ --to 需要路径参数"; exit 1; }; shift 2 ;;
     --with) WITH="${2:-}"; shift 2 ;;
+    -*) shift ;;
     *) shift ;;
   esac
 done
-
-if [ "$STYLE" = "reset" ]; then
-  rm -rf "$PROJECT_DIR/public"
-  ok "✓ server/project/ 已清空（保留 app.js 骨架，重新 setup 即可）"
-  exit 0
-fi
 
 # 校验风格
 FOUND=0
@@ -108,18 +121,45 @@ fi
 STYLE_DIR="$TEMPLATES_DIR/_${STYLE}-style"
 [ -d "$STYLE_DIR" ] || { err "❌ 模板目录缺失: $STYLE_DIR"; exit 1; }
 
-echo "══ 组装 $STYLE 风格 ══"
+echo "══ 组装 $STYLE 风格 → $TARGET ══"
 
-# 1. 清掉旧生成物（保留 app.js 骨架）
-rm -rf "$PROJECT_DIR/public"
+# 1. 目标初始化：目录 + 蓝图复制（app.js / config.schema.json 不存在才复制）
+mkdir -p "$TARGET/public"
+for f in app.js config.schema.json; do
+  if [ ! -f "$TARGET/$f" ] && [ -f "$BLUEPRINT_DIR/$f" ]; then
+    cp "$BLUEPRINT_DIR/$f" "$TARGET/$f"
+    echo "  ✓ blueprint/$f → 目标（初始化）"
+  fi
+done
+
+# 1b. CJS 启动器（父目录 "type":"module" 时必需；不写本地 package.json）
+#     boot.cjs 加载 lib/cjs-bootstrap.cjs（只劫持本项目根内的 .js）
+if [ ! -f "$TARGET/boot.cjs" ]; then
+  BOOTSTRAP_SRC=""
+  for c in "$TARGET/framework/cjs-bootstrap.cjs" "$TEMPLATES_DIR/../framework/cjs-bootstrap.cjs"; do
+    [ -f "$c" ] && BOOTSTRAP_SRC="$c" && break
+  done
+  if [ -n "$BOOTSTRAP_SRC" ]; then
+    mkdir -p "$TARGET/lib"
+    cp "$BOOTSTRAP_SRC" "$TARGET/lib/cjs-bootstrap.cjs"
+    cat > "$TARGET/boot.cjs" <<'BOOT'
+// 零依赖启动器：强制本项目 .js 按 CommonJS 加载。
+// 父目录 package.json 为 "type":"module" 时，直接 node app.js 会被当 ESM 导致 require 失败。
+// .cjs 永远是 CJS；只劫持本项目根内的 .js，项目外仍走 Node 原逻辑。
+"use strict";
+require("./lib/cjs-bootstrap.cjs");
+require("./app.js");
+BOOT
+    echo "  ✓ boot.cjs + lib/cjs-bootstrap.cjs → 目标（CJS 启动器）"
+  fi
+fi
 
 # 2. 复制共用前端
-mkdir -p "$PROJECT_DIR/public"
-cp -f "$TEMPLATES_DIR/_shared/"* "$PROJECT_DIR/public/" 2>/dev/null || true
+cp -f "$TEMPLATES_DIR/_shared/"* "$TARGET/public/" 2>/dev/null || true
 echo "  ✓ _shared/ → public/"
 
 # 3. 复制风格前端（覆盖共用文件；-r 支持 vendor/ 子目录）
-cp -rf "$STYLE_DIR/public/." "$PROJECT_DIR/public/"
+cp -rf "$STYLE_DIR/public/." "$TARGET/public/"
 echo "  ✓ _${STYLE}-style/public/ → public/"
 
 # 4. 混搭组件叠加（同名不覆盖，以主风格为准；只叠加前端）
@@ -138,12 +178,11 @@ if [ -n "$WITH" ]; then
     IFS='|' read -r src_style pub_files <<< "${COMPONENTS[$comp]}"
     SRC_DIR="$TEMPLATES_DIR/_${src_style}-style"
     echo "  ▶ $comp（来源 $_${src_style}-style）"
-    # 前端文件
     if [ -n "$pub_files" ]; then
       IFS=','; for f in $pub_files; do
         if [ -f "$SRC_DIR/public/$f" ]; then
-          mkdir -p "$PROJECT_DIR/public/$(dirname "$f")"
-          cp -f "$SRC_DIR/public/$f" "$PROJECT_DIR/public/$f"
+          mkdir -p "$TARGET/public/$(dirname "$f")"
+          cp -f "$SRC_DIR/public/$f" "$TARGET/public/$f"
           echo "      public/$f"
         fi
       done; IFS='|'
@@ -155,10 +194,11 @@ fi
 
 echo ""
 ok "✅ $STYLE 风格前端组装完成${WITH:+（混搭: $WITH）}"
-echo "   public/ : $(find "$PROJECT_DIR/public" -type f | wc -l) 个文件"
+echo "   目标: $TARGET"
+echo "   public/ : $(find "$TARGET/public" -type f | wc -l) 个文件"
 echo ""
 warn "注意："
 echo "  1. 前端 public/ 即插即用（静态文件直接 serve）"
 echo "  2. 后端 JS 不在模板：通用 JS 在 server/framework/（createServer/createRoute 接口），"
-echo "     特有 JS 在各自旧项目（gamebanana-mods-downloader / iwara-downloader）"
+echo "     业务后端 JS 由项目自己实现（可参照 blueprint/app.js 骨架）"
 echo "  3. ./start.sh start 启动验证"

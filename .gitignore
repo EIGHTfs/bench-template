@@ -7,11 +7,9 @@ downloads/
 .tmp-run/
 .trash/
 
-# 生成物（setup.sh 组装，不入库）
-server/project/public/
-server/project/routes/
-server/project/lib/
-server/project/config.schema.json
+# 生成物（setup.sh 组装，不入库）；blueprint/ 是组装蓝图（入库，白名单）
+server/project/*
+!server/project/blueprint/
 
 # 安全删除回收站 + setup.sh 备份
 server/templates/.trash-*/

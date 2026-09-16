@@ -13,6 +13,7 @@ const appLog = require("./app-log");
 const jsonDir = require("./json-dir");
 const auth = require("./auth");
 const { createBackup } = require("./data-backup");
+const { createAutoUpdate } = require("./auto-update");
 
 module.exports = {
   // 核心
@@ -21,6 +22,7 @@ module.exports = {
   createRoute,
   groupRoutes,
   createBackup,
+  createAutoUpdate,
   DEFAULT_MIME,
 
   // 工具
