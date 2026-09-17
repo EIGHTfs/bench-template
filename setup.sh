@@ -233,6 +233,12 @@ except Exception as e:
     print(f"  ❌ assemble.json 解析失败: {e}", file=sys.stderr); sys.exit(1)
 
 files = m.get("files") or {}
+# 跳过注释键：以 _ 开头的键仅供阅读（如 "_comment": [...]、"说明": {...}）。
+#   JSON 规范不支持注释，清单用 _comment 键承载说明；若不跳过，
+#   数组值会在 os.path.join 处抛 TypeError 令脚本崩溃，字符串值则被当成
+#   源路径报「文件不存在」并虚增缺失计数。顶层 _ 键本就被忽略，此处防的是
+#   files 内部的注释键。
+files = {k: v for k, v in files.items() if not str(k).startswith("_")}
 n_dir = n_file = missing = 0
 for src, dst_rel in files.items():
     src_path = os.path.join(root, src)
