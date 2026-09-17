@@ -236,10 +236,41 @@ createServer({
 | `createRoute({ 'GET /path': fn })` | 路由工厂（handler 签名 `(req, res, ctx)`，返回 true=已处理） |
 | `groupRoutes(...routes)` | 多个路由合并 |
 | `createAutoUpdate({ projectName, defaultRepo, extraExclude })` | 自动更新（watch/git/github 三模式） |
-| `createBackup(...)` | 数据备份 |
+| `createBackup(...)` | 数据备份（用法见下） |
 | `sendJson` / `readBody` / `parseCredentialText` / `cleanCookie` | HTTP 工具 |
 | `fsAsync` / `htmlUtils` / `appLog` / `jsonDir` / `auth` | 模块（日志、JSON 目录、鉴权等） |
 | `DEFAULT_MIME` | 默认 MIME 表 |
+
+### 数据备份/恢复（`createBackup`）
+
+用户数据打包导出 / 按清单白名单恢复。**清单由源码注释自动生成**，不用手写：
+在写文件的那行代码旁标注 `//userdata-manifest.json file <相对路径> <说明>`，
+导出时会扫出来汇总成清单（`dir` 用于目录，可跟 `.后缀` 限定扩展名；
+支持 `key=value` 附加字段与 `desc="带 空格的值"`）。
+
+```js
+const { createBackup } = require("./framework");
+const dataBackup = createBackup({
+  appName: "my-app",                       // 写进清单的 app 字段
+  appRoot: path.join(__dirname, ".."),     // 项目根（清单里相对路径的基准）
+  toolDir: path.join(__dirname, "..", "tool", "bin"),  // 自带 zip/unzip 的目录
+});
+
+await dataBackup.exportZip();              // → Buffer，打包清单里列出的文件
+await dataBackup.importZip(zipPath);       // 按本地清单白名单校验后恢复
+dataBackup.readManifest();                 // 读清单（文件缺失/损坏会自动重建）
+```
+
+**关于 `toolDir`**：目录里的工具会**先实测能否执行**（`-v`），不可用则回退系统
+`PATH`。所以自带的群晖专用二进制在本机跑不起来时会自动降级，不会中断备份。
+目录不存在或为空都安全。
+
+**关于清单文件**：`json/userdata-manifest.json` 是**生成物**（文件里自己写着
+「不要手改」），内容全部可从源码推导，**不应入库** —— 仓库 `.gitignore` 忽略它，
+首次导出或调用 `readManifest()` 时会自动生成。
+
+**迁移/改动本模块时**：改完新旧实现是否等价，用
+`test/data-backup-equivalence.test.sh <项目目录>` 验证（导出 zip 逐文件 hash 比对）。
 
 ---
 
@@ -418,7 +449,8 @@ require("./app.js");
 dl-server-template/
 ├── setup.sh                         # 组装脚本（--to 指定项目）
 ├── test/
-│   └── assemble-parse.test.sh       # 清单解析/组装行为自测（bash test/... 运行）
+│   ├── assemble-parse.test.sh       # 清单解析/组装行为自测（bash test/... 运行）
+│   └── data-backup-equivalence.test.sh  # 备份迁移等价性验证（传项目目录）
 ├── server/
 │   ├── framework/                 # 通用后端 JS（17 个模块）
 │   │   ├── app.js                 # HTTP 服务骨架
