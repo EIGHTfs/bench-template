@@ -135,6 +135,123 @@ esac
 
 echo "══ 组装 $STYLE 风格 → $TARGET ══"
 
+# assemble.json 查找（按需取用清单）：
+#   - --to 指定项目目标：必须用自己的 assemble.json（声明要取哪些模板文件），缺失报错
+#   - 无 --to（模板自测到 server/project/）：用 blueprint/assemble.json 默认（纯公共件）
+find_assemble() {
+  local d
+  if [ "$TO_SPECIFIED" = "1" ]; then
+    for d in "$TARGET" "$TARGET/.."; do
+      if [ -f "$d/assemble.json" ]; then echo "$d/assemble.json"; return 0; fi
+    done
+  else
+    for d in "$TARGET" "$BLUEPRINT_DIR" "$ROOT/server/project" "$ROOT/project"; do
+      if [ -f "$d/assemble.json" ]; then echo "$d/assemble.json"; return 0; fi
+    done
+  fi
+  return 1
+}
+
+ASSEMBLE_FILE="$(find_assemble || true)"
+if [ -z "$ASSEMBLE_FILE" ]; then
+  # 生成位置与 find_assemble 的首选查找位置保持一致：
+  #   --to 时首选 $TARGET（即目标 server/ 的上一级项目根）
+  if [ "$TO_SPECIFIED" = "1" ]; then GEN_PATH="$(cd "$TARGET/.." 2>/dev/null && pwd)/assemble.json"; else GEN_PATH="$TARGET/assemble.json"; fi
+
+  err "❌ 未找到 assemble.json"
+  err "   目标项目根需要它声明：从模板取哪些文件到本项目"
+  err "     键 = 模板内相对路径（以 / 结尾 = 整目录拷贝）"
+  err "     值 = 本项目内相对路径（相对项目根）"
+  err "   最小示例: {\"files\":{\"server/project/blueprint/login.html\":\"server/public/login.html\"}}"
+
+  # 非交互（管道 / CI / 重定向）：不询问，打印提示后退出，避免 read 挂起
+  if [ ! -t 0 ]; then
+    err ""
+    err "   非交互环境，跳过询问。可复制模板默认清单后按需修改："
+    err "     cp $BLUEPRINT_DIR/assemble.json $GEN_PATH"
+    exit 1
+  fi
+
+  if [ -e "$GEN_PATH" ]; then
+    err ""
+    err "   ⚠️ $GEN_PATH 已存在但无法解析为清单，请手工检查后重跑。"
+    exit 1
+  fi
+
+  printf '\n是否生成带注释的空模板？[y/N] '
+  read -r ans || ans=""
+  case "$ans" in
+    y|Y|yes|YES)
+      if ! python3 - "$GEN_PATH" <<'PYGEN'
+import json, sys
+path = sys.argv[1]
+m = {
+    "_comment": [
+        "assemble.json —— 从模板取哪些文件到本项目",
+        "  键 = 模板内相对路径（以 / 结尾 = 整目录拷贝）",
+        "  值 = 本项目内相对路径（相对项目根）",
+        "  以 _ 开头的键仅供阅读，解析器会忽略（可放任意说明）",
+        "  init: false = 不初始化蓝图骨架（项目自带 app.js / config）",
+        "",
+        "  示例（按需增删，不需要的行直接删掉）：",
+        '    "server/framework/": "server/framework/"',
+        '    "server/project/blueprint/login.html": "server/public/login.html"',
+        '    "server/project/blueprint/theme-init.js": "server/public/theme-init.js"',
+        "",
+        "  用法：../../dl-server-template/setup.sh <gbmd|iwara> --to ./server",
+    ],
+    "files": {},
+    "init": False,
+}
+with open(path, "w", encoding="utf-8") as f:
+    json.dump(m, f, ensure_ascii=False, indent=2)
+    f.write("\n")
+# 回读校验，确保写出的确实是合法 JSON
+with open(path, encoding="utf-8") as f:
+    json.load(f)
+PYGEN
+      then
+        err "   ❌ 生成失败（目录不可写？）: $GEN_PATH"
+        exit 1
+      fi
+      ok "   ✓ 已生成空模板: $GEN_PATH"
+      echo "     files 目前为空，请编辑它声明要取哪些文件，然后重跑本命令。"
+      exit 0
+      ;;
+    *)
+      err "   已跳过生成。可手工创建，或复制模板默认清单后修改："
+      err "     cp $BLUEPRINT_DIR/assemble.json $GEN_PATH"
+      exit 1
+      ;;
+  esac
+fi
+if [ "$ASSEMBLE_FILE" = "$BLUEPRINT_DIR/assemble.json" ] && [ "$TO_SPECIFIED" = "0" ]; then
+  warn "  ⚠️ 模板自测：使用 blueprint/assemble.json 默认（仅公共件）"
+  warn "     自定义/混搭：在目标项目根建 assemble.json（键=模板内路径，值=项目内路径，按需取用）"
+else
+  ok "  ✓ 组装清单: $ASSEMBLE_FILE"
+fi
+
+# 立即校验清单可解析：JSON 语法错 / 结构不对时提前失败，避免在初始化蓝图、
+# 生成 boot.cjs 之后才报错，从而留下半成品目录。
+# 下划线开头的键是注释，值可以是任意类型，跳过校验。
+if ! python3 -c "
+import json,sys
+try:
+    m=json.load(open(sys.argv[1],encoding='utf-8'))
+except Exception as e:
+    print('  ❌ 清单解析失败 %s: %s' % (sys.argv[1], e), file=sys.stderr); sys.exit(1)
+if not isinstance(m, dict) or not isinstance(m.get('files', {}), dict):
+    print('  ❌ 清单格式错误：顶层应为对象，且 files 应为对象', file=sys.stderr); sys.exit(1)
+for k, v in m.get('files', {}).items():
+    if str(k).startswith('_'):
+        continue
+    if not isinstance(v, str):
+        print('  ❌ 清单格式错误：files 的值必须是字符串（键 %r 的值是 %s）' % (k, type(v).__name__), file=sys.stderr); sys.exit(1)
+" "$ASSEMBLE_FILE"; then
+  exit 1
+fi
+
 # 1. 目标初始化：目录 + 蓝图骨架复制（app.js / config.schema.json 不存在才复制）
 #    已有自己 app.js/config 机制的项目，可在 assemble.json 设 "init": false 跳过本段
 INIT_FLAG="$(python3 -c "
@@ -189,37 +306,6 @@ fi
 #           "server/project/blueprint/fragments/": "server/public/fragments/",
 #           "server/templates/_gbmd-style/public/logo.png": "server/public/brand.png"
 #         } }
-# assemble.json 查找（按需取用清单）：
-#   - --to 指定项目目标：必须用自己的 assemble.json（声明要取哪些模板文件），缺失报错
-#   - 无 --to（模板自测到 server/project/）：用 blueprint/assemble.json 默认（纯公共件）
-find_assemble() {
-  local d
-  if [ "$TO_SPECIFIED" = "1" ]; then
-    for d in "$TARGET" "$TARGET/.."; do
-      if [ -f "$d/assemble.json" ]; then echo "$d/assemble.json"; return 0; fi
-    done
-  else
-    for d in "$TARGET" "$BLUEPRINT_DIR" "$ROOT/server/project" "$ROOT/project"; do
-      if [ -f "$d/assemble.json" ]; then echo "$d/assemble.json"; return 0; fi
-    done
-  fi
-  return 1
-}
-
-ASSEMBLE_FILE="$(find_assemble || true)"
-if [ -z "$ASSEMBLE_FILE" ]; then
-  err "❌ 未找到 assemble.json"
-  err "   目标项目根需要 assemble.json 声明要取哪些模板文件（键=模板内路径，值=项目内路径，按需取用）"
-  err '   最小示例: {"files":{"server/project/blueprint/login.html":"server/public/login.html"}}'
-  err "   模板默认清单: $BLUEPRINT_DIR/assemble.json（可复制过去按需改）"
-  exit 1
-fi
-if [ "$ASSEMBLE_FILE" = "$BLUEPRINT_DIR/assemble.json" ] && [ "$TO_SPECIFIED" = "0" ]; then
-  warn "  ⚠️ 模板自测：使用 blueprint/assemble.json 默认（仅公共件）"
-  warn "     自定义/混搭：在目标项目根建 assemble.json（键=模板内路径，值=项目内路径，按需取用）"
-else
-  ok "  ✓ 组装清单: $ASSEMBLE_FILE"
-fi
 
 # 用 python3 把 assemble.json 展开为 cp 命令执行
 #   键 = 源，相对模板根 ROOT；值 = 目标，相对目标项目根 TARGET（如 server/public/login.html）
