@@ -1,4 +1,12 @@
 {
+  "_comment": [
+    "assemble.json —— 模板自测用的默认清单（纯公共件）",
+    "  键 = 模板内相对路径（以 / 结尾 = 整目录拷贝）",
+    "  值 = 本项目内相对路径（相对项目根）",
+    "  以 _ 开头的键仅供阅读，解析器会忽略（可放任意说明）",
+    "",
+    "  项目侧请在自己的项目根放一份 assemble.json，按需取用模板文件"
+  ],
   "files": {
     "server/framework/": "server/framework/",
     "server/framework/cjs-bootstrap.cjs": "server/lib/cjs-bootstrap.cjs",
