@@ -136,6 +136,36 @@ PID 写在项目根 `<项目目录名>.pid`。
 
 ## 框架接口
 
+### 路由：两种范式，共用一套匹配核心
+
+框架同时提供两种路由注册范式，**项目按自己的写法二选一即可**，匹配语义完全一致（都走 `route-core`）：
+
+| 范式 | 模块 | 写法 | 适合 |
+|------|------|------|------|
+| **表式** | `route-factory.js` | `createRoute({ "GET /api/x": fn })` | 路由集中可读，能被脚本静态扫描；支持 `:param` 具名捕获（`ctx.params`） |
+| **闭包式** | `route-registry.js` | `createRegistry()` → `route(method, path, fn)` / `routePublic(...)` | 需在函数体内按条件/循环动态注册；`routePublic` 与 `route` 天然区分鉴权与公开 |
+
+两者共同支持：`"*"` method 通配、数字 method 数组（如 `["GET","HEAD"]`）、字符串精确路径、RegExp 路径。
+
+```js
+// ① 表式（gbmd 用）
+const browse = createRoute({
+  "GET /api/browse": (req, res, ctx) => { /* ctx.params / ctx.query */ },
+  "GET /api/games/:id": (req, res, ctx) => { /* ctx.params.id */ },
+});
+
+// ② 闭包式（iwara 用）
+const registry = createRegistry();
+registry.routePublic("POST", "/api/login", handler);   // 免鉴权
+registry.route(["GET","HEAD"], "/api/thumb", handler); // 需鉴权
+registry.routePublic(["GET","HEAD"], /^\/avatar\//, handler);
+// 分发：const h = registry.matchPublic(method, path) || registry.match(method, path);
+```
+
+匹配核心 `route-core.js` 单独可用：`matchMethod` / `matchPath` / `match` / `normalizeRule` / `compilePattern`。
+闭包式的 handler 签名保持 `(req, res, api)`，框架不组装 ctx、不预读 body、默认不捕获异常
+（需要统一错误处理时给 `createRegistry({ onError })` 传回调）。
+
 项目入口只做三件事（完整示例见 `server/project/blueprint/app.js`）：
 
 ```js
@@ -364,10 +394,12 @@ require("./app.js");
 ```
 dl-server-template/
 ├── server/
-│   ├── framework/                 # 通用后端 JS（15 个模块）
+│   ├── framework/                 # 通用后端 JS（17 个模块）
 │   │   ├── app.js                 # HTTP 服务骨架
 │   │   ├── config-loader.js       # 配置加载（schema 驱动）
-│   │   ├── route-factory.js       # 路由工厂 createRoute
+│   │   ├── route-core.js          # 路由匹配核心（两范式共享）
+│   │   ├── route-factory.js       # 路由工厂 createRoute（表式）
+│   │   ├── route-registry.js      # 路由注册 createRegistry（闭包式）
 │   │   ├── auth.js                # 鉴权（session + cookie）
 │   │   ├── auto-update.js         # 自动更新 createAutoUpdate
 │   │   ├── data-backup.js         # 数据备份
