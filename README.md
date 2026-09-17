@@ -73,13 +73,42 @@ cd .. && ./start.sh start
 
 ```bash
 ./setup.sh --list                      # 查看风格与组件
-./setup.sh gbmd                        # 组装到 server/project/（缺省，测试用）
-./setup.sh gbmd --to .                 # 组装到当前目录（项目 server/）
-./setup.sh gbmd --to /path/to/proj/server
+./setup.sh gbmd                        # 组装到 server/project/（缺省，模板自测，用 blueprint 默认清单）
+./setup.sh gbmd --to .                 # 组装到当前目录（项目根）
+./setup.sh gbmd --to /path/to/proj     # 组装到指定项目根
 ./setup.sh iwara --with play,search    # iwara 风格 + 混搭组件
 ```
 
-组装逻辑：蓝图共用前端（login/theme-init/search-date-range）→ 复制进目标 `public/` → 风格部件覆盖同名 → 蓝图框架与分片（HTML/CSS @frag）→ `public/` → `--with` 组件从另一风格叠加（同名不覆盖，以主风格为准）。
+组装逻辑：按项目根的 `assemble.json` 逐项拷贝（详见下节）；蓝图框架与分片（HTML/CSS `@frag` 指令）在运行期由 framework 组装器拼装；`--with` 组件从另一风格叠加（同名不覆盖，以主风格为准）。
+
+### assemble.json（按需取用）
+
+每个要用模板的项目，在**项目根**放一份 `assemble.json`，声明「我要从模板取哪些文件」。`setup.sh` 只拷清单里列出的东西，**没列的本地文件永远不动**。
+
+```json
+{
+  "init": false,
+  "files": {
+    "server/framework/": "server/framework/",
+    "server/project/blueprint/login.html": "server/public/login.html",
+    "server/project/blueprint/fragments/": "server/public/fragments/",
+    "server/templates/_gbmd-style/fragments/": "server/public/fragments/",
+    "server/templates/_gbmd-style/public/logo.png": "server/public/brand.png"
+  }
+}
+```
+
+- **键** = 模板仓库内的相对路径（模板里有什么）
+- **值** = 项目内的相对路径（放到哪里；以 `/` 结尾 = 整目录拷贝）
+- `"init": false` = 跳过蓝图骨架初始化（`app.js` / `config.schema.json`），项目自带后端时用
+
+**按需取用的三条约定**：
+
+1. **用不上就不填** —— 清单只列你要的，其余一概不碰。
+2. **想补充就直接加** —— 之后要用模板的新件（比如 `auto-update-card.js`），加一行即可。
+3. **本地改过的，删掉引用** —— 某个文件你想自己维护（如 `app.js` / `style.css`），把它从清单里删掉，`setup.sh` 从此不再覆盖它。
+
+**没有 `assemble.json` 会怎样**：`--to` 指定项目时直接报错（提示先创建）；不带 `--to` 的模板自测走 `project/blueprint/assemble.json` 默认清单（纯公共件）。
 
 ### 混搭组件（`--with`）
 
@@ -213,6 +242,32 @@ module.exports = createAutoUpdate({
 框架实现只有一份（`framework/auto-update.js`），改框架代码全部项目受益；项目侧别再拷贝框架主体。
 
 重启走 `./start.sh restart`（项目唯一启停入口）。
+
+### 自动更新卡片（公共前端件）
+
+设置页的「🔄 自动更新」卡片是**公共件**，gbmd / iwara 及后续项目共用同一份，不用各写一遍：
+
+| 文件 | 作用 |
+|---|---|
+| `blueprint/fragments/auto-update-card.html` | 卡片 HTML（靠 `<!-- @frag:auto-update-card -->` 插进设置面板） |
+| `blueprint/auto-update-card.js` | 卡片逻辑（自包含：不依赖项目 `api()`/`setStatus()`/`$()`，自己封装 fetch） |
+
+接入三步：
+
+```html
+<!-- 1. 设置面板里插入指令 -->
+<!-- @frag:auto-update-card -->
+
+<!-- 2. 页面 scripts 里引用（在 app.js 之前） -->
+<script src="auto-update-card.js"></script>
+```
+
+```js
+// 3. 初始化时挂载（卡片不在页面上会自动跳过）
+if (window.AutoUpdateCard) window.AutoUpdateCard.mount();
+```
+
+卡片对应 4 个框架层接口（各项目 `routes/auto-update.js` 已提供）：`GET /api/auto-update/status`、`POST /api/auto-update/config`、`POST /api/auto-update/check`、`POST /api/auto-update/restart`。后端能力来自 `framework/auto-update.js`，前端能力来自这个公共件——两头都不用在项目里重复实现。
 
 ---
 

@@ -18,3 +18,4 @@ setup.sh.bak*
 # Python 缓存
 __pycache__/
 *.pyc
+node_modules.orig/

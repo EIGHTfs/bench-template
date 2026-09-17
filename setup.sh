@@ -100,9 +100,10 @@ shift
 # 解析参数
 TARGET="$DEFAULT_TARGET"
 WITH=""
+TO_SPECIFIED=0
 while [ $# -gt 0 ]; do
   case "$1" in
-    --to) TARGET="${2:-}"; [ -n "$TARGET" ] || { err "❌ --to 需要路径参数"; exit 1; }; shift 2 ;;
+    --to) TARGET="${2:-}"; [ -n "$TARGET" ] || { err "❌ --to 需要路径参数"; exit 1; }; TO_SPECIFIED=1; shift 2 ;;
     --with) WITH="${2:-}"; shift 2 ;;
     -*) shift ;;
     *) shift ;;
@@ -122,6 +123,9 @@ fi
 STYLE_DIR="$TEMPLATES_DIR/_${STYLE}-style"
 [ -d "$STYLE_DIR" ] || { err "❌ 模板目录缺失: $STYLE_DIR"; exit 1; }
 
+# 目标 server 目录（--to 传项目根，server 在其下；assemble.json 的值同样相对项目根）
+SERVER_DIR="$TARGET/server"
+
 # 品牌参数（login/setup/topbar 品牌区通用：logo 统一相对路径 brand.png + 标题占位符）
 case "$STYLE" in
   gbmd)  STYLE_LOGO="logo.png";       STYLE_TITLE="GameBanana Mod Downloader" ;;
@@ -131,26 +135,39 @@ esac
 
 echo "══ 组装 $STYLE 风格 → $TARGET ══"
 
-# 1. 目标初始化：目录 + 蓝图复制（app.js / config.schema.json 不存在才复制）
-mkdir -p "$TARGET/public"
-for f in app.js config.schema.json; do
-  if [ ! -f "$TARGET/$f" ] && [ -f "$BLUEPRINT_DIR/$f" ]; then
-    cp "$BLUEPRINT_DIR/$f" "$TARGET/$f"
-    echo "  ✓ blueprint/$f → 目标（初始化）"
-  fi
-done
+# 1. 目标初始化：目录 + 蓝图骨架复制（app.js / config.schema.json 不存在才复制）
+#    已有自己 app.js/config 机制的项目，可在 assemble.json 设 "init": false 跳过本段
+INIT_FLAG="$(python3 -c "
+import json,sys
+try:
+    m=json.load(open(sys.argv[1],encoding='utf-8'))
+    print('0' if m.get('init', True) is False else '1')
+except Exception:
+    print('1')
+" "$ASSEMBLE_FILE" 2>/dev/null || echo 1)"
+mkdir -p "$SERVER_DIR/public"
+if [ "$INIT_FLAG" = "1" ]; then
+  for f in app.js config.schema.json; do
+    if [ ! -f "$SERVER_DIR/$f" ] && [ -f "$BLUEPRINT_DIR/$f" ]; then
+      cp "$BLUEPRINT_DIR/$f" "$SERVER_DIR/$f"
+      echo "  ✓ blueprint/$f → 目标（初始化）"
+    fi
+  done
+else
+  echo "  ✓ 跳过蓝图骨架初始化（assemble.json init=false，项目自带 app.js/config）"
+fi
 
 # 1b. CJS 启动器（父目录 "type":"module" 时必需；不写本地 package.json）
 #     boot.cjs 加载 lib/cjs-bootstrap.cjs（只劫持本项目根内的 .js）
-if [ ! -f "$TARGET/boot.cjs" ]; then
+if [ ! -f "$SERVER_DIR/boot.cjs" ]; then
   BOOTSTRAP_SRC=""
-  for c in "$TARGET/framework/cjs-bootstrap.cjs" "$TEMPLATES_DIR/../framework/cjs-bootstrap.cjs"; do
+  for c in "$SERVER_DIR/framework/cjs-bootstrap.cjs" "$TEMPLATES_DIR/../framework/cjs-bootstrap.cjs"; do
     [ -f "$c" ] && BOOTSTRAP_SRC="$c" && break
   done
   if [ -n "$BOOTSTRAP_SRC" ]; then
-    mkdir -p "$TARGET/lib"
-    cp "$BOOTSTRAP_SRC" "$TARGET/lib/cjs-bootstrap.cjs"
-    cat > "$TARGET/boot.cjs" <<'BOOT'
+    mkdir -p "$SERVER_DIR/lib"
+    cp "$BOOTSTRAP_SRC" "$SERVER_DIR/lib/cjs-bootstrap.cjs"
+    cat > "$SERVER_DIR/boot.cjs" <<'BOOT'
 // 零依赖启动器：强制本项目 .js 按 CommonJS 加载。
 // 父目录 package.json 为 "type":"module" 时，直接 node app.js 会被当 ESM 导致 require 失败。
 // .cjs 永远是 CJS；只劫持本项目根内的 .js，项目外仍走 Node 原逻辑。
@@ -162,52 +179,85 @@ BOOT
   fi
 fi
 
-# 2. 复制共用前端（源自蓝图：_shared/ 已并入 blueprint/，login/setup/theme-init/
-#    search-date-range 等两风格共用的静态文件统一由蓝图提供，不再有独立 _shared/ 目录）
-mkdir -p "$TARGET/public"
-cp -f "$BLUEPRINT_DIR/login.html" "$BLUEPRINT_DIR/login.js" \
-      "$BLUEPRINT_DIR/setup.html" "$BLUEPRINT_DIR/setup-init.js" \
-      "$BLUEPRINT_DIR/search-date-range.js" "$BLUEPRINT_DIR/theme-init.js" \
-      "$TARGET/public/" 2>/dev/null || true
-# 品牌 logo：统一相对路径 brand.png（各风格提供自己的 logo 源文件，组装时拷成 brand.png）
-if [ -f "$STYLE_DIR/public/$STYLE_LOGO" ]; then
-  cp -f "$STYLE_DIR/public/$STYLE_LOGO" "$TARGET/public/brand.png"
-  echo "  ✓ 品牌 logo ${STYLE_LOGO} → public/brand.png"
-fi
-# 品牌配置：brand.json 供组装器 @brand:key 注释指令替换（title/icon/logo）
-printf '{"title":"%s","icon":"%s","logo":"%s"}' "$STYLE_TITLE" "favicon.png" "brand.png" > "$TARGET/public/brand.json"
-echo "  ✓ brand.json（title/icon/logo）→ public/（组装器 @brand 指令替换）"
-echo "  ✓ blueprint/ 共用前端（login/setup/theme-init/search-date-range）→ public/"
+# 2. 按 assemble.json 组装（清单由各项目自己维护）
+#     assemble.json 放在目标项目根（--to 指向的 server/ 的上一级，或模板根缺省）。
+#     格式：{ "files": { "模板内相对路径": "目标项目内相对路径" } }
+#       值 = 相对目标项目根（如 "server/public/login.html"）；以 / 结尾 = 整目录拷贝（含子目录）。
+#     示例：
+#       { "files": {
+#           "server/project/blueprint/login.html": "server/public/login.html",
+#           "server/project/blueprint/fragments/": "server/public/fragments/",
+#           "server/templates/_gbmd-style/public/logo.png": "server/public/brand.png"
+#         } }
+# assemble.json 查找（按需取用清单）：
+#   - --to 指定项目目标：必须用自己的 assemble.json（声明要取哪些模板文件），缺失报错
+#   - 无 --to（模板自测到 server/project/）：用 blueprint/assemble.json 默认（纯公共件）
+find_assemble() {
+  local d
+  if [ "$TO_SPECIFIED" = "1" ]; then
+    for d in "$TARGET" "$TARGET/.."; do
+      if [ -f "$d/assemble.json" ]; then echo "$d/assemble.json"; return 0; fi
+    done
+  else
+    for d in "$TARGET" "$BLUEPRINT_DIR" "$ROOT/server/project" "$ROOT/project"; do
+      if [ -f "$d/assemble.json" ]; then echo "$d/assemble.json"; return 0; fi
+    done
+  fi
+  return 1
+}
 
-# 3. 复制风格前端（覆盖共用文件；-r 支持 vendor/ 子目录）
-cp -rf "$STYLE_DIR/public/." "$TARGET/public/"
-echo "  ✓ _${STYLE}-style/public/ → public/"
+ASSEMBLE_FILE="$(find_assemble || true)"
+if [ -z "$ASSEMBLE_FILE" ]; then
+  err "❌ 未找到 assemble.json"
+  err "   目标项目根需要 assemble.json 声明要取哪些模板文件（键=模板内路径，值=项目内路径，按需取用）"
+  err '   最小示例: {"files":{"server/project/blueprint/login.html":"server/public/login.html"}}'
+  err "   模板默认清单: $BLUEPRINT_DIR/assemble.json（可复制过去按需改）"
+  exit 1
+fi
+if [ "$ASSEMBLE_FILE" = "$BLUEPRINT_DIR/assemble.json" ] && [ "$TO_SPECIFIED" = "0" ]; then
+  warn "  ⚠️ 模板自测：使用 blueprint/assemble.json 默认（仅公共件）"
+  warn "     自定义/混搭：在目标项目根建 assemble.json（键=模板内路径，值=项目内路径，按需取用）"
+else
+  ok "  ✓ 组装清单: $ASSEMBLE_FILE"
+fi
 
-# 3b. 前端片段组装（蓝图框架 + 通用分片 + 风格特有分片）
-#     HTML 框架含 <!-- @frag:名 --> 指令，CSS 框架含 /* @frag:名 */ 指令，
-#     运行期由 framework 组装器按指令替换插入（片段在 public/fragments/ 下）
-mkdir -p "$TARGET/public/fragments"
-FRAMEWORK_SRC="$BLUEPRINT_DIR/index.html/downloader/index.html"
-if [ -f "$FRAMEWORK_SRC" ]; then
-  mkdir -p "$TARGET/public"
-  cp -f "$FRAMEWORK_SRC" "$TARGET/public/index.html"
-  echo "  ✓ 蓝图框架 → public/index.html（HTML 指令）"
-fi
-# CSS 框架（样式由 styles/ 下的分片拼装）
-if [ -f "$BLUEPRINT_DIR/style.css" ]; then
-  cp -f "$BLUEPRINT_DIR/style.css" "$TARGET/public/style.css"
-  echo "  ✓ 蓝图框架 → public/style.css（CSS 指令）"
-fi
-# 通用分片（HTML + styles/ 下的 CSS；-r 保留子目录）
-if [ -d "$BLUEPRINT_DIR/fragments" ]; then
-  cp -rf "$BLUEPRINT_DIR/fragments/." "$TARGET/public/fragments/"
-  echo "  ✓ blueprint/fragments/ → public/fragments/（通用分片，含 styles/）"
-fi
-# 风格特有分片（覆盖同名通用分片）
-if [ -d "$STYLE_DIR/fragments" ]; then
-  cp -rf "$STYLE_DIR/fragments/." "$TARGET/public/fragments/"
-  echo "  ✓ _${STYLE}-style/fragments/ → public/fragments/（特有分片，含 styles/）"
-fi
+# 用 python3 把 assemble.json 展开为 cp 命令执行
+#   键 = 源，相对模板根 ROOT；值 = 目标，相对目标项目根 TARGET（如 server/public/login.html）
+python3 - "$ASSEMBLE_FILE" "$ROOT" "$TARGET" <<'PYEOF'
+import json, os, sys, subprocess
+manifest, root, target = sys.argv[1], sys.argv[2], sys.argv[3]
+try:
+    with open(manifest, encoding="utf-8") as f:
+        m = json.load(f)
+except Exception as e:
+    print(f"  ❌ assemble.json 解析失败: {e}", file=sys.stderr); sys.exit(1)
+
+files = m.get("files") or {}
+n_dir = n_file = missing = 0
+for src, dst_rel in files.items():
+    src_path = os.path.join(root, src)
+    dst = os.path.join(target, dst_rel)
+    if dst_rel.endswith("/") or dst_rel.endswith("/."):
+        src_dir = os.path.join(root, src.rstrip("/"))
+        dst_dir = dst.rstrip("/.")
+        if os.path.isdir(src_dir):
+            os.makedirs(dst_dir, exist_ok=True)
+            subprocess.run(["cp", "-rf", src_dir + "/.", dst_dir], check=False)
+            print(f"  ✓ {src}/ → {dst_rel}")
+            n_dir += 1
+        else:
+            print(f"  ⚠️ 目录不存在: {src}/（跳过）", file=sys.stderr); missing += 1
+    else:
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        if os.path.isfile(src_path):
+            subprocess.run(["cp", "-f", src_path, dst], check=False)
+            print(f"  ✓ {src} → {dst_rel}")
+            n_file += 1
+        else:
+            print(f"  ⚠️ 文件不存在: {src}（跳过）", file=sys.stderr); missing += 1
+print(f"  -- 目录 {n_dir} 个 / 文件 {n_file} 个 / 缺失 {missing} 个")
+PYEOF
+if [ $? -ne 0 ]; then exit 1; fi
 
 # 4. 混搭组件叠加（同名不覆盖，以主风格为准；只叠加前端）
 if [ -n "$WITH" ]; then
@@ -228,8 +278,8 @@ if [ -n "$WITH" ]; then
     if [ -n "$pub_files" ]; then
       IFS=','; for f in $pub_files; do
         if [ -f "$SRC_DIR/public/$f" ]; then
-          mkdir -p "$TARGET/public/$(dirname "$f")"
-          cp -f "$SRC_DIR/public/$f" "$TARGET/public/$f"
+          mkdir -p "$SERVER_DIR/public/$(dirname "$f")"
+          cp -f "$SRC_DIR/public/$f" "$SERVER_DIR/public/$f"
           echo "      public/$f"
         fi
       done; IFS='|'
@@ -242,7 +292,7 @@ fi
 echo ""
 ok "✅ $STYLE 风格前端组装完成${WITH:+（混搭: $WITH）}"
 echo "   目标: $TARGET"
-echo "   public/ : $(find "$TARGET/public" -type f | wc -l) 个文件"
+echo "   public/ : $(find "$SERVER_DIR/public" -type f | wc -l) 个文件"
 echo ""
 warn "注意："
 echo "  1. 前端 public/ 即插即用（静态文件直接 serve）"
