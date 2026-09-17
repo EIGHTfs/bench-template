@@ -486,3 +486,12 @@ dl-server-template/
 ├── start.sh                       # 启停脚本（start/stop/restart/status）
 └── README.md
 ```
+
+---
+
+## 版本
+
+| 版本 | 内容 |
+|---|---|
+| 1.1.0 | `data-backup` 清单生成改为复用 `marker-manifest`（移除内联扫描解析，273→216 行），修正框架文档示例被当成数据条目、带引号 `desc="..."` 被原样输出的问题；新增 `test/data-backup-equivalence.test.sh` 备份迁移等价性验证脚本；`setup.sh` 缺清单时询问生成带注释的空模板、清单格式预校验前移；`assemble.json` 支持 `_comment` 注释键（组装时跳过 `files` 内 `_` 开头的键）；新增 `test/assemble-parse.test.sh` 组装行为自测 |
+| 1.0.0 | 初版：通用后端框架（HTTP / 鉴权 / 配置 / 路由工厂 / 备份 / 自动更新）+ 组装式前端 + 风格模板 |
