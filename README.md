@@ -87,6 +87,12 @@ cd .. && ./start.sh start
 
 ```json
 {
+  "_comment": [
+    "assemble.json —— 从模板取哪些文件到本项目",
+    "  键 = 模板内相对路径（以 / 结尾 = 整目录拷贝）",
+    "  值 = 本项目内相对路径（相对项目根）",
+    "  以 _ 开头的键仅供阅读，解析器会忽略"
+  ],
   "init": false,
   "files": {
     "server/framework/": "server/framework/",
@@ -102,13 +108,30 @@ cd .. && ./start.sh start
 - **值** = 项目内的相对路径（放到哪里；以 `/` 结尾 = 整目录拷贝）
 - `"init": false` = 跳过蓝图骨架初始化（`app.js` / `config.schema.json`），项目自带后端时用
 
+**怎么写注释**：JSON 规范（RFC 8259）不支持注释，所以用 **`_comment` 键**承载说明
+（合法 JSON，编辑器不报错）。以 `_` 开头的键会被 `setup.sh` 忽略，值可以是
+数组、字符串或对象，随便写。顶层或 `files` 内部都可以放 —— 但更推荐放顶层，
+`files` 里保持只有真实的取件项更清爽。
+
+> `files` 内部若放 `_` 开头键同样安全：`setup.sh` 在展开前会过滤它们。
+> （不加这层过滤的话，数组值会让脚本 `os.path.join` 抛 `TypeError` 崩溃，
+> 字符串值则被当成源路径报「文件不存在」并虚增缺失计数。）
+
 **按需取用的三条约定**：
 
 1. **用不上就不填** —— 清单只列你要的，其余一概不碰。
 2. **想补充就直接加** —— 之后要用模板的新件（比如 `auto-update-card.js`），加一行即可。
 3. **本地改过的，删掉引用** —— 某个文件你想自己维护（如 `app.js` / `style.css`），把它从清单里删掉，`setup.sh` 从此不再覆盖它。
 
-**没有 `assemble.json` 会怎样**：`--to` 指定项目时直接报错（提示先创建）；不带 `--to` 的模板自测走 `project/blueprint/assemble.json` 默认清单（纯公共件）。
+**没有 `assemble.json` 会怎样**：
+
+- `--to` 指定项目时：打印清单格式说明，并**询问是否生成带注释的空模板**
+  （交互环境答 `y` 即在项目根生成 `assemble.json`，填好取件项后重跑本命令）。
+- 非交互环境（管道 / CI）：不询问，打印提示后退出，不会挂住等输入。
+- 不带 `--to` 的模板自测：走 `project/blueprint/assemble.json` 默认清单（纯公共件）。
+
+清单内容会在初始化蓝图**之前**校验：JSON 语法错、`files` 不是对象、值不是字符串
+都会立即报错退出，不会留下「蓝图已初始化、`boot.cjs` 已生成」的半成品目录。
 
 ### 混搭组件（`--with`）
 
@@ -393,6 +416,9 @@ require("./app.js");
 
 ```
 dl-server-template/
+├── setup.sh                         # 组装脚本（--to 指定项目）
+├── test/
+│   └── assemble-parse.test.sh       # 清单解析/组装行为自测（bash test/... 运行）
 ├── server/
 │   ├── framework/                 # 通用后端 JS（17 个模块）
 │   │   ├── app.js                 # HTTP 服务骨架
