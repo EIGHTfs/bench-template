@@ -126,13 +126,6 @@ STYLE_DIR="$TEMPLATES_DIR/_${STYLE}-style"
 # 目标 server 目录（--to 传项目根，server 在其下；assemble.json 的值同样相对项目根）
 SERVER_DIR="$TARGET/server"
 
-# 品牌参数（login/setup/topbar 品牌区通用：logo 统一相对路径 brand.png + 标题占位符）
-case "$STYLE" in
-  gbmd)  STYLE_LOGO="logo.png";       STYLE_TITLE="GameBanana Mod Downloader" ;;
-  iwara) STYLE_LOGO="iwara-logo.png"; STYLE_TITLE="iwara-downloader" ;;
-  *)     STYLE_LOGO="logo.png";       STYLE_TITLE="app" ;;
-esac
-
 echo "══ 组装 $STYLE 风格 → $TARGET ══"
 
 # assemble.json 查找（按需取用清单）：
@@ -350,6 +343,40 @@ for src, dst_rel in files.items():
 print(f"  -- 目录 {n_dir} 个 / 文件 {n_file} 个 / 缺失 {missing} 个")
 PYEOF
 if [ $? -ne 0 ]; then exit 1; fi
+
+# 3b. 品牌配置：清单里的 brand 段 → server/public/brand.json
+#   @brand:key 注释指令在运行期由 framework/fragment-assembler 取值替换
+#   （页面标题、logo、icon 等）。品牌参数属于项目自身，由项目在 assemble.json
+#   声明，脚本不内置任何项目名。
+#   仅在文件不存在时生成：brand.json 是运行期可变配置，项目改过就不该被组装覆盖。
+BRAND_JSON="$SERVER_DIR/public/brand.json"
+if [ -f "$BRAND_JSON" ]; then
+  ok "  ✓ brand.json 已存在，保留（如需按清单重置请先删除该文件）"
+else
+  if python3 - "$ASSEMBLE_FILE" "$BRAND_JSON" <<'PYBRAND'
+import json, os, sys
+manifest, out = sys.argv[1], sys.argv[2]
+try:
+    m = json.load(open(manifest, encoding="utf-8"))
+except Exception as e:
+    print(f"  ❌ 读取清单失败: {e}", file=sys.stderr); sys.exit(1)
+brand = m.get("brand")
+if not brand:
+    sys.exit(3)                      # 未声明 brand 段：非错误，静默跳过
+if not isinstance(brand, dict) or not brand:
+    print("  ❌ 清单 brand 段必须是非空对象", file=sys.stderr); sys.exit(1)
+os.makedirs(os.path.dirname(out), exist_ok=True)
+with open(out, "w", encoding="utf-8") as f:
+    json.dump(brand, f, ensure_ascii=False)
+    f.write("\n")
+PYBRAND
+  then
+    ok "  ✓ 生成 brand.json（来自清单 brand 段）"
+  else
+    rc=$?
+    [ "$rc" != "3" ] && exit 1       # rc=3 表示未声明，静默跳过
+  fi
+fi
 
 # 4. 混搭组件叠加（同名不覆盖，以主风格为准；只叠加前端）
 if [ -n "$WITH" ]; then

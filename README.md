@@ -93,6 +93,11 @@ cd .. && ./start.sh start
     "  值 = 本项目内相对路径（相对项目根）",
     "  以 _ 开头的键仅供阅读，解析器会忽略"
   ],
+  "brand": {
+    "title": "My App",
+    "logo": "brand.png",
+    "icon": "favicon.png"
+  },
   "init": false,
   "files": {
     "server/framework/": "server/framework/",
@@ -107,6 +112,7 @@ cd .. && ./start.sh start
 - **键** = 模板仓库内的相对路径（模板里有什么）
 - **值** = 项目内的相对路径（放到哪里；以 `/` 结尾 = 整目录拷贝）
 - `"init": false` = 跳过蓝图骨架初始化（`app.js` / `config.schema.json`），项目自带后端时用
+- `"brand": {...}` = 品牌配置，组装时写入 `server/public/brand.json`（详见下节）
 
 **怎么写注释**：JSON 规范（RFC 8259）不支持注释，所以用 **`_comment` 键**承载说明
 （合法 JSON，编辑器不报错）。以 `_` 开头的键会被 `setup.sh` 忽略，值可以是
@@ -116,6 +122,24 @@ cd .. && ./start.sh start
 > `files` 内部若放 `_` 开头键同样安全：`setup.sh` 在展开前会过滤它们。
 > （不加这层过滤的话，数组值会让脚本 `os.path.join` 抛 `TypeError` 崩溃，
 > 字符串值则被当成源路径报「文件不存在」并虚增缺失计数。）
+
+**品牌配置（`brand` 段）**：页面里的标题、logo、icon 用 `@brand:key@` 占位符
+（HTML 属性位）或 `<!-- @brand:key -->` 注释（元素文本位）书写，运行期由
+`framework/fragment-assembler` 读 `server/public/brand.json` 替换。
+
+```json
+"brand": { "title": "My App", "logo": "brand.png", "icon": "favicon.png" }
+```
+
+`setup.sh` 组装时按清单的 `brand` 段生成 `server/public/brand.json`：
+
+- **仅在文件不存在时生成** —— `brand.json` 是运行期可变配置，项目改过就不该被组装覆盖；
+  想按清单重置，先删掉该文件再组装。
+- **清单没写 `brand` 段就跳过** —— 不报错，也不生成。
+- 品牌参数属于项目自身，所以**不在脚本里内置任何项目名**（风格差异由清单声明）。
+
+logo/icon 的文件本身仍要走 `files` 映射从风格模板拷进 `server/public/`，
+`brand.json` 里写的是**拷过去之后的文件名**。
 
 **按需取用的三条约定**：
 
