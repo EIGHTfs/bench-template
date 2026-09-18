@@ -50,29 +50,11 @@ legacy_pid_files() {
 export PATH="$ROOT/tool/node/bin:/usr/local/bin:/opt/homebrew/bin:/opt/node/bin:/var/packages/Node.js_v24/target/usr/local/bin:/var/packages/Node.js_v22/target/usr/local/bin:/var/packages/Node.js_v20/target/usr/local/bin:$PATH"
 export FFMPEG="${FFMPEG:-$ROOT/tool/ffmpeg}"
 
-find_node() {
-  local c
-  for c in \
-    "$ROOT/tool/node/bin/node" \
-    /usr/local/bin/node \
-    /opt/homebrew/bin/node \
-    /opt/node/bin/node \
-    /var/packages/Node.js_v24/target/usr/local/bin/node \
-    /var/packages/Node.js_v22/target/usr/local/bin/node \
-    /var/packages/Node.js_v20/target/usr/local/bin/node \
-    /var/packages/DeepSeekHarness-NAS/target/bin/node \
-    node; do
-    if [ -x "$c" ]; then NODE_BIN="$c"; return 0; fi
-    if command -v "$c" >/dev/null 2>&1; then NODE_BIN="$(command -v "$c")"; return 0; fi
-  done
-  local nvm
-  for nvm in "$HOME"/.nvm/versions/node/*/bin/node; do
-    if [ -x "$nvm" ]; then NODE_BIN="$nvm"; return 0; fi
-  done
-  return 1
-}
+# Node 定位统一走 scripts/lib-node.sh（唯一实现）。
+. "$ROOT/scripts/lib-node.sh"
 
-if ! find_node; then
+
+if ! find_node "$ROOT/tool/node/bin/node"; then
   err "❌ 找不到 node。请安装 Node.js，或把官方二进制解压到 tool/node/"
   exit 1
 fi

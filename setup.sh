@@ -56,27 +56,18 @@ elif [ -f "$ROOT/scripts/assemble-manifest.js" ]; then
 else
   MANIFEST_TOOL="$ROOT/scripts/assemble-manifest.js"   # 交给下游报「找不到」
 fi
+# Node 定位统一走 lib-node.sh（唯一实现，start.sh/sync/测试 共用同一份）。
+# setup.sh 会被复制进项目独立运行，项目不一定有 scripts/，故优先取同级副本，
+# 回落到模板仓库的 scripts/（与 MANIFEST_TOOL 同一套定位策略）。
+if [ -f "$ROOT/lib-node.sh" ]; then
+  . "$ROOT/lib-node.sh"
+elif [ -f "$ROOT/scripts/lib-node.sh" ]; then
+  . "$ROOT/scripts/lib-node.sh"
+else
+  echo "  ⚠️ 缺少 lib-node.sh，无法定位 node" >&2
+  find_node() { return 1; }
+fi
 NODE_BIN=""
-find_node() {
-  local c nvm
-  for c in \
-    "$ROOT/tool/node/bin/node" \
-    /usr/local/bin/node \
-    /opt/homebrew/bin/node \
-    /opt/node/bin/node \
-    /var/packages/Node.js_v24/target/usr/local/bin/node \
-    /var/packages/Node.js_v22/target/usr/local/bin/node \
-    /var/packages/Node.js_v20/target/usr/local/bin/node \
-    /var/packages/DeepSeekHarness-NAS/target/bin/node \
-    node; do
-    if [ -x "$c" ]; then NODE_BIN="$c"; return 0; fi
-    if command -v "$c" >/dev/null 2>&1; then NODE_BIN="$(command -v "$c")"; return 0; fi
-  done
-  for nvm in "$HOME"/.nvm/versions/node/*/bin/node; do
-    if [ -x "$nvm" ]; then NODE_BIN="$nvm"; return 0; fi
-  done
-  return 1
-}
 
 # 清单「键」的源基准（键统一写成 server/... 形式）：
 #   模板仓库布局：素材在 <模板根>/server/  → 源基准 = 模板根
@@ -84,7 +75,7 @@ find_node() {
 # 两种布局下「基准 + 键」都指向同一批素材，因此同一份 assemble.json 两边通用。
 # 判定统一交给 scripts/assemble-manifest.js（resolve-base），与 sync-to-project.sh
 # 共用同一实现——此前这里是第三份「基准怎么算」的独立实现，正是幽灵目录的根因。
-if find_node; then
+if find_node "$ROOT/tool/node/bin/node"; then
   SRC_BASE="$("$NODE_BIN" "$MANIFEST_TOOL" resolve-base "$ROOT")"
 else
   # 没有 node 时回落旧判定（保持可用，不让组装整体失败）
@@ -287,7 +278,7 @@ fi
 # 立即校验清单可解析：JSON 语法错 / 结构不对时提前失败，避免在初始化蓝图、
 # 生成 boot.cjs 之后才报错，从而留下半成品目录。
 # 下划线开头的键是注释，值可以是任意类型，跳过校验——由共享模块统一处理。
-if find_node; then
+if find_node "$ROOT/tool/node/bin/node"; then
   if ! "$NODE_BIN" "$MANIFEST_TOOL" validate "$ASSEMBLE_FILE" "$SRC_BASE"; then
     exit 1
   fi

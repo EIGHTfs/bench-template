@@ -36,29 +36,8 @@ SRC_FRAMEWORK="$ROOT/server/framework"
 SRC_TEMPLATES="$ROOT/server/templates"
 SRC_SETUP="$ROOT/setup.sh"
 MANIFEST_TOOL="$ROOT/scripts/assemble-manifest.js"   # 清单解析唯一实现
-# Node 定位：与 start.sh 同款候选顺序（NAS/Homebrew/nvm/官方包都在列），
-# 不裸用 `node`——某些环境（如 NAS 的应用容器）PATH 里没有 node，
-# 裸调用会让清单解析静默失败。
-find_node() {
-  local c nvm
-  for c in \
-    "$ROOT/tool/node/bin/node" \
-    /usr/local/bin/node \
-    /opt/homebrew/bin/node \
-    /opt/node/bin/node \
-    /var/packages/Node.js_v24/target/usr/local/bin/node \
-    /var/packages/Node.js_v22/target/usr/local/bin/node \
-    /var/packages/Node.js_v20/target/usr/local/bin/node \
-    /var/packages/DeepSeekHarness-NAS/target/bin/node \
-    node; do
-    if [ -x "$c" ]; then NODE_BIN="$c"; return 0; fi
-    if command -v "$c" >/dev/null 2>&1; then NODE_BIN="$(command -v "$c")"; return 0; fi
-  done
-  for nvm in "$HOME"/.nvm/versions/node/*/bin/node; do
-    if [ -x "$nvm" ]; then NODE_BIN="$nvm"; return 0; fi
-  done
-  return 1
-}
+# Node 定位统一走 lib-node.sh（唯一实现）。
+. "$ROOT/scripts/lib-node.sh"
 NODE_BIN=""
 
 if [ $# -lt 1 ]; then
@@ -136,7 +115,7 @@ if [ "$MODE" = "manifest" ]; then
   # 解析统一走 scripts/assemble-manifest.js（清单解析的唯一实现）。
   # 此前这里有一份自己的 asset_root() 实现，与 setup.sh 的内嵌 python 各写一遍，
   # 口径已出现过偏差（不过滤 `_` 注释键、基准假设不一致）。收敛后不再重演。
-  if ! find_node; then
+  if ! find_node "$ROOT/tool/node/bin/node"; then
     echo "  ❌ 找不到 node（清单解析需要）。请安装 Node.js，或把官方二进制解压到 $ROOT/tool/node/" >&2
     echo "     如需不依赖清单的整份同步，请加 --all。" >&2
     exit 1
@@ -233,6 +212,11 @@ if [ -f "$SRC_SETUP" ]; then
     echo "  ✓ assemble-manifest.js → $TARGET/assemble-manifest.js"
   else
     echo "  ⚠️ 未找到 $MANIFEST_TOOL，项目内 setup.sh 将无法解析清单" >&2
+  fi
+  # Node 定位库同理（setup.sh 用它找 node）。
+  if [ -f "$ROOT/scripts/lib-node.sh" ]; then
+    cp "$ROOT/scripts/lib-node.sh" "$TARGET/lib-node.sh"
+    echo "  ✓ lib-node.sh → $TARGET/lib-node.sh"
   fi
 fi
 

@@ -25,6 +25,13 @@ if [ -z "$PROJ" ]; then
 fi
 PROJ="$(cd "$PROJ" && pwd)"
 
+# Node 定位走共享库（本环境 PATH 未必有 node，裸调会静默失败）。
+. "$ROOT/scripts/lib-node.sh"
+if ! find_node; then
+  echo "❌ 找不到 node，无法运行等价性验证" >&2
+  exit 2
+fi
+
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
@@ -69,7 +76,7 @@ HAS_LIB=0
 [ -f "$PROJ/server/framework/data-backup.js" ] || { echo "  ✗ 项目缺少 framework/data-backup.js，无法对比" >&2; exit 2; }
 
 mkdir -p "$TMP/new"
-NEW_OUT="$(node "$TMP/run.cjs" "$PROJ" fw "$TMP/new" 2>&1)"
+NEW_OUT="$("$NODE_BIN" "$TMP/run.cjs" "$PROJ" fw "$TMP/new" 2>&1)"
 if ! grep -q "^OK" <<<"$NEW_OUT"; then
   bad "新版导出失败: $NEW_OUT"; echo; echo "  通过 $pass / 失败 $fail"; exit 1
 fi
@@ -78,7 +85,7 @@ ok "新版导出成功（$NEW_SIZE 字节）"
 
 if [ "$HAS_LIB" = "1" ]; then
   mkdir -p "$TMP/old"
-  OLD_OUT="$(node "$TMP/run.cjs" "$PROJ" lib "$TMP/old" 2>&1)"
+  OLD_OUT="$("$NODE_BIN" "$TMP/run.cjs" "$PROJ" lib "$TMP/old" 2>&1)"
   if ! grep -q "^OK" <<<"$OLD_OUT"; then
     bad "旧版导出失败: $OLD_OUT"; echo; echo "  通过 $pass / 失败 $fail"; exit 1
   fi
