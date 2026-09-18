@@ -133,12 +133,6 @@ node scripts/scan-dead-files.js . || echo "有死文件，需清理"
 
 ```json
 {
-  "_comment": [
-    "assemble.json —— 从模板取哪些文件到本项目",
-    "  键 = 模板内相对路径（以 / 结尾 = 整目录拷贝）",
-    "  值 = 本项目内相对路径（相对项目根）",
-    "  以 _ 开头的键仅供阅读，解析器会忽略"
-  ],
   "brand": {
     "title": "My App",
     "logo": "brand.png",
@@ -160,14 +154,17 @@ node scripts/scan-dead-files.js . || echo "有死文件，需清理"
 - `"init": false` = 跳过蓝图骨架初始化（`app.js` / `config.schema.json`），项目自带后端时用
 - `"brand": {...}` = 品牌配置，组装时写入 `server/public/brand.json`（详见下节）
 
-**怎么写注释**：JSON 规范（RFC 8259）不支持注释，所以用 **`_comment` 键**承载说明
-（合法 JSON，编辑器不报错）。以 `_` 开头的键会被 `setup.sh` 忽略，值可以是
-数组、字符串或对象，随便写。顶层或 `files` 内部都可以放 —— 但更推荐放顶层，
-`files` 里保持只有真实的取件项更清爽。
+**清单里不放注释**：JSON 规范（RFC 8259）不支持注释，而在清单里塞 `_comment`
+这样的自定义键会让「哪些是真实取件项」变得含糊。字段含义与用法统一记在本节，
+清单本身只保留实际生效的 `files` / `brand` / `init` 三项。
 
-> `files` 内部若放 `_` 开头键同样安全：`setup.sh` 在展开前会过滤它们。
-> （不加这层过滤的话，数组值会让脚本 `os.path.join` 抛 `TypeError` 崩溃，
-> 字符串值则被当成源路径报「文件不存在」并虚增缺失计数。）
+> 解析器仍会忽略 `files` 段内以 `_` 开头的键（历史清单兼容用），但新写的清单
+> 不要再依赖这个机制。
+
+**脚本放在模板仓库**：`sync-to-project.sh`、`setup.sh` 及其依赖的
+`assemble-manifest.js` / `lib-node.sh` 都只在模板仓库运行，**不复制进项目**。
+项目里只留素材（`server/templates/`、`server/project/`）与产出（`server/public/`）。
+同步与组装都从模板仓库执行，见「命令速查」。
 
 **品牌配置（`brand` 段）**：页面里的标题、logo、icon 用 `@brand:key@` 占位符
 （HTML 属性位）或 `<!-- @brand:key -->` 注释（元素文本位）书写，运行期由
@@ -626,6 +623,7 @@ dl-server-template/
 
 | 版本 | 内容 |
 |---|---|
+| 1.7.10 | **sync 复用 setup.sh 的复制实现 + `--check` 或逻辑修正**：①`sync-to-project.sh` 重写，不再自带一套「按素材根整目录搬」的逻辑，改为 `SETUP_LIB_ONLY=1` 加载 `setup.sh` 并调用它的 `_setup_copy_manifest`——两套复制实现对同一份清单的解读不一致，是长期漏搬的根源，现只有一套实现。落点差异由 `COPY_LAYOUT` 一个变量区分：`out`（组装，缺省）按清单 dst 写产出，`tree`（同步）按 src 落素材树。②`setup.sh` 加只加载守卫（被 source 时只定义函数、不跑主流程），函数定义集中到主流程之前。③修 `--check` 的或逻辑 bug：候选路径漏拼文件名，拿目录算 md5 恒为 null，导致「多源写同一目标目录」（blueprint 底座 + 风格层覆盖，如 iwara 的 `row-thumb.css`）全部误报不一致——iwara 实测 58 项误报清零。④清单不再写 `_comment` 段（字段含义统一在本 README），`setup.sh` 生成的清单同步精简，顶层只留 `files` / `brand` / `init` |
 | 1.7.9 | **`setup.sh --check` 清单一致性检查 + `framework/` 异步 IO 归位 + iwara 专属缩略图样式**：①新增 `--check`：按清单两端（模板源 → 项目目标）逐文件 md5 比对，报「不一致 / 缺失 / 清单外文件」三类，退出码可用于 CI；这是发现「公共能力改错地方」的主要手段——改在项目侧的 `framework/` 会被报成不一致。②三个 `framework/` 文件此前被改在项目侧且未回流模板（`app.js` 静态服务异步、`auth.js` 会话写入失败留痕、`data-backup.js` 备份导出异步），本次归位模板，模板与两项目逐字同源，同步不再吞掉改动。③iwara 下载列表不需要点击放大预览图，故其风格层新增 `fragments/styles/row-thumb.css`（无灯箱版）覆盖 blueprint 的共用版——gbmd 仍用 blueprint 的灯箱版。④修三个真实 bug：`setup.sh` 目录复制用 `cp -rf` 不能确定性覆盖同名文件（导致风格层覆盖 blueprint 失效），改为逐文件强制覆盖；`validate` 把「多源写同一目标目录」当 problem 返回 1，使组装中断在自检之后（现降级为提示 ℹ️，它本就是设计允许的覆盖机制）；`check` 比对未考虑后写覆盖语义会误报风格层的有意覆盖 |
 | 1.7.8 | **`start.sh` 自包含，成为项目通用启停脚本**：此前它 `source scripts/lib-node.sh`，但 `start.sh` 是「直接拷进项目根」的独立脚本，项目里没有 `scripts/`，换环境即报 lib-node.sh 不存在。现内联 Node 定位逻辑（候选顺序与 `lib-node.sh` 保持一致）。同一份 `start.sh` 现已实测可直接用于 gbmd（port 8642）与 iwara（port 28463）两个项目，端口由各自 `server/config.json` 决定、`DEFAULT_PORT` 仅作回落，故无需按项目改脚本 |
 

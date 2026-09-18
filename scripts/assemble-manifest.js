@@ -244,8 +244,8 @@ function _checkWalk(dir, prefix = "") {
 // 收集「目标目录 → 写入它的源目录列表（保持清单顺序）」。
 // 清单允许「多个源写同一目标目录」：blueprint 提供共用底座、风格目录提供该风格专属，
 // 组装时按清单顺序复制，**靠后的源覆盖靠前的同名文件**（如 iwara 风格层覆盖 blueprint 的 row-thumb.css）。
-// 因此判断某目标文件是否「与源一致」时，必须取最后一个提供该文件的源来比，
-// 否则会把「风格层有意覆盖」误报成不一致。
+// 因此判断某目标文件是否「与源一致」时采「或」逻辑：只要任一提供该文件的源与产出
+// 一致即算通过，否则会把「风格层有意覆盖」误报成不一致。
 function _checkDirSources(files) {
   const map = new Map();
   for (const [s, d] of files) {
@@ -253,6 +253,19 @@ function _checkDirSources(files) {
     const k = d.replace(/\/+$/, "");
     if (!map.has(k)) map.set(k, []);
     map.get(k).push(s.replace(/\/+$/, ""));
+  }
+  return map;
+}
+
+// 收集「目标文件 → 写入它的单文件源列表（保持清单顺序）」。
+// 同一 dst 可能被多个单文件清单项写入，与目录条目的多源情形同理，
+// 比对时采「或」逻辑（任一源一致即通过）。
+function _checkFileSources(files) {
+  const map = new Map();
+  for (const [s, d] of files) {
+    if (s.endsWith("/") || d.endsWith("/")) continue;   // 目录条目归 _checkDirSources
+    if (!map.has(d)) map.set(d, []);
+    map.get(d).push(s);
   }
   return map;
 }
@@ -265,7 +278,8 @@ function _checkDirEntry(src, dst, ctx) {
   const dstPath = path.join(projAbs, dst);
   if (!fs.existsSync(srcPath)) { missing.push({ src, dst, side: "模板源" }); return; }
 
-  // 该目标目录的所有源（清单顺序）；取最后一个提供 rel 的源做比对。
+  // 该目标目录的所有源目录聚成一组（blueprint 提供共用底座、风格层覆盖同名）。
+  // 比对采「或」逻辑：遍历组内每个源，命中任一即算一致，全不命中才报。
   const providers = (dirSources.get(dst.replace(/\/+$/, "")) || [])
     .map((s) => path.join(baseAbs, s));
 
@@ -273,12 +287,17 @@ function _checkDirEntry(src, dst, ctx) {
     const dp = path.join(dstPath, rel);
     matched.add(path.relative(projAbs, dp));
     if (!fs.existsSync(dp)) { missing.push({ src: src + rel, dst: dst + rel, side: "项目目标" }); continue; }
-    let effective = null;
-    for (const pd of providers) {              // 顺序即清单顺序 = 组装复制顺序
-      if (fs.existsSync(path.join(pd, rel))) effective = path.join(pd, rel);
+
+    // 候选 = 组内各源目录下与产出同名的**文件**（必须拼 rel，不能拿目录比）
+    const candidates = providers
+      .map((pd) => path.join(pd, rel))
+      .filter((f) => fs.existsSync(f));
+    if (candidates.length === 0) candidates.push(path.join(srcPath, rel));
+
+    const dpMd5 = _checkMd5(dp);
+    if (!candidates.some((c) => _checkMd5(c) === dpMd5)) {
+      mismatch.push({ src: src + rel, dst: dst + rel });
     }
-    if (!effective) effective = path.join(srcPath, rel);
-    if (_checkMd5(effective) !== _checkMd5(dp)) mismatch.push({ src: src + rel, dst: dst + rel });
   }
 
   // 反向：目标目录里有、但没有任何源目录提供该文件 → 才报。
@@ -294,14 +313,22 @@ function _checkDirEntry(src, dst, ctx) {
 }
 
 // 比对一条「单文件型」清单项。
+// 与目录条目同一套「或」逻辑：同一 dst 可能被多个清单项写入，
+// 产出等于其中任一源即算一致，避免把有意覆盖误报为不一致。
 function _checkFileEntry(src, dst, ctx) {
-  const { baseAbs, projAbs, matched, mismatch, missing } = ctx;
+  const { baseAbs, projAbs, matched, mismatch, missing, fileSources } = ctx;
   const srcPath = path.join(baseAbs, src);
   const dstPath = path.join(projAbs, dst);
   matched.add(path.relative(projAbs, dstPath));
   if (!fs.existsSync(srcPath)) { missing.push({ src, dst, side: "模板源" }); return; }
   if (!fs.existsSync(dstPath)) { missing.push({ src, dst, side: "项目目标" }); return; }
-  if (_checkMd5(srcPath) !== _checkMd5(dstPath)) mismatch.push({ src, dst });
+
+  // 所有写入该 dst 的单文件源；取不到就退化为本条目自身的源。
+  const candidates = (fileSources && fileSources.get(dst)) || [src];
+  const dpMd5 = _checkMd5(dstPath);
+  if (!candidates.some((c) => _checkMd5(path.join(baseAbs, c)) === dpMd5)) {
+    mismatch.push({ src, dst });
+  }
 }
 
 // 孤儿：只扫「清单目标涉及的顶层目录」——不扫整个项目根，
@@ -348,6 +375,7 @@ function cmdCheck(manifestPath, projectRoot, base) {
     baseAbs: path.resolve(base),
     projAbs: path.resolve(projectRoot),
     dirSources: _checkDirSources(files),
+    fileSources: _checkFileSources(files),
     matched: new Set(),     // 项目侧已由清单认领的相对路径（用于算孤儿）
     mismatch: [],           // { src, dst }
     missing: [],            // { src, dst, side }

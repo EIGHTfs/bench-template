@@ -120,6 +120,94 @@ usage() {
   echo "  ./setup.sh iwara --to ../iwara-downloader/server --with play"
 }
 
+# assemble.json 查找（按需取用清单）：
+#   - --to 指定项目目标：必须用自己的 assemble.json（声明要取哪些模板文件），缺失报错
+#   - 无 --to（模板自测到 server/project/）：用 blueprint/assemble.json 默认（纯公共件）
+find_assemble() {
+  local d
+  if [ "$TO_SPECIFIED" = "1" ]; then
+    for d in "$TARGET" "$TARGET/.."; do
+      if [ -f "$d/assemble.json" ]; then echo "$d/assemble.json"; return 0; fi
+    done
+  else
+    for d in "$TARGET" "$BLUEPRINT_DIR" "$ROOT/server/project" "$ROOT/project"; do
+      if [ -f "$d/assemble.json" ]; then echo "$d/assemble.json"; return 0; fi
+    done
+  fi
+  return 1
+}
+
+# 展开清单并复制：解析交给共享模块（list 输出 TSV: 源<TAB>目标），
+# 本处只负责「按行复制 + 计数 + 报缺失」，不再自行解析 JSON。
+# 目标以 / 结尾 = 目录整体拷贝（含点文件），否则单文件拷贝。
+# 落点模式（COPY_LAYOUT）：
+#   out （缺省）= 组装：落点按清单 dst（server/public/... 产出位置）
+#   tree        = 同步：落点按清单 src（保持素材树结构 server/templates/...）
+# 同一份清单的 dst 是「组装产出位置」，而同步要把素材备进项目的素材树供之后组装，
+# 故落点必须按 src 还原。两个工具共用这一段复制实现，差异只在这一个变量。
+_setup_copy_manifest() {
+  local src dst src_path dst_path n_dir=0 n_file=0 missing=0 line
+  local layout="${COPY_LAYOUT:-out}"
+  local copy_dst
+  while IFS=$'\t' read -r src dst; do
+    [ -n "$src" ] || continue
+    src_path="$SRC_BASE/$src"
+    # tree 模式落点与源同构（src 本身），out 模式用清单声明的 dst
+    if [ "$layout" = "tree" ]; then copy_dst="$src"; else copy_dst="$dst"; fi
+    dst_path="$TARGET/$copy_dst"
+    case "$copy_dst" in
+      */)
+        # 目录：src 去掉尾部斜杠，目标去掉尾部 "/." 或 "/"
+        src="${src%/}"
+        dst_path="${dst_path%/}"
+        dst_path="${dst_path%/.}"
+        src_path="$SRC_BASE/$src"
+        if [ -d "$src_path" ]; then
+          mkdir -p "$dst_path"
+          # 逐文件强制覆盖：不能只靠 `cp -rf src/. dst/`——它在部分实现下不覆盖已存在的同名文件，
+          # 而清单允许「多个源写入同一目标目录」（blueprint 提供共用底座、风格层提供该风格专属），
+          # 靠后写入的源覆盖先写入的同名文件正是设计意图（如 iwara 风格层覆盖 blueprint 的 row-thumb.css）。
+          # 用 find + 逐文件 mkdir/cp 保证「后写必覆盖」，与清单顺序语义一致。
+          (cd "$src_path" && find . -type d -exec mkdir -p "$dst_path/{}" \; )
+          (cd "$src_path" && find . -type f -exec sh -c 'mkdir -p "$2/$(dirname "$1")" && cp -f "$1" "$2/$1"' _ {} "$dst_path" \; )
+          echo "  ✓ $src/ → $copy_dst"
+          n_dir=$((n_dir + 1))
+        else
+          echo "  ⚠️ 目录不存在: $src/（跳过）" >&2
+          missing=$((missing + 1))
+        fi
+        ;;
+      *)
+        if [ -f "$src_path" ]; then
+          mkdir -p "$(dirname "$dst_path")"
+          cp -f "$src_path" "$dst_path"
+          echo "  ✓ $src → $copy_dst"
+          n_file=$((n_file + 1))
+        else
+          echo "  ⚠️ 文件不存在: $src（跳过）" >&2
+          missing=$((missing + 1))
+        fi
+        ;;
+    esac
+  done < <("$NODE_BIN" "$MANIFEST_TOOL" list "$ASSEMBLE_FILE")
+  echo "  -- 目录 $n_dir 个 / 文件 $n_file 个 / 缺失 $missing 个"
+  # 缺失只警告不阻断（与既有行为一致）；但目录全缺时提醒，避免静默产出空框架。
+  if [ "$n_dir" = "0" ] && [ "$n_file" = "0" ] && [ "$missing" -gt 0 ]; then
+    echo "  ⚠️ 清单所有素材都未找到——请确认清单键与源基准（基准: $SRC_BASE）" >&2
+  fi
+}
+
+# ---------- 函数定义区（供 source 复用；直接执行时同样生效）----------
+
+# ---------- 只加载模式 ----------
+# 供 scripts/sync-to-project.sh 复用本脚本的组装逻辑（_setup_copy_manifest），
+# 避免「模板→项目」与「素材→public」两套复制实现并存。
+# 上面的函数与变量已全部定义完毕，此处 return 不跑主流程；
+# 直接执行（未设 SETUP_LIB_ONLY）时完全不受影响。
+if [ "${SETUP_LIB_ONLY:-0}" = "1" ]; then
+  return 0 2>/dev/null || exit 0
+fi
+
 if [ $# -eq 0 ] || [ "$1" = "--list" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
   usage
   echo ""
@@ -199,22 +287,6 @@ SERVER_DIR="$TARGET/server"
 
 echo "══ 组装 $STYLE 风格 → $TARGET ══"
 
-# assemble.json 查找（按需取用清单）：
-#   - --to 指定项目目标：必须用自己的 assemble.json（声明要取哪些模板文件），缺失报错
-#   - 无 --to（模板自测到 server/project/）：用 blueprint/assemble.json 默认（纯公共件）
-find_assemble() {
-  local d
-  if [ "$TO_SPECIFIED" = "1" ]; then
-    for d in "$TARGET" "$TARGET/.."; do
-      if [ -f "$d/assemble.json" ]; then echo "$d/assemble.json"; return 0; fi
-    done
-  else
-    for d in "$TARGET" "$BLUEPRINT_DIR" "$ROOT/server/project" "$ROOT/project"; do
-      if [ -f "$d/assemble.json" ]; then echo "$d/assemble.json"; return 0; fi
-    done
-  fi
-  return 1
-}
 
 ASSEMBLE_FILE="$(find_assemble || true)"
 if [ -z "$ASSEMBLE_FILE" ]; then
@@ -249,21 +321,9 @@ if [ -z "$ASSEMBLE_FILE" ]; then
       if ! python3 - "$GEN_PATH" <<'PYGEN'
 import json, sys
 path = sys.argv[1]
+# 清单不带注释段：字段含义与用法统一写在模板仓库 README 的
+# 「assemble.json（按需取用）」章节，避免同一份说明在多处漂移。
 m = {
-    "_comment": [
-        "assemble.json —— 从模板取哪些文件到本项目",
-        "  键 = 模板内相对路径（以 / 结尾 = 整目录拷贝）",
-        "  值 = 本项目内相对路径（相对项目根）",
-        "  以 _ 开头的键仅供阅读，解析器会忽略（可放任意说明）",
-        "  init: false = 不初始化蓝图骨架（项目自带 app.js / config）",
-        "",
-        "  示例（按需增删，不需要的行直接删掉）：",
-        '    "server/framework/": "server/framework/"',
-        '    "server/project/blueprint/login.html": "server/public/login.html"',
-        '    "server/project/blueprint/theme-init.js": "server/public/theme-init.js"',
-        "",
-        "  用法：../../dl-server-template/setup.sh <gbmd|iwara> --to ./server",
-    ],
     "files": {},
     "init": False,
 }
@@ -359,56 +419,7 @@ fi
 #           "server/templates/_gbmd-style/public/logo.png": "server/public/brand.png"
 #         } }
 
-# 展开清单并复制：解析交给共享模块（list 输出 TSV: 源<TAB>目标），
-# 本处只负责「按行复制 + 计数 + 报缺失」，不再自行解析 JSON。
-# 目标以 / 结尾 = 目录整体拷贝（含点文件），否则单文件拷贝。
-_setup_copy_manifest() {
-  local src dst src_path dst_path n_dir=0 n_file=0 missing=0 line
-  while IFS=$'\t' read -r src dst; do
-    [ -n "$src" ] || continue
-    src_path="$SRC_BASE/$src"
-    dst_path="$TARGET/$dst"
-    case "$dst" in
-      */)
-        # 目录：src 去掉尾部斜杠，目标去掉尾部 "/." 或 "/"
-        src="${src%/}"
-        dst_path="${dst_path%/}"
-        dst_path="${dst_path%/.}"
-        src_path="$SRC_BASE/$src"
-        if [ -d "$src_path" ]; then
-          mkdir -p "$dst_path"
-          # 逐文件强制覆盖：不能只靠 `cp -rf src/. dst/`——它在部分实现下不覆盖已存在的同名文件，
-          # 而清单允许「多个源写入同一目标目录」（blueprint 提供共用底座、风格层提供该风格专属），
-          # 靠后写入的源覆盖先写入的同名文件正是设计意图（如 iwara 风格层覆盖 blueprint 的 row-thumb.css）。
-          # 用 find + 逐文件 mkdir/cp 保证「后写必覆盖」，与清单顺序语义一致。
-          (cd "$src_path" && find . -type d -exec mkdir -p "$dst_path/{}" \; )
-          (cd "$src_path" && find . -type f -exec sh -c 'mkdir -p "$2/$(dirname "$1")" && cp -f "$1" "$2/$1"' _ {} "$dst_path" \; )
-          echo "  ✓ $src/ → $dst"
-          n_dir=$((n_dir + 1))
-        else
-          echo "  ⚠️ 目录不存在: $src/（跳过）" >&2
-          missing=$((missing + 1))
-        fi
-        ;;
-      *)
-        if [ -f "$src_path" ]; then
-          mkdir -p "$(dirname "$dst_path")"
-          cp -f "$src_path" "$dst_path"
-          echo "  ✓ $src → $dst"
-          n_file=$((n_file + 1))
-        else
-          echo "  ⚠️ 文件不存在: $src（跳过）" >&2
-          missing=$((missing + 1))
-        fi
-        ;;
-    esac
-  done < <("$NODE_BIN" "$MANIFEST_TOOL" list "$ASSEMBLE_FILE")
-  echo "  -- 目录 $n_dir 个 / 文件 $n_file 个 / 缺失 $missing 个"
-  # 缺失只警告不阻断（与既有行为一致）；但目录全缺时提醒，避免静默产出空框架。
-  if [ "$n_dir" = "0" ] && [ "$n_file" = "0" ] && [ "$missing" -gt 0 ]; then
-    echo "  ⚠️ 清单所有素材都未找到——请确认清单键与源基准（基准: $SRC_BASE）" >&2
-  fi
-}
+
 
 if [ -n "$NODE_BIN" ]; then
   _setup_copy_manifest
