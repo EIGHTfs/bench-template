@@ -124,6 +124,12 @@ STYLE_DIR="$TEMPLATES_DIR/_${STYLE}-style"
 [ -d "$STYLE_DIR" ] || { err "❌ 模板目录缺失: $STYLE_DIR"; exit 1; }
 
 # 目标 server 目录（--to 传项目根，server 在其下；assemble.json 的值同样相对项目根）
+# --to 归一：文档写的是 `--to <项目>/server`，而下面按「项目根」推导 SERVER_DIR
+# （SERVER_DIR=$TARGET/server）。两种写法都接受，避免传 server/ 时落到
+# <项目>/server/server/（幽灵目录：组装全报成功，真实文件一个没更新）。
+if [ "$TO_SPECIFIED" = "1" ] && [ "$(basename "$(cd "$TARGET" 2>/dev/null && pwd || echo "$TARGET")")" = "server" ]; then
+  TARGET="$(cd "$TARGET/.." 2>/dev/null && pwd || echo "$TARGET/..")"
+fi
 SERVER_DIR="$TARGET/server"
 
 echo "══ 组装 $STYLE 风格 → $TARGET ══"
@@ -318,6 +324,7 @@ files = m.get("files") or {}
 #   源路径报「文件不存在」并虚增缺失计数。顶层 _ 键本就被忽略，此处防的是
 #   files 内部的注释键。
 files = {k: v for k, v in files.items() if not str(k).startswith("_")}
+
 n_dir = n_file = missing = 0
 for src, dst_rel in files.items():
     src_path = os.path.join(root, src)
