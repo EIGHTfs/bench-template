@@ -598,6 +598,7 @@ dl-server-template/
 
 | 版本 | 内容 |
 |---|---|
+| 1.6.2 | **`start.sh` 重启失败根治**（「重启后服务没起来」）：①端口占用检测改为精确匹配——原 `awk '$4 ~ ":8642"'` 是子串匹配，`:18642` / `:86421` 会被误判成同端口，导致误等、误杀；②新增 `port_in_use()` / `wait_port_free()`：`start_server` 发现端口仍被占（上一次 SIGTERM 未走完、连接在 TIME_WAIT、或非 root 看不到占用者 PID）时不再直接启动而是等待端口真正释放（`START_WAIT_SEC`，默认 15s），等到就继续、等不到才明确报错退出——旧逻辑此时 bind 失败后进程秒退，表现为静默不启动；③`restart` 不再依赖固定 `sleep 1` |
 | 1.6.1 | `task-list.css` 新增 `a.mm-play-btn`：下载列表「▶ 播放」是 `<a>`，原先只匹配到 `.mm-play-btn` 的尺寸规则、靠 `.btn` 兜底，层叠顺序一变就回落成裸链接；现显式补齐边框/圆角/底色/文字色与 hover，不依赖层叠顺序 |
 | 1.6.0 | **`<a>` 当按钮用不再丢样式**：`components.css` 的按钮规则原本全部限定 `button.标签`，而顶栏「油猴脚本」入口与下载列表「▶ 播放」都是 `<a>`，只匹配到尺寸类、拿不到边框/底色/文字色，显示成裸链接。现把按钮外观扩展到 `.btn`（含 `a.btn` / `a.ghost` 去下划线），两个项目的两个入口补 `btn` 类。另：下载列表 gif 预览——`row-thumb.css` 新增 `.row-thumb-wrap` / `.row-thumb-badge`，gif 缩略图右下角显示 GIF 角标 |
 | 1.5.0 | **顶栏徽章元素 id 统一为 `UserBadge`**：`topbar/badge.html` 原按项目取名（`gbUserBadge` / `iwaraUserBadge`），导致通用层的 `topbar-badge.css` 必须把两套 id 选择器并列写死；现两个风格层统一用 `UserBadge` / `UserName` / `UserRemain`，CSS 只针对一个 id 写样式（18 处选择器不变，三态 class 前缀 `gb-user-*` / `iwara-user-*` 保留）。同时补上 `blueprint/style.css` 漏引的 `@frag:styles/mod-group.css`、`@frag:styles/grid-map.css`——这两个片段此前虽已拆出但未被引用，导致 gbmd 下载列表分组折叠样式在产物 CSS 中缺失 |
