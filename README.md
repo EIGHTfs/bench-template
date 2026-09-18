@@ -601,6 +601,8 @@ dl-server-template/
 
 | 版本 | 内容 |
 |---|---|
+| 1.7.8 | **`start.sh` 自包含，成为项目通用启停脚本**：此前它 `source scripts/lib-node.sh`，但 `start.sh` 是「直接拷进项目根」的独立脚本，项目里没有 `scripts/`，换环境即报 lib-node.sh 不存在。现内联 Node 定位逻辑（候选顺序与 `lib-node.sh` 保持一致）。同一份 `start.sh` 现已实测可直接用于 gbmd（port 8642）与 iwara（port 28463）两个项目，端口由各自 `server/config.json` 决定、`DEFAULT_PORT` 仅作回落，故无需按项目改脚本 |
+
 | 1.7.7 | **Node 定位收敛为唯一实现 `scripts/lib-node.sh`**：`start.sh` / `setup.sh` / `sync-to-project.sh` 各有一份 `find_node()` 拷贝，候选路径列表已出现偏差。现统一 source 该库（支持显式传入调用方特有候选，如 `tool/node/`），并修掉 `test/data-backup-equivalence.test.sh` 裸调 `node` 的问题——在 PATH 无 node 的环境（NAS 应用容器）下该测试必然失败，现改用 `$NODE_BIN`，实测通过 2/0。`lib-node.sh` 与 `assemble-manifest.js` 一并随 `setup.sh` 同步进项目（放同级，避开项目自有 `scripts/`） |
 
 | 1.7.6 | **清单解析收敛为唯一实现 `scripts/assemble-manifest.js`**：此前「assemble.json 怎么解析」散在三处各写一遍（`setup.sh` 内嵌 python 两份、`sync-to-project.sh` 内嵌 python 一份），同一约定出现口径漂移。现统一由该模块提供 `resolve-base` / `list` / `asset-roots` / `brand` / `init-flag` / `validate`，bash 侧只消费输出。顺带修掉两个真实 bug：①`sync-to-project.sh` 不过滤 `_` 开头的注释键，把注释当成素材引用（计数虚增）；②其 `.sync-plan` 写在 `$TARGET/.sync-plan` 却从 `$PROJ_ROOT_FOR_PLAN/.sync-plan` 读，路径不一致导致「报成功但一个素材都没复制」。另修复无 node 环境下裸调 `node` 的静默失败（改用与 `start.sh` 同款 `find_node`），并把工具随 `setup.sh` 一起同步进项目（放同级，避开项目自有 `scripts/`）。已验证：重构前后对现网项目组装产物**逐字节一致** |
