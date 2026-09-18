@@ -1,3 +1,5 @@
+  <!-- ============ 设置 ============ -->
+  <div class="tab-panel" id="panel-settings">
     <div class="card">
       <h2>下载路径与命名</h2>
       <p class="hint">直连后端填本机路径；Aria2 后端填 Aria2 所在机器上的路径。模板不要写 <code>.mp4</code>，保存时自动补扩展名。</p>
@@ -44,12 +46,12 @@
         <label><input type="checkbox" id="set-autoFollow"> 下载视频时自动关注作者</label>
       </div>
 
+    </div>
     <div class="card">
       <h2>播放</h2>
       <div class="row">
         <label><input type="checkbox" id="set-playPublic" checked> 视频播放公开（选中 = 免登录播放，不选 = 需服务端登录）</label>
       </div>
-    </div>
     </div>
 
     <div class="card">
@@ -139,3 +141,6 @@
     <div class="row mt">
       <div class="status" id="settingsStatus"></div>
     </div>
+
+    <!-- @frag:auto-update-card -->
+  </div>
