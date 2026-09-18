@@ -44,17 +44,57 @@ detect_dir() {
 TEMPLATES_DIR="$(detect_dir "$ROOT/server/templates" "$ROOT/templates")"
 BLUEPRINT_DIR="$(detect_dir "$ROOT/server/project/blueprint" "$ROOT/project/blueprint")"
 
+# 清单解析唯一实现（scripts/assemble-manifest.js）——
+# 此前 files 展开 / brand 导出 / init 判定各自内嵌一份 python，口径易漂移。
+# 清单解析工具的定位：优先同级（项目里随 setup.sh 一起同步过来的副本），
+# 回落到模板仓库的 scripts/。setup.sh 会被复制进项目独立运行，项目不一定
+# 有 scripts/ 目录（也可能有自己的同名目录），所以工具必须跟着 setup.sh 走。
+if [ -f "$ROOT/assemble-manifest.js" ]; then
+  MANIFEST_TOOL="$ROOT/assemble-manifest.js"
+elif [ -f "$ROOT/scripts/assemble-manifest.js" ]; then
+  MANIFEST_TOOL="$ROOT/scripts/assemble-manifest.js"
+else
+  MANIFEST_TOOL="$ROOT/scripts/assemble-manifest.js"   # 交给下游报「找不到」
+fi
+NODE_BIN=""
+find_node() {
+  local c nvm
+  for c in \
+    "$ROOT/tool/node/bin/node" \
+    /usr/local/bin/node \
+    /opt/homebrew/bin/node \
+    /opt/node/bin/node \
+    /var/packages/Node.js_v24/target/usr/local/bin/node \
+    /var/packages/Node.js_v22/target/usr/local/bin/node \
+    /var/packages/Node.js_v20/target/usr/local/bin/node \
+    /var/packages/DeepSeekHarness-NAS/target/bin/node \
+    node; do
+    if [ -x "$c" ]; then NODE_BIN="$c"; return 0; fi
+    if command -v "$c" >/dev/null 2>&1; then NODE_BIN="$(command -v "$c")"; return 0; fi
+  done
+  for nvm in "$HOME"/.nvm/versions/node/*/bin/node; do
+    if [ -x "$nvm" ]; then NODE_BIN="$nvm"; return 0; fi
+  done
+  return 1
+}
+
 # 清单「键」的源基准（键统一写成 server/... 形式）：
 #   模板仓库布局：素材在 <模板根>/server/  → 源基准 = 模板根
 #   synced 布局  ：素材在 <项目>/server/   → 源基准 = 项目根（即 $ROOT 的上一级）
 # 两种布局下「基准 + 键」都指向同一批素材，因此同一份 assemble.json 两边通用。
-# （此前固定用 $ROOT，synced 布局会拼出 <项目>/server/server/templates 而全部缺失。）
-if [ -d "$ROOT/server/templates" ] || [ -d "$ROOT/server/project/blueprint" ]; then
-  SRC_BASE="$ROOT"
-elif [ -d "$ROOT/templates" ] || [ -d "$ROOT/project/blueprint" ]; then
-  SRC_BASE="$(cd "$ROOT/.." && pwd)"
+# 判定统一交给 scripts/assemble-manifest.js（resolve-base），与 sync-to-project.sh
+# 共用同一实现——此前这里是第三份「基准怎么算」的独立实现，正是幽灵目录的根因。
+if find_node; then
+  SRC_BASE="$("$NODE_BIN" "$MANIFEST_TOOL" resolve-base "$ROOT")"
 else
-  SRC_BASE="$ROOT"
+  # 没有 node 时回落旧判定（保持可用，不让组装整体失败）
+  if [ -d "$ROOT/server/templates" ] || [ -d "$ROOT/server/project/blueprint" ]; then
+    SRC_BASE="$ROOT"
+  elif [ -d "$ROOT/templates" ] || [ -d "$ROOT/project/blueprint" ]; then
+    SRC_BASE="$(cd "$ROOT/.." && pwd)"
+  else
+    SRC_BASE="$ROOT"
+  fi
 fi
 if [ -d "$ROOT/server" ]; then DEFAULT_TARGET="$ROOT/server/project"; else DEFAULT_TARGET="$ROOT/project"; fi
 
@@ -246,34 +286,22 @@ fi
 
 # 立即校验清单可解析：JSON 语法错 / 结构不对时提前失败，避免在初始化蓝图、
 # 生成 boot.cjs 之后才报错，从而留下半成品目录。
-# 下划线开头的键是注释，值可以是任意类型，跳过校验。
-if ! python3 -c "
-import json,sys
-try:
-    m=json.load(open(sys.argv[1],encoding='utf-8'))
-except Exception as e:
-    print('  ❌ 清单解析失败 %s: %s' % (sys.argv[1], e), file=sys.stderr); sys.exit(1)
-if not isinstance(m, dict) or not isinstance(m.get('files', {}), dict):
-    print('  ❌ 清单格式错误：顶层应为对象，且 files 应为对象', file=sys.stderr); sys.exit(1)
-for k, v in m.get('files', {}).items():
-    if str(k).startswith('_'):
-        continue
-    if not isinstance(v, str):
-        print('  ❌ 清单格式错误：files 的值必须是字符串（键 %r 的值是 %s）' % (k, type(v).__name__), file=sys.stderr); sys.exit(1)
-" "$ASSEMBLE_FILE"; then
-  exit 1
+# 下划线开头的键是注释，值可以是任意类型，跳过校验——由共享模块统一处理。
+if find_node; then
+  if ! "$NODE_BIN" "$MANIFEST_TOOL" validate "$ASSEMBLE_FILE" "$SRC_BASE"; then
+    exit 1
+  fi
+else
+  echo "  ⚠️ 未找到 node，跳过清单结构自检（仍会按清单复制）" >&2
 fi
 
 # 1. 目标初始化：目录 + 蓝图骨架复制（app.js / config.schema.json 不存在才复制）
 #    已有自己 app.js/config 机制的项目，可在 assemble.json 设 "init": false 跳过本段
-INIT_FLAG="$(python3 -c "
-import json,sys
-try:
-    m=json.load(open(sys.argv[1],encoding='utf-8'))
-    print('0' if m.get('init', True) is False else '1')
-except Exception:
-    print('1')
-" "$ASSEMBLE_FILE" 2>/dev/null || echo 1)"
+if [ -n "$NODE_BIN" ]; then
+  INIT_FLAG="$("$NODE_BIN" "$MANIFEST_TOOL" init-flag "$ASSEMBLE_FILE" 2>/dev/null || echo 1)"
+else
+  INIT_FLAG=1
+fi
 mkdir -p "$SERVER_DIR/public"
 if [ "$INIT_FLAG" = "1" ]; then
   for f in app.js config.schema.json; do
@@ -319,49 +347,58 @@ fi
 #           "server/templates/_gbmd-style/public/logo.png": "server/public/brand.png"
 #         } }
 
-# 用 python3 把 assemble.json 展开为 cp 命令执行
-#   键 = 源，相对源基准 SRC_BASE；值 = 目标，相对目标项目根 TARGET（如 server/public/login.html）
-python3 - "$ASSEMBLE_FILE" "$SRC_BASE" "$TARGET" <<'PYEOF'
-import json, os, sys, subprocess
-manifest, root, target = sys.argv[1], sys.argv[2], sys.argv[3]
-try:
-    with open(manifest, encoding="utf-8") as f:
-        m = json.load(f)
-except Exception as e:
-    print(f"  ❌ assemble.json 解析失败: {e}", file=sys.stderr); sys.exit(1)
+# 展开清单并复制：解析交给共享模块（list 输出 TSV: 源<TAB>目标），
+# 本处只负责「按行复制 + 计数 + 报缺失」，不再自行解析 JSON。
+# 目标以 / 结尾 = 目录整体拷贝（含点文件），否则单文件拷贝。
+_setup_copy_manifest() {
+  local src dst src_path dst_path n_dir=0 n_file=0 missing=0 line
+  while IFS=$'\t' read -r src dst; do
+    [ -n "$src" ] || continue
+    src_path="$SRC_BASE/$src"
+    dst_path="$TARGET/$dst"
+    case "$dst" in
+      */)
+        # 目录：src 去掉尾部斜杠，目标去掉尾部 "/." 或 "/"
+        src="${src%/}"
+        dst_path="${dst_path%/}"
+        dst_path="${dst_path%/.}"
+        src_path="$SRC_BASE/$src"
+        if [ -d "$src_path" ]; then
+          mkdir -p "$dst_path"
+          cp -rf "$src_path/." "$dst_path/" 2>/dev/null || cp -rf "$src_path/." "$dst_path/"
+          echo "  ✓ $src/ → $dst"
+          n_dir=$((n_dir + 1))
+        else
+          echo "  ⚠️ 目录不存在: $src/（跳过）" >&2
+          missing=$((missing + 1))
+        fi
+        ;;
+      *)
+        if [ -f "$src_path" ]; then
+          mkdir -p "$(dirname "$dst_path")"
+          cp -f "$src_path" "$dst_path"
+          echo "  ✓ $src → $dst"
+          n_file=$((n_file + 1))
+        else
+          echo "  ⚠️ 文件不存在: $src（跳过）" >&2
+          missing=$((missing + 1))
+        fi
+        ;;
+    esac
+  done < <("$NODE_BIN" "$MANIFEST_TOOL" list "$ASSEMBLE_FILE")
+  echo "  -- 目录 $n_dir 个 / 文件 $n_file 个 / 缺失 $missing 个"
+  # 缺失只警告不阻断（与既有行为一致）；但目录全缺时提醒，避免静默产出空框架。
+  if [ "$n_dir" = "0" ] && [ "$n_file" = "0" ] && [ "$missing" -gt 0 ]; then
+    echo "  ⚠️ 清单所有素材都未找到——请确认清单键与源基准（基准: $SRC_BASE）" >&2
+  fi
+}
 
-files = m.get("files") or {}
-# 跳过注释键：以 _ 开头的键仅供阅读（如 "_comment": [...]、"说明": {...}）。
-#   JSON 规范不支持注释，清单用 _comment 键承载说明；若不跳过，
-#   数组值会在 os.path.join 处抛 TypeError 令脚本崩溃，字符串值则被当成
-#   源路径报「文件不存在」并虚增缺失计数。顶层 _ 键本就被忽略，此处防的是
-#   files 内部的注释键。
-files = {k: v for k, v in files.items() if not str(k).startswith("_")}
-
-n_dir = n_file = missing = 0
-for src, dst_rel in files.items():
-    src_path = os.path.join(root, src)
-    dst = os.path.join(target, dst_rel)
-    if dst_rel.endswith("/") or dst_rel.endswith("/."):
-        src_dir = os.path.join(root, src.rstrip("/"))
-        dst_dir = dst.rstrip("/.")
-        if os.path.isdir(src_dir):
-            os.makedirs(dst_dir, exist_ok=True)
-            subprocess.run(["cp", "-rf", src_dir + "/.", dst_dir], check=False)
-            print(f"  ✓ {src}/ → {dst_rel}")
-            n_dir += 1
-        else:
-            print(f"  ⚠️ 目录不存在: {src}/（跳过）", file=sys.stderr); missing += 1
-    else:
-        os.makedirs(os.path.dirname(dst), exist_ok=True)
-        if os.path.isfile(src_path):
-            subprocess.run(["cp", "-f", src_path, dst], check=False)
-            print(f"  ✓ {src} → {dst_rel}")
-            n_file += 1
-        else:
-            print(f"  ⚠️ 文件不存在: {src}（跳过）", file=sys.stderr); missing += 1
-print(f"  -- 目录 {n_dir} 个 / 文件 {n_file} 个 / 缺失 {missing} 个")
-PYEOF
+if [ -n "$NODE_BIN" ]; then
+  _setup_copy_manifest
+else
+  echo "  ❌ 找不到 node，无法解析清单复制素材。请安装 Node.js。" >&2
+  exit 1
+fi
 if [ $? -ne 0 ]; then exit 1; fi
 
 # 3b. 品牌配置：清单里的 brand 段 → server/public/brand.json
@@ -373,28 +410,18 @@ BRAND_JSON="$SERVER_DIR/public/brand.json"
 if [ -f "$BRAND_JSON" ]; then
   ok "  ✓ brand.json 已存在，保留（如需按清单重置请先删除该文件）"
 else
-  if python3 - "$ASSEMBLE_FILE" "$BRAND_JSON" <<'PYBRAND'
-import json, os, sys
-manifest, out = sys.argv[1], sys.argv[2]
-try:
-    m = json.load(open(manifest, encoding="utf-8"))
-except Exception as e:
-    print(f"  ❌ 读取清单失败: {e}", file=sys.stderr); sys.exit(1)
-brand = m.get("brand")
-if not brand:
-    sys.exit(3)                      # 未声明 brand 段：非错误，静默跳过
-if not isinstance(brand, dict) or not brand:
-    print("  ❌ 清单 brand 段必须是非空对象", file=sys.stderr); sys.exit(1)
-os.makedirs(os.path.dirname(out), exist_ok=True)
-with open(out, "w", encoding="utf-8") as f:
-    json.dump(brand, f, ensure_ascii=False)
-    f.write("\n")
-PYBRAND
-  then
-    ok "  ✓ 生成 brand.json（来自清单 brand 段）"
+  # brand 导出：rc=0 生成成功；rc=3 表示清单未声明 brand 段（非错误，静默跳过）；
+  # 其余 rc 才是真错误。必须直接在 if 上取 $?，否则会被后续命令覆盖。
+  if [ -z "$NODE_BIN" ]; then
+    :                                # 无 node：跳过（前面清单复制已会报错退出）
   else
+    "$NODE_BIN" "$MANIFEST_TOOL" brand "$ASSEMBLE_FILE" "$BRAND_JSON"
     rc=$?
-    [ "$rc" != "3" ] && exit 1       # rc=3 表示未声明，静默跳过
+    if [ "$rc" = "0" ]; then
+      ok "  ✓ 生成 brand.json（来自清单 brand 段）"
+    elif [ "$rc" != "3" ]; then
+      exit 1
+    fi
   fi
 fi
 

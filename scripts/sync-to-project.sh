@@ -35,6 +35,31 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SRC_FRAMEWORK="$ROOT/server/framework"
 SRC_TEMPLATES="$ROOT/server/templates"
 SRC_SETUP="$ROOT/setup.sh"
+MANIFEST_TOOL="$ROOT/scripts/assemble-manifest.js"   # 清单解析唯一实现
+# Node 定位：与 start.sh 同款候选顺序（NAS/Homebrew/nvm/官方包都在列），
+# 不裸用 `node`——某些环境（如 NAS 的应用容器）PATH 里没有 node，
+# 裸调用会让清单解析静默失败。
+find_node() {
+  local c nvm
+  for c in \
+    "$ROOT/tool/node/bin/node" \
+    /usr/local/bin/node \
+    /opt/homebrew/bin/node \
+    /opt/node/bin/node \
+    /var/packages/Node.js_v24/target/usr/local/bin/node \
+    /var/packages/Node.js_v22/target/usr/local/bin/node \
+    /var/packages/Node.js_v20/target/usr/local/bin/node \
+    /var/packages/DeepSeekHarness-NAS/target/bin/node \
+    node; do
+    if [ -x "$c" ]; then NODE_BIN="$c"; return 0; fi
+    if command -v "$c" >/dev/null 2>&1; then NODE_BIN="$(command -v "$c")"; return 0; fi
+  done
+  for nvm in "$HOME"/.nvm/versions/node/*/bin/node; do
+    if [ -x "$nvm" ]; then NODE_BIN="$nvm"; return 0; fi
+  done
+  return 1
+}
+NODE_BIN=""
 
 if [ $# -lt 1 ]; then
   echo "用法: $0 <目标server目录>"
@@ -106,82 +131,82 @@ mkdir -p "$TARGET"
 # ---------- 复制清单本身（清单驱动的前提：项目里得有它） ----------
 if [ "$MODE" = "manifest" ]; then
   # 按清单引用逐项同步：键形如 server/templates/_gbmd-style/... ，
-  # 取到「前两/三层」作为要搬的素材根，避免把整个 templates/ 搬过来。
-  # 用 python3 展开为「源目录 → 目标目录」对（与 setup.sh 同款解析口径）。
-  # 源基准 = 模板根（本脚本就在模板仓库里跑，素材位于 <模板根>/server/）。
-  # 落点基准 = 项目根（TARGET 是 <项目根>/server，清单键含 server/ 前缀）
+  # 取「素材根」作为要搬的目录，避免把整个 templates/ 搬过来。
+  #
+  # 解析统一走 scripts/assemble-manifest.js（清单解析的唯一实现）。
+  # 此前这里有一份自己的 asset_root() 实现，与 setup.sh 的内嵌 python 各写一遍，
+  # 口径已出现过偏差（不过滤 `_` 注释键、基准假设不一致）。收敛后不再重演。
+  if ! find_node; then
+    echo "  ❌ 找不到 node（清单解析需要）。请安装 Node.js，或把官方二进制解压到 $ROOT/tool/node/" >&2
+    echo "     如需不依赖清单的整份同步，请加 --all。" >&2
+    exit 1
+  fi
   PROJ_ROOT_FOR_PLAN="$(cd "$TARGET/.." 2>/dev/null && pwd || echo "$TARGET/..")"
-  python3 - "$MANIFEST" "$ROOT" "$PROJ_ROOT_FOR_PLAN" <<'PYEOF'
-import json, os, sys, subprocess, collections
 
-manifest, root, target = sys.argv[1], sys.argv[2], sys.argv[3]
-m = json.load(open(manifest, encoding="utf-8"))
-files = {k: v for k, v in (m.get("files") or {}).items() if not str(k).startswith("_")}
+  # 源基准：由共享模块按「BASE/server/ 下确有素材」判定，两种布局通用。
+  SRC_BASE="$("$NODE_BIN" "$MANIFEST_TOOL" resolve-base "$ROOT")"
 
-# 从清单键提取「素材根」：server/<a>/<b>[/<c>] 的前缀。
-#   server/framework/...              → server/framework
-#   server/templates/_gbmd-style/...  → server/templates/_gbmd-style   （只搬当前风格）
-#   server/project/blueprint/...      → server/project/blueprint
-def asset_root(key):
-    parts = key.rstrip("/").split("/")
-    if len(parts) >= 3 and parts[0] == "server" and parts[1] == "templates":
-        return "/".join(parts[:3])          # 含具体风格目录
-    if len(parts) >= 3 and parts[0] == "server" and parts[1] == "project":
-        return "/".join(parts[:3])          # project/blueprint
-    return "/".join(parts[:2])              # server/framework 等
+  # 清单自检（路径安全 / 同名覆盖）——只警告，不阻断同步。
+  "$NODE_BIN" "$MANIFEST_TOOL" validate "$MANIFEST" "$SRC_BASE" 2>&1 | sed 's/^/  /' || true
 
-roots = collections.OrderedDict()
-for k in files:
-    r = asset_root(k)
-    roots.setdefault(r, 0)
-    roots[r] += 1
+  PLAN="$TARGET/.sync-plan"
+  ROOTS="$TARGET/.sync-roots"
+  if ! "$NODE_BIN" "$MANIFEST_TOOL" asset-roots "$MANIFEST" > "$ROOTS" 2>/dev/null; then
+    echo "  ❌ 清单解析失败: $MANIFEST" >&2
+    rm -f "$ROOTS"
+    exit 1
+  fi
 
-# 组装还需要的固定件（清单通常不直接引用，但 setup.sh 会读）：
-#   1. framework/cjs-bootstrap.cjs  → boot.cjs 引导（TEMPLATES_DIR/../framework/）
-#   2. project/blueprint 骨架        → init:true 时初始化 app.js/config.schema.json
-#   3. blueprint/assemble.json      → 无清单时的默认模板
-# 只有项目确实用到时才补，避免又把无关素材搬进去。
-extra = []
-if "server/framework" not in roots and os.path.isdir(os.path.join(root, "server/framework")):
-    extra.append("server/framework")
-if any(r.startswith("server/project/blueprint") for r in roots) is False:
-    bp = os.path.join(root, "server/project/blueprint")
-    if os.path.isdir(bp) and m.get("init"):
-        extra.append("server/project/blueprint")
+  : > "$PLAN"
+  n=0
+  while IFS= read -r rel; do
+    [ -z "$rel" ] && continue
+    if [ ! -d "$SRC_BASE/$rel" ]; then
+      echo "  ⚠️ 清单引用的素材不存在: $rel（跳过）" >&2
+      continue
+    fi
+    printf '%s\n' "$rel" >> "$PLAN"
+    echo "  ✓ $rel/  （清单引用）"
+    n=$((n + 1))
+  done < "$ROOTS"
+  rm -f "$ROOTS"
 
-n = 0
-for rel, cnt in roots.items():
-    src = os.path.join(root, rel)
-    dst = os.path.join(target, rel)
-    if not os.path.isdir(src):
-        print(f"  ⚠️ 清单引用的素材不存在: {rel}（跳过）", file=sys.stderr)
-        continue
-    os.makedirs(dst, exist_ok=True)
-    print(f"  ✓ {rel}/  （清单引用 {cnt} 项）")
-    n += 1
-for rel in extra:
-    src = os.path.join(root, rel)
-    dst = os.path.join(target, rel)
-    if os.path.isdir(src):
-        print(f"  ✓ {rel}/  （组装依赖）")
-        n += 1
+  # 组装还需要的固定件（清单通常不直接引用，但 setup.sh 会读）：
+  #   1. server/framework               → boot.cjs 引导依赖
+  #   2. server/project/blueprint 骨架  → init 时初始化 app.js/config.schema.json
+  # 只在项目确实用到、且清单没引用时才补，避免把无关素材搬进来。
+  add_extra() {
+    _rel="$1"
+    grep -qxF "$_rel" "$PLAN" 2>/dev/null && return 0
+    [ -d "$SRC_BASE/$_rel" ] || return 0
+    printf '%s\n' "$_rel" >> "$PLAN"
+    echo "  ✓ $_rel/  （组装依赖）"
+    n=$((n + 1))
+  }
+  grep -qxF "server/framework" "$PLAN" 2>/dev/null || add_extra "server/framework"
+  if ! grep -qxF "server/project/blueprint" "$PLAN" 2>/dev/null; then
+    _init="$("$NODE_BIN" "$MANIFEST_TOOL" init-flag "$MANIFEST" 2>/dev/null || echo 1)"
+    [ "$_init" = "1" ] && add_extra "server/project/blueprint"
+  fi
 
-# 输出待执行的 cp 清单，交给外层 sync_dir（带排除与回落）
-with open(os.path.join(target, ".sync-plan"), "w", encoding="utf-8") as f:
-    for rel in list(roots) + extra:
-        f.write(rel + "\n")
-print(f"  -- 素材根 {n} 个")
-PYEOF
+  echo "  -- 素材根 $n 个"
 
-  if [ -f "$PROJ_ROOT_FOR_PLAN/.sync-plan" ]; then
+
+  # 消费 .sync-plan：plan 写在 $PLAN，读也用 $PLAN。
+  # （此前写在 $TARGET/.sync-plan 却从 $PROJ_ROOT_FOR_PLAN/.sync-plan 读，
+  #   路径不一致导致「报成功但一个素材都没复制」——这类 bug 的共因就是
+  #   同一个落点被拼了两次、两次拼法还不一样。）
+  if [ -s "$PLAN" ]; then
     while IFS= read -r rel; do
       [ -n "$rel" ] || continue
-      # rel 形如 server/templates/_gbmd-style（模板根相对）；
+      # rel 形如 server/templates/_gbmd-style（模板根相对，取自清单键）；
       # 落点 = 项目根 + rel（TARGET 已是 <项目根>/server，不能再用它拼）
-      sync_dir "$ROOT/$rel" "$PROJ_ROOT_FOR_PLAN/$rel" || { echo "❌ $rel 复制失败"; exit 1; }
-    done < "$PROJ_ROOT_FOR_PLAN/.sync-plan"
-    rm -f "$PROJ_ROOT_FOR_PLAN/.sync-plan"
+      sync_dir "$SRC_BASE/$rel" "$PROJ_ROOT_FOR_PLAN/$rel" || { echo "  ❌ $rel 复制失败" >&2; exit 1; }
+    done < "$PLAN"
+  else
+    echo "  ⚠️ 清单没有可同步的素材（plan 为空）" >&2
   fi
+  rm -f "$PLAN"
 
 else
   # 整份同步（无清单 / --all）
@@ -201,6 +226,14 @@ if [ -f "$SRC_SETUP" ]; then
   cp "$SRC_SETUP" "$TARGET/setup.sh"
   chmod +x "$TARGET/setup.sh" 2>/dev/null
   echo "  ✓ setup.sh → $TARGET/setup.sh"
+  # 清单解析工具随 setup.sh 一起进项目（setup.sh 依赖它解析 assemble.json）。
+  # 放同级而非 scripts/：项目可能已有自己的 scripts/ 目录。
+  if [ -f "$MANIFEST_TOOL" ]; then
+    cp "$MANIFEST_TOOL" "$TARGET/assemble-manifest.js"
+    echo "  ✓ assemble-manifest.js → $TARGET/assemble-manifest.js"
+  else
+    echo "  ⚠️ 未找到 $MANIFEST_TOOL，项目内 setup.sh 将无法解析清单" >&2
+  fi
 fi
 
 echo ""
