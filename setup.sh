@@ -3,7 +3,7 @@
 # 模板组装脚本：把前端部件组装到目标 server/ 目录
 #
 # 用法：
-#   ./setup.sh <gbmd|iwara> [--to <目标server目录>] [--with <组件,...>]
+#   ./setup.sh <gbmd|iwara> [--to <目标server目录>] [--with <组件,...>] [--check]
 #
 # 目标说明（--to）：
 #   - 省略 --to：组装到模板仓库自身 server/project/（测试/参考用）
@@ -145,10 +145,12 @@ shift
 TARGET="$DEFAULT_TARGET"
 WITH=""
 TO_SPECIFIED=0
+CHECK_ONLY=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --to) TARGET="${2:-}"; [ -n "$TARGET" ] || { err "❌ --to 需要路径参数"; exit 1; }; TO_SPECIFIED=1; shift 2 ;;
     --with) WITH="${2:-}"; shift 2 ;;
+    --check) CHECK_ONLY=1; shift ;;
     -*) shift ;;
     *) shift ;;
   esac
@@ -166,6 +168,25 @@ fi
 
 STYLE_DIR="$TEMPLATES_DIR/_${STYLE}-style"
 [ -d "$STYLE_DIR" ] || { err "❌ 模板目录缺失: $STYLE_DIR"; exit 1; }
+
+# --check：只做清单一致性检查，不组装。
+# 作用：①找出项目里存在、但 json 清单两端都没提到的文件（清单外文件）
+#       ②按清单两端（模板源 → 项目目标）逐文件 md5 比对，报不一致
+# 用法：./setup.sh <风格> --to <项目根> --check [--with 组件]
+if [ "$CHECK_ONLY" = "1" ]; then
+  # 清单取目标项目根下的 assemble.json（没有则用模板自测清单）
+  if [ -f "$TARGET/assemble.json" ]; then
+    CHECK_MANIFEST="$TARGET/assemble.json"
+  elif [ -f "$ROOT/server/project/blueprint/assemble.json" ]; then
+    CHECK_MANIFEST="$ROOT/server/project/blueprint/assemble.json"
+  else
+    err "❌ 找不到 assemble.json（项目根: $TARGET）"; exit 1
+  fi
+  # 素材基准：清单键固定写 server/...，按素材实际位置解析（synced/模板两种布局通用）
+  CHECK_BASE="$("$NODE_BIN" "$MANIFEST_TOOL" resolve-base "$ROOT" 2>/dev/null || echo "$ROOT")"
+  "$NODE_BIN" "$MANIFEST_TOOL" check "$CHECK_MANIFEST" "$TARGET" "$CHECK_BASE"
+  exit $?
+fi
 
 # 目标 server 目录（--to 传项目根，server 在其下；assemble.json 的值同样相对项目根）
 # --to 归一：文档写的是 `--to <项目>/server`，而下面按「项目根」推导 SERVER_DIR
@@ -356,7 +377,12 @@ _setup_copy_manifest() {
         src_path="$SRC_BASE/$src"
         if [ -d "$src_path" ]; then
           mkdir -p "$dst_path"
-          cp -rf "$src_path/." "$dst_path/" 2>/dev/null || cp -rf "$src_path/." "$dst_path/"
+          # 逐文件强制覆盖：不能只靠 `cp -rf src/. dst/`——它在部分实现下不覆盖已存在的同名文件，
+          # 而清单允许「多个源写入同一目标目录」（blueprint 提供共用底座、风格层提供该风格专属），
+          # 靠后写入的源覆盖先写入的同名文件正是设计意图（如 iwara 风格层覆盖 blueprint 的 row-thumb.css）。
+          # 用 find + 逐文件 mkdir/cp 保证「后写必覆盖」，与清单顺序语义一致。
+          (cd "$src_path" && find . -type d -exec mkdir -p "$dst_path/{}" \; )
+          (cd "$src_path" && find . -type f -exec sh -c 'mkdir -p "$2/$(dirname "$1")" && cp -f "$1" "$2/$1"' _ {} "$dst_path" \; )
           echo "  ✓ $src/ → $dst"
           n_dir=$((n_dir + 1))
         else

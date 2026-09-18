@@ -78,9 +78,34 @@ cd .. && ./start.sh start
 ./setup.sh gbmd --to ./server          # 也可指向 server/，脚本会自动归一
 ./setup.sh gbmd --to /path/to/proj     # 组装到指定项目根
 ./setup.sh iwara --with play,search    # iwara 风格 + 混搭组件
+./setup.sh iwara --to . --check        # 只做清单一致性检查，不组装（见下）
 ```
 
 组装逻辑：按项目根的 `assemble.json` 逐项拷贝（详见下节）；蓝图框架与分片（HTML/CSS `@frag` 指令）在运行期由 framework 组装器拼装；`--with` 组件从另一风格叠加（同名不覆盖，以主风格为准）。
+
+#### `--check`：清单一致性检查（不组装）
+
+按清单两端（模板源 → 项目目标）逐文件 md5 比对，回答三个问题：
+
+```bash
+./setup.sh iwara --to /path/to/proj --check
+```
+
+| 输出类别 | 含义 |
+|---|---|
+| **不一致** | 清单某条两端内容不同——项目侧被改过（应改模板后重同步），或模板更新后未重新组装 |
+| **缺失** | 清单某条的某一侧不存在——未同步或未组装 |
+| **清单外文件** | 项目里存在、但清单两端都没提到的文件（扫描范围 = 清单目标涉及的顶层目录，如 `server/`） |
+
+退出码：有不一致或缺失 → `1`，可挂 CI。
+
+这是发现「改动改错了地方」的**主要手段**：公共能力（`framework/`、`blueprint/`）必须改在模板，
+若被改在项目侧，check 会把它报成「不一致」——此时应把改动补进模板再重新同步组装，
+而不是留在项目里（留在项目里的改动会在下次同步时被模板旧版覆盖）。
+
+`check` 的比对遵循组装的**后写覆盖**语义：多个源写同一目标目录时（blueprint 提供共用底座、
+风格层提供该风格专属），取清单中最后一个提供该文件的源来比，因此「风格层有意覆盖 blueprint」
+不会误报为不一致（例：iwara 风格层的 `row-thumb.css` 覆盖 blueprint 的灯箱版）。
 
 ### 体检：扫死文件
 
@@ -601,6 +626,7 @@ dl-server-template/
 
 | 版本 | 内容 |
 |---|---|
+| 1.7.9 | **`setup.sh --check` 清单一致性检查 + `framework/` 异步 IO 归位 + iwara 专属缩略图样式**：①新增 `--check`：按清单两端（模板源 → 项目目标）逐文件 md5 比对，报「不一致 / 缺失 / 清单外文件」三类，退出码可用于 CI；这是发现「公共能力改错地方」的主要手段——改在项目侧的 `framework/` 会被报成不一致。②三个 `framework/` 文件此前被改在项目侧且未回流模板（`app.js` 静态服务异步、`auth.js` 会话写入失败留痕、`data-backup.js` 备份导出异步），本次归位模板，模板与两项目逐字同源，同步不再吞掉改动。③iwara 下载列表不需要点击放大预览图，故其风格层新增 `fragments/styles/row-thumb.css`（无灯箱版）覆盖 blueprint 的共用版——gbmd 仍用 blueprint 的灯箱版。④修三个真实 bug：`setup.sh` 目录复制用 `cp -rf` 不能确定性覆盖同名文件（导致风格层覆盖 blueprint 失效），改为逐文件强制覆盖；`validate` 把「多源写同一目标目录」当 problem 返回 1，使组装中断在自检之后（现降级为提示 ℹ️，它本就是设计允许的覆盖机制）；`check` 比对未考虑后写覆盖语义会误报风格层的有意覆盖 |
 | 1.7.8 | **`start.sh` 自包含，成为项目通用启停脚本**：此前它 `source scripts/lib-node.sh`，但 `start.sh` 是「直接拷进项目根」的独立脚本，项目里没有 `scripts/`，换环境即报 lib-node.sh 不存在。现内联 Node 定位逻辑（候选顺序与 `lib-node.sh` 保持一致）。同一份 `start.sh` 现已实测可直接用于 gbmd（port 8642）与 iwara（port 28463）两个项目，端口由各自 `server/config.json` 决定、`DEFAULT_PORT` 仅作回落，故无需按项目改脚本 |
 
 | 1.7.7 | **Node 定位收敛为唯一实现 `scripts/lib-node.sh`**：`start.sh` / `setup.sh` / `sync-to-project.sh` 各有一份 `find_node()` 拷贝，候选路径列表已出现偏差。现统一 source 该库（支持显式传入调用方特有候选，如 `tool/node/`），并修掉 `test/data-backup-equivalence.test.sh` 裸调 `node` 的问题——在 PATH 无 node 的环境（NAS 应用容器）下该测试必然失败，现改用 `$NODE_BIN`，实测通过 2/0。`lib-node.sh` 与 `assemble-manifest.js` 一并随 `setup.sh` 同步进项目（放同级，避开项目自有 `scripts/`） |

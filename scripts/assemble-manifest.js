@@ -205,9 +205,205 @@ function cmdBrand(manifestPath, outPath) {
   return 0;
 }
 
+/**
+ * 清单一致性检查（check）——按清单两端比对，回答三个问题：
+ *   1. 不一致：清单某条 src→dst，两侧文件内容 md5 不同（需重新同步/组装）
+ *   2. 缺失  ：清单某条的某一侧不存在
+ *   3. 孤儿  ：项目里存在、但清单两端都没提到的文件（残留/多余）
+ *
+ * 参数：
+ *   manifestPath  清单 json（项目根下的 assemble.json）
+ *   projectRoot   json 文件所在项目根——dst 相对它解析
+ *   base          模板素材基准——src 相对它解析（resolve-base 的结果）
+ *
+ * 目录型条目（以 / 结尾）递归展开为文件逐个比对。
+ * 退出码：0 = 全部一致且无孤儿；1 = 有问题（供 CI / 脚本判据）
+ */
+// ---- check 的公共小工具（供 cmdCheck 及其拆分出的辅助函数共用）----
+
+// md5：文件不存在或读不了返回 null，由调用方区分「缺失」与「不一致」
+function _checkMd5(p) {
+  try { return require("crypto").createHash("md5").update(fs.readFileSync(p)).digest("hex"); }
+  catch { return null; }
+}
+
+// 递归列出目录下所有文件（返回相对该目录的路径）
+function _checkWalk(dir, prefix = "") {
+  const out = [];
+  let entries;
+  try { entries = fs.readdirSync(dir, { withFileTypes: true }); }
+  catch { return out; }
+  for (const e of entries) {
+    const rel = prefix ? `${prefix}/${e.name}` : e.name;
+    if (e.isDirectory()) out.push(..._checkWalk(path.join(dir, e.name), rel));
+    else out.push(rel);
+  }
+  return out;
+}
+
+// 收集「目标目录 → 写入它的源目录列表（保持清单顺序）」。
+// 清单允许「多个源写同一目标目录」：blueprint 提供共用底座、风格目录提供该风格专属，
+// 组装时按清单顺序复制，**靠后的源覆盖靠前的同名文件**（如 iwara 风格层覆盖 blueprint 的 row-thumb.css）。
+// 因此判断某目标文件是否「与源一致」时，必须取最后一个提供该文件的源来比，
+// 否则会把「风格层有意覆盖」误报成不一致。
+function _checkDirSources(files) {
+  const map = new Map();
+  for (const [s, d] of files) {
+    if (!s.endsWith("/") || !d.endsWith("/")) continue;
+    const k = d.replace(/\/+$/, "");
+    if (!map.has(k)) map.set(k, []);
+    map.get(k).push(s.replace(/\/+$/, ""));
+  }
+  return map;
+}
+
+// 比对一条「目录型」清单项：递归展开源目录，逐文件比 md5；
+// 目标目录里多出的文件（无任何源提供）也报为不一致。
+function _checkDirEntry(src, dst, ctx) {
+  const { baseAbs, projAbs, dirSources, matched, mismatch, missing } = ctx;
+  const srcPath = path.join(baseAbs, src);
+  const dstPath = path.join(projAbs, dst);
+  if (!fs.existsSync(srcPath)) { missing.push({ src, dst, side: "模板源" }); return; }
+
+  // 该目标目录的所有源（清单顺序）；取最后一个提供 rel 的源做比对。
+  const providers = (dirSources.get(dst.replace(/\/+$/, "")) || [])
+    .map((s) => path.join(baseAbs, s));
+
+  for (const rel of _checkWalk(srcPath)) {
+    const dp = path.join(dstPath, rel);
+    matched.add(path.relative(projAbs, dp));
+    if (!fs.existsSync(dp)) { missing.push({ src: src + rel, dst: dst + rel, side: "项目目标" }); continue; }
+    let effective = null;
+    for (const pd of providers) {              // 顺序即清单顺序 = 组装复制顺序
+      if (fs.existsSync(path.join(pd, rel))) effective = path.join(pd, rel);
+    }
+    if (!effective) effective = path.join(srcPath, rel);
+    if (_checkMd5(effective) !== _checkMd5(dp)) mismatch.push({ src: src + rel, dst: dst + rel });
+  }
+
+  // 反向：目标目录里有、但没有任何源目录提供该文件 → 才报。
+  // 注意：多个源目录合并进同一目标目录是设计允许的（见 _checkDirSources），
+  // 因此必须查「所有映射到该 dst 的源」，而不是只看当前这一个源——否则全是误报。
+  if (!fs.existsSync(dstPath)) return;
+  for (const rel of _checkWalk(dstPath)) {
+    const dp = path.join(dstPath, rel);
+    matched.add(path.relative(projAbs, dp));
+    const provided = providers.some((sd) => fs.existsSync(path.join(sd, rel)));
+    if (!provided) mismatch.push({ src: "（无任何源提供）", dst: dst + rel });
+  }
+}
+
+// 比对一条「单文件型」清单项。
+function _checkFileEntry(src, dst, ctx) {
+  const { baseAbs, projAbs, matched, mismatch, missing } = ctx;
+  const srcPath = path.join(baseAbs, src);
+  const dstPath = path.join(projAbs, dst);
+  matched.add(path.relative(projAbs, dstPath));
+  if (!fs.existsSync(srcPath)) { missing.push({ src, dst, side: "模板源" }); return; }
+  if (!fs.existsSync(dstPath)) { missing.push({ src, dst, side: "项目目标" }); return; }
+  if (_checkMd5(srcPath) !== _checkMd5(dstPath)) mismatch.push({ src, dst });
+}
+
+// 孤儿：只扫「清单目标涉及的顶层目录」——不扫整个项目根，
+// 否则 docs/ 图片/ .gitignore 等与清单无关的项目自有文件会全部被误报。
+// 例：清单目标都在 server/ 下，就只扫 server/ 这一棵树。
+function _checkOrphans(files, projAbs, matched) {
+  const tops = new Set();
+  for (const [, dst] of files) {
+    const top = dst.replace(/^\/+/, "").split("/")[0];
+    if (top) tops.add(top);
+  }
+  const orphans = [];
+  const scan = (dir, prefix = "") => {
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); }
+    catch { return; }
+    for (const e of entries) {
+      const rel = prefix ? `${prefix}/${e.name}` : e.name;
+      if (e.isDirectory()) scan(path.join(dir, e.name), rel);
+      else if (!matched.has(rel)) orphans.push(rel);
+    }
+  };
+  for (const top of tops) scan(path.join(projAbs, top), top);
+  orphans.sort();
+  return { orphans, tops };
+}
+
+/**
+ * 清单一致性检查（check）——按清单两端比对，回答三个问题：
+ *   1. 不一致：清单某条 src→dst，两侧文件内容 md5 不同（需重新同步/组装）
+ *   2. 缺失  ：清单某条的某一侧不存在
+ *   3. 孤儿  ：项目里存在、但清单两端都没提到的文件（残留/多余）
+ *
+ * 参数：
+ *   manifestPath  清单 json（项目根下的 assemble.json）
+ *   projectRoot   json 文件所在项目根——dst 相对它解析
+ *   base          模板素材基准——src 相对它解析（resolve-base 的结果）
+ *
+ * 退出码：0 = 全部一致且无孤儿；1 = 有真问题（供 CI / 脚本判据）
+ */
+function cmdCheck(manifestPath, projectRoot, base) {
+  const { files } = loadManifest(manifestPath);
+  const ctx = {
+    baseAbs: path.resolve(base),
+    projAbs: path.resolve(projectRoot),
+    dirSources: _checkDirSources(files),
+    matched: new Set(),     // 项目侧已由清单认领的相对路径（用于算孤儿）
+    mismatch: [],           // { src, dst }
+    missing: [],            // { src, dst, side }
+  };
+
+  for (const [src, dst] of files) {
+    if (src.endsWith("/") || dst.endsWith("/")) _checkDirEntry(src, dst, ctx);
+    else _checkFileEntry(src, dst, ctx);
+  }
+
+  const { orphans, tops } = _checkOrphans(files, ctx.projAbs, ctx.matched);
+  process.stdout.write(_renderCheckReport({
+    manifestPath, baseAbs: ctx.baseAbs, projAbs: ctx.projAbs,
+    entryCount: files.length, mismatch: ctx.mismatch, missing: ctx.missing, orphans, tops,
+  }) + "\n");
+
+  return (ctx.mismatch.length || ctx.missing.length) ? 1 : 0;
+}
+
+// 渲染 check 报告文本。
+function _renderCheckReport(r) {
+  const out = [];
+  out.push("清单一致性检查");
+  out.push("  清单: " + r.manifestPath);
+  out.push("  项目根: " + r.projAbs);
+  out.push("  素材基准: " + r.baseAbs);
+  out.push("  条目: " + r.entryCount + " 条");
+  out.push("");
+  if (r.mismatch.length) {
+    out.push("── 不一致 " + r.mismatch.length + " 项（两侧内容不同，需重新同步/组装）──");
+    for (const m of r.mismatch) out.push("  ✗ " + m.src + "  →  " + m.dst);
+    out.push("");
+  }
+  if (r.missing.length) {
+    out.push("── 缺失 " + r.missing.length + " 项 ──");
+    for (const m of r.missing) out.push("  ✗ [" + m.side + "缺失] " + m.src + "  →  " + m.dst);
+    out.push("");
+  }
+  if (r.orphans.length) {
+    out.push("── 清单外文件 " + r.orphans.length + " 个（清单两端都没提到）──");
+    for (const o of r.orphans) out.push("  ? " + o);
+    out.push("");
+  }
+  if (!r.mismatch.length && !r.missing.length && !r.orphans.length) {
+    out.push("  ✅ 全部一致，且无清单外文件");
+  }
+  if (r.tops.size) {
+    out.push("  （清单外文件扫描范围: " + [...r.tops].sort().join(", ") + "）");
+  }
+  return out.join("\n");
+}
+
 function cmdValidate(manifestPath, base) {
   const { files, manifest } = loadManifest(manifestPath);
   const problems = [];
+  const notices = [];      // 提示：不影响返回码，不阻断组装
   const rawFiles = (manifest.files && typeof manifest.files === "object") ? manifest.files : {};
   const commentKeys = Object.keys(rawFiles).filter(isCommentKey);
   // 路径安全：不得逃出基准 / 目标根
@@ -249,8 +445,12 @@ function cmdValidate(manifestPath, base) {
       for (let j = i + 1; j < srcs.length; j++) {
         const clash = overlaps(path.join(base, srcs[i]), path.join(base, srcs[j]));
         if (clash.length) {
-          problems.push(
-            `目标 ${dst} 被多个源写入且存在同名文件（后写覆盖）: ` +
+          // 提示而非问题：多源写同一目标目录是**设计允许**的覆盖机制——
+          // blueprint 提供共用底座、风格目录提供该风格专属，清单里靠后的源覆盖靠前的同名文件
+          // （例：iwara 风格层的 row-thumb.css 覆盖 blueprint 的灯箱版）。
+          // 早期当成 problem 会让 setup.sh 的清单自检 exit 1，组装直接中断在自检之后。
+          notices.push(
+            `目标 ${dst} 被多个源写入，同名文件以后者为准: ` +
             `${srcs[i]} ∩ ${srcs[j]} = ${clash.join(", ")}`
           );
         }
@@ -261,6 +461,9 @@ function cmdValidate(manifestPath, base) {
     `  清单自检: 条目 ${files.length} 个，注释键 ${commentKeys.length} 个，` +
     `brand ${manifest.brand ? "有" : "无"}，init ${manifest.init !== false ? "1" : "0"}\n`
   );
+  if (notices.length) {
+    for (const n of notices) process.stdout.write(`  ℹ️  ${n}\n`);
+  }
   if (problems.length) {
     for (const p of problems) process.stderr.write(`  ⚠️ ${p}\n`);
     return 1;
@@ -311,11 +514,16 @@ function main(argv) {
       if (!rest[0]) die("用法: assemble-manifest validate <清单> [<基准>]");
       return cmdValidate(rest[0], rest[1] || ".");
 
+    case "check":
+      if (!rest[0]) die("用法: assemble-manifest check <清单> <项目根> [<素材基准>]");
+      if (!rest[1]) die("用法: assemble-manifest check <清单> <项目根> [<素材基准>]");
+      return cmdCheck(rest[0], rest[1], rest[2] || resolveBase(path.dirname(rest[0])));
+
     default:
       die(
         "assemble-manifest —— 清单解析唯一实现\n" +
         "用法: assemble-manifest <命令> [参数]\n" +
-        "命令: resolve-base | asset-roots | list | brand | init-flag | validate"
+        "命令: resolve-base | asset-roots | list | brand | init-flag | validate | check"
       );
   }
 }
@@ -324,4 +532,4 @@ if (require.main === module) {
   process.exit(main(process.argv.slice(2)));
 }
 
-module.exports = { loadManifest, resolveBase, assetRoots, assetRootOf, isCommentKey };
+module.exports = { loadManifest, resolveBase, assetRoots, assetRootOf, isCommentKey, cmdCheck };
