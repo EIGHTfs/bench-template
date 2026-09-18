@@ -598,6 +598,7 @@ dl-server-template/
 
 | 版本 | 内容 |
 |---|---|
+| 1.5.0 | **顶栏徽章元素 id 统一为 `UserBadge`**：`topbar/badge.html` 原按项目取名（`gbUserBadge` / `iwaraUserBadge`），导致通用层的 `topbar-badge.css` 必须把两套 id 选择器并列写死；现两个风格层统一用 `UserBadge` / `UserName` / `UserRemain`，CSS 只针对一个 id 写样式（18 处选择器不变，三态 class 前缀 `gb-user-*` / `iwara-user-*` 保留）。同时补上 `blueprint/style.css` 漏引的 `@frag:styles/mod-group.css`、`@frag:styles/grid-map.css`——这两个片段此前虽已拆出但未被引用，导致 gbmd 下载列表分组折叠样式在产物 CSS 中缺失 |
 | 1.4.0 | **多项目同 host 部署的 Cookie 名冲突**：框架 `auth` 的会话 cookie 默认名 `session` 被两个项目同时使用，而 Cookie 按 host 隔离、不区分端口，导致互相覆盖（表现为「登录后很快又要重新登录、记住设备形同虚设」）。`auth.js` 增加部署警示注释，项目侧须各用各的 `cookieName`（如 `gbmd_session` / `iwara_session`）。**保存按钮改版**：移除右下角悬浮保存按钮（非设置页误触会把整页设置静默写库），改为每张功能卡片自己的保存按钮——gbmd 在「下载选项」加「保存 Cookie」，iwara 在设置页底部加「保存设置」。**样式上移**：`login-detect.css`、`toast.css`、`topbar-badge.css` 从 gbmd 风格层上移通用层，iwara 此前缺失这些分片导致顶栏错乱；`save-fab.css` 改名 `diff.css`（按钮已移除，仅剩 diff 样式）。**新增 `scripts/scan-dead-files.js`**：扫出没被任何 `@frag` 引用、也没被 HTML/JS/CSS 提及的残留分片，退出码可直接挂 CI |
 | 1.3.0 | **顶栏分片归位通用层**：`topbar/brand.html`、`topbar/time.html` 原被当成风格特有件、两个风格各存一份（time 逐字相同，brand 仅 logo 与标题文字不同），实际上是所有项目共用的界面部件，已上移 `blueprint/fragments/topbar/`，风格层副本删除。品牌区改由 `@brand:logo@` / `@brand:title@` / `@brand:displayTitle@` 取值，各项目 `brand.json` 提供（新增 `displayTitle` 键承载顶栏三行标题，因它与 `<title>` 用的 `title` 语义不同）。风格层仅保留真正特异的 `topbar/{badge,userscript}` |
 | 1.2.0 | 文档：新增「接入要点：`style.css` 也必须走组装器」——说明组装产物里框架文件只留 `@frag:` 指令骨架，服务端须按 `assembler.list()` 判据（而非扩展名）展开 `.css`，否则页面失去全部样式；附错误/正确写法与自检命令 |
