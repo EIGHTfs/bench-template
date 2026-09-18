@@ -598,6 +598,7 @@ dl-server-template/
 
 | 版本 | 内容 |
 |---|---|
+| 1.7.1 | **gbmd 下载列表缩略图点击放大**：下载进度页的预览图（含 GIF）可点击弹出灯箱看大图，点遮罩 / 按 Esc / 滚轮 关闭；点图片本身不关闭（便于细看）。`style.css` 新增 `.row-thumb-clickable`（`cursor:zoom-in` + hover 高亮）与 `.lightbox-mask`/`.lightbox-img`/`.lightbox-cap`；`app.js` 的 `rowHtml` 给缩略图加 `data-full`/`data-cap`，新增 `openLightbox`/`closeLightbox`，并在既有 `bindRowActionDelegation` 里加一个委托分支（与重试/跳过/错误复制同一套事件模型） |
 | 1.7.0 | **作者子目录并入文件名模板**：原先「作者子目录」是独立开关（`useAuthorSubdir`），与 `fileNameTemplate` 各管一半；现模板里的 `/` 直接作为目录分隔——写 `{AUTHOR}/Iwara_-_{TITLE}_[{ID}]` 即按作者分目录，不写则存下载根目录，开关整体移除（`_iwara-style` 设置面板同步删掉该下拉，并补提示说明 `/` 用法） |
 | 1.6.2 | **`start.sh` 重启失败根治**（「重启后服务没起来」）：①端口占用检测改为精确匹配——原 `awk '$4 ~ ":8642"'` 是子串匹配，`:18642` / `:86421` 会被误判成同端口，导致误等、误杀；②新增 `port_in_use()` / `wait_port_free()`：`start_server` 发现端口仍被占（上一次 SIGTERM 未走完、连接在 TIME_WAIT、或非 root 看不到占用者 PID）时不再直接启动而是等待端口真正释放（`START_WAIT_SEC`，默认 15s），等到就继续、等不到才明确报错退出——旧逻辑此时 bind 失败后进程秒退，表现为静默不启动；③`restart` 不再依赖固定 `sleep 1` |
 | 1.6.1 | `task-list.css` 新增 `a.mm-play-btn`：下载列表「▶ 播放」是 `<a>`，原先只匹配到 `.mm-play-btn` 的尺寸规则、靠 `.btn` 兜底，层叠顺序一变就回落成裸链接；现显式补齐边框/圆角/底色/文字色与 hover，不依赖层叠顺序 |
