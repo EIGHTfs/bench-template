@@ -12,7 +12,7 @@
 # 1. 建目录
 mkdir my-downloader && cd my-downloader
 
-# 2. 从模板仓库同步素材（在模板仓库里执行，目标指向新项目的 server/）
+# 2. 从模板仓库同步素材（按项目 assemble.json 清单，只搬被引用的素材）
 <模板仓库>/scripts/sync-to-project.sh "$PWD/server"
 # 例如：/path/to/dl-server-template/scripts/sync-to-project.sh "$PWD/server"
 
@@ -599,6 +599,7 @@ dl-server-template/
 
 | 版本 | 内容 |
 |---|---|
+| 1.7.5 | **`sync-to-project.sh` 改清单驱动**：原先无差别搬 `framework/` + `templates/` + `project/blueprint/` 三个整目录，与 `assemble.json` 职责重叠（清单已精确声明要哪些素材），结果把用不到的 `_iwara-style/`（320K）和模板自己的 `.trash-*/`（1.1M）也搬进项目。现按清单引用只搬被用到的素材根（`framework` + `project/blueprint` + 实际用到的 `templates/_<风格>-style`），并保留组装依赖（framework、init 时的 blueprint 骨架）。实测同步体积 1.5M → 532K；无清单时提示并退回整份同步（`--all` 可显式指定），排除规则仍生效 |
 | 1.7.4 | **`setup.sh` 清单源基准自适应**：清单「键」固定写 `server/...`，但解析器原先固定按 `$ROOT` 拼接。synced 布局（素材在 `<项目>/server/`，脚本是 `server/setup.sh`）下会拼成 `<项目>/server/server/templates/...`，表现为「清单找到了、却全部缺失」——README 推荐的 `--to .` 就踩这个。现按素材实际位置自动选源基准（模板仓库=模板根 / synced=项目根），同一份 assemble.json 两种布局通用；已验证 `--to .`、`--to <项目>/server`、`--to <项目根>` 三种写法结果一致 |
 | 1.7.3 | **`sync-to-project.sh` 不再搬历史归档**：原实现整目录 `cp -r`，把模板仓库自己的 `.trash-*/`（重构留档，实测 1.1M）与 `*.bak` 一并复制进项目。改用 `sync_dir()`（rsync `--exclude` + `--delete-excluded` 清旧残留；rsync 不可用或失败时回落 `cp -r` 再事后清理，不中断同步）。实测同步体积 1.5M → 848K，素材完整、可独立组装 |
 | 1.7.2 | **修复 `setup.sh --to` 幽灵目录**：文档写的 `--to <项目>/server` 与代码里 `SERVER_DIR="$TARGET/server"` 的「项目根」假设相互矛盾，导致组装全部写进 `<项目>/server/server/` —— 每一条都报 ✓、缺失 0，真实文件却一个没更新（`--to` 现统一归一为项目根，两种写法都可用）。另：`app.js` 之前不在组装清单里，项目 `public/app.js` 靠手工放置，现补映射 `_gbmd-style/public/app.js → server/public/app.js`；缩略图灯箱样式落在真正被组装的片段 `blueprint/fragments/styles/row-thumb.css` （非风格层 `style.css`——后者只是 26 行 `@frag` 骨架，运行期由 `framework/fragment-assembler` 展开） |
