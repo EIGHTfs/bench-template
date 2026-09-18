@@ -598,6 +598,7 @@ dl-server-template/
 
 | 版本 | 内容 |
 |---|---|
+| 1.7.3 | **`sync-to-project.sh` 不再搬历史归档**：原实现整目录 `cp -r`，把模板仓库自己的 `.trash-*/`（重构留档，实测 1.1M）与 `*.bak` 一并复制进项目。改用 `sync_dir()`（rsync `--exclude` + `--delete-excluded` 清旧残留；rsync 不可用或失败时回落 `cp -r` 再事后清理，不中断同步）。实测同步体积 1.5M → 848K，素材完整、可独立组装 |
 | 1.7.2 | **修复 `setup.sh --to` 幽灵目录**：文档写的 `--to <项目>/server` 与代码里 `SERVER_DIR="$TARGET/server"` 的「项目根」假设相互矛盾，导致组装全部写进 `<项目>/server/server/` —— 每一条都报 ✓、缺失 0，真实文件却一个没更新（`--to` 现统一归一为项目根，两种写法都可用）。另：`app.js` 之前不在组装清单里，项目 `public/app.js` 靠手工放置，现补映射 `_gbmd-style/public/app.js → server/public/app.js`；缩略图灯箱样式落在真正被组装的片段 `blueprint/fragments/styles/row-thumb.css` （非风格层 `style.css`——后者只是 26 行 `@frag` 骨架，运行期由 `framework/fragment-assembler` 展开） |
 | 1.7.1 | **gbmd 下载列表缩略图点击放大**：下载进度页的预览图（含 GIF）可点击弹出灯箱看大图，点遮罩 / 按 Esc / 滚轮 关闭；点图片本身不关闭（便于细看）。`style.css` 新增 `.row-thumb-clickable`（`cursor:zoom-in` + hover 高亮）与 `.lightbox-mask`/`.lightbox-img`/`.lightbox-cap`；`app.js` 的 `rowHtml` 给缩略图加 `data-full`/`data-cap`，新增 `openLightbox`/`closeLightbox`，并在既有 `bindRowActionDelegation` 里加一个委托分支（与重试/跳过/错误复制同一套事件模型） |
 | 1.7.0 | **作者子目录并入文件名模板**：原先「作者子目录」是独立开关（`useAuthorSubdir`），与 `fileNameTemplate` 各管一半；现模板里的 `/` 直接作为目录分隔——写 `{AUTHOR}/Iwara_-_{TITLE}_[{ID}]` 即按作者分目录，不写则存下载根目录，开关整体移除（`_iwara-style` 设置面板同步删掉该下拉，并补提示说明 `/` 用法） |

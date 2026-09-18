@@ -15,6 +15,9 @@
 # 说明：
 #   - framework/ 直接覆盖（模板是权威）
 #   - templates/ 直接覆盖（模板是权威）
+#   - 历史归档（.trash-*/ 与 *.bak）不复制：那些是模板仓库自己的重构留档，
+#     对项目毫无用处。整目录 cp 会把它们一并搬过去（.trash 约 1.1M），
+#     既污染项目又制造无意义 diff。
 #   - 目标项目的 app.js / config.schema.json / public / routes / lib 不动
 #     （那些是组装产物或业务代码，不在本脚本范围）
 # ============================================================
@@ -44,6 +47,28 @@ if [ "$TARGET_ABS" = "$ROOT/server" ] || [ "$TARGET_ABS" = "$ROOT" ]; then
   exit 1
 fi
 
+# 排掉模板仓库自己的历史归档：.trash-*/ 是重构留档，*.bak 是旧副本。
+# 这两类对项目没有价值，整目录 cp 会把它们一并搬过去（实测约 1.1M）。
+RSYNC_EXCLUDES=(--exclude=.trash-* --exclude=*.bak --exclude=*.bak-*)
+
+# 目录同步：优先 rsync（能表达"不复制什么"，并用 --delete-excluded 清掉目标里
+# 已存在的旧归档）；rsync 不可用或失败（权限、特殊字符路径等）时回落 cp -r，
+# 再事后清一遍归档。回落是为了不因一个优化点让整个同步中断。
+sync_dir() {
+  local src="$1" dst="$2"
+  mkdir -p "$dst"
+  if command -v rsync >/dev/null 2>&1; then
+    if rsync -a --delete-excluded "${RSYNC_EXCLUDES[@]}" "$src/" "$dst/" 2>/dev/null; then
+      return 0
+    fi
+    echo "  ⚠️ rsync 失败，回落 cp -r（归档将在复制后清理）" >&2
+  fi
+  cp -r "$src/." "$dst/" || return 1
+  find "$dst" -name '.trash-*' -prune -exec rm -rf {} + 2>/dev/null
+  find "$dst" \( -name '*.bak' -o -name '*.bak-*' \) -delete 2>/dev/null
+  return 0
+}
+
 echo "══ 同步素材 → $TARGET ══"
 mkdir -p "$TARGET"
 
@@ -51,14 +76,17 @@ mkdir -p "$TARGET"
 if [ -d "$TARGET/framework" ]; then
   rm -rf "$TARGET/framework"
 fi
-cp -r "$SRC_FRAMEWORK" "$TARGET/framework" || { echo "❌ framework 复制失败"; exit 1; }
+# 排除规则：历史归档目录与 .bak（rsync 用 --exclude，比 cp -r 更好表达「不复制什么」）
+#   --delete-excluded 让目标里已存在的旧归档也被清掉（否则改过规则后仍残留）
+RSYNC_EXCLUDES=(--exclude='.trash-*' --exclude='*.bak' --exclude='*.bak-*')
+sync_dir "$SRC_FRAMEWORK" "$TARGET/framework" || { echo "❌ framework 复制失败"; exit 1; }
 echo "  ✓ framework/ → $TARGET/framework/"
 
 # 2. templates/
 if [ -d "$TARGET/templates" ]; then
   rm -rf "$TARGET/templates"
 fi
-cp -r "$SRC_TEMPLATES" "$TARGET/templates" || { echo "❌ templates 复制失败"; exit 1; }
+sync_dir "$SRC_TEMPLATES" "$TARGET/templates" || { echo "❌ templates 复制失败"; exit 1; }
 echo "  ✓ templates/ → $TARGET/templates/"
 
 # 3. project/blueprint/（组装蓝图：app.js / config.schema.json 骨架）
@@ -66,7 +94,7 @@ SRC_BLUEPRINT="$ROOT/server/project/blueprint"
 if [ -d "$SRC_BLUEPRINT" ]; then
   mkdir -p "$TARGET/project"
   rm -rf "$TARGET/project/blueprint"
-  cp -r "$SRC_BLUEPRINT" "$TARGET/project/blueprint"
+  sync_dir "$SRC_BLUEPRINT" "$TARGET/project/blueprint"
   echo "  ✓ project/blueprint/ → $TARGET/project/blueprint/"
 fi
 
