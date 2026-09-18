@@ -387,8 +387,8 @@ if (window.AutoUpdateCard) window.AutoUpdateCard.mount();
 |---|---|
 | `blueprint/index.html/downloader/index.html` | **共同框架**：页面骨架 + `<!-- @frag:片段名 -->` 注释指令（两个风格共用，唯一权威） |
 | `blueprint/fragments/` | **通用分片**：两风格逐字相同的块（`tabs` / `no-pwd-warn` / `global-hud` / `browse-mask` / `topbar` 骨架） |
-| `templates/_gbmd-style/fragments/` | **gbmd 特有分片**：`head-extra` / `topbar/{brand,badge,time,userscript}` / `tab-panel/panel-*` / `scripts` |
-| `templates/_iwara-style/fragments/` | iwara 特有分片（迁移中） |
+| `templates/_gbmd-style/fragments/` | **gbmd 特有分片**：`head-extra` / `topbar/{badge,userscript}` / `tab-panel/panel-*` / `scripts` |
+| `templates/_iwara-style/fragments/` | **iwara 特有分片**：`topbar/{badge,userscript}` / `tab-panel/panel-*` / `scripts` / `styles/*` |
 
 各风格仍带 `public/` 目录放非分片部件：
 
@@ -418,7 +418,8 @@ public/
   index.html          ← 蓝图框架（含 @frag 指令，不是完整页面）
   fragments/          ← 通用分片 + 特有分片合并后的片段根
     topbar.html       ← 统一 topbar 骨架（含 topbar/* 子指令）
-    topbar/brand.html ← 各风格品牌区（三行换行标题）
+    topbar/brand.html ← 品牌区（@brand:logo/alt/displayTitle 取值，各项目 brand.json 提供）
+    topbar/time.html  ← 服务器时间（serverDate/serverClock）
     tabs.html         ← 通用
     tab-panel/panel-*.html
 ```
@@ -532,7 +533,7 @@ dl-server-template/
 │   ├── templates/                 # 前端素材
 │   │   ├── _gbmd-style/
 │   │   │   ├── public/            # gbmd 非分片部件（app.js / style.css 等）
-│   │   │   └── fragments/         # gbmd 特有分片（topbar/ tab-panel/ styles/ 等）
+│   │   │   └── fragments/         # gbmd 特有分片（topbar/{badge,userscript} / tab-panel/ / styles/ 等）
 │   │   └── _iwara-style/public/   # iwara 风格部件
 │   └── project/
 │       └── blueprint/             # 组装蓝图（入库；两风格共用文件都在这里，无独立 _shared/）
@@ -541,7 +542,7 @@ dl-server-template/
 │           ├── style.css          # CSS 框架（/* @frag:styles/xxx.css */ 指令）
 │           ├── login.html / login.js / theme-init.js / search-date-range.js  # 共用静态资源
 │           ├── index.html/downloader/index.html   # 共同框架（@frag 指令）
-│           └── fragments/         # 通用分片（tabs / topbar 骨架 / styles/ 等）
+│           └── fragments/         # 通用分片（tabs / topbar.html / topbar/{brand,time} / styles/ 等）
 ├── scripts/
 │   ├── sync-to-project.sh         # 素材同步到项目
 │   ├── scan-bare-js-html.js       # 裸 JS 残留扫描
@@ -558,6 +559,7 @@ dl-server-template/
 
 | 版本 | 内容 |
 |---|---|
+| 1.3.0 | **顶栏分片归位通用层**：`topbar/brand.html`、`topbar/time.html` 原被当成风格特有件、两个风格各存一份（time 逐字相同，brand 仅 logo 与标题文字不同），实际上是所有项目共用的界面部件，已上移 `blueprint/fragments/topbar/`，风格层副本删除。品牌区改由 `@brand:logo@` / `@brand:title@` / `@brand:displayTitle@` 取值，各项目 `brand.json` 提供（新增 `displayTitle` 键承载顶栏三行标题，因它与 `<title>` 用的 `title` 语义不同）。风格层仅保留真正特异的 `topbar/{badge,userscript}` |
 | 1.2.0 | 文档：新增「接入要点：`style.css` 也必须走组装器」——说明组装产物里框架文件只留 `@frag:` 指令骨架，服务端须按 `assembler.list()` 判据（而非扩展名）展开 `.css`，否则页面失去全部样式；附错误/正确写法与自检命令 |
 | 1.1.0 | `data-backup` 清单生成改为复用 `marker-manifest`（移除内联扫描解析，273→216 行），修正框架文档示例被当成数据条目、带引号 `desc="..."` 被原样输出的问题；新增 `test/data-backup-equivalence.test.sh` 备份迁移等价性验证脚本；`setup.sh` 缺清单时询问生成带注释的空模板、清单格式预校验前移；`assemble.json` 支持 `_comment` 注释键（组装时跳过 `files` 内 `_` 开头的键）；新增 `test/assemble-parse.test.sh` 组装行为自测 |
 | 1.0.0 | 初版：通用后端框架（HTTP / 鉴权 / 配置 / 路由工厂 / 备份 / 自动更新）+ 组装式前端 + 风格模板 |
