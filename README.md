@@ -425,6 +425,47 @@ public/
 
 改任一片段 → 刷新页面即生效（mtime 热更新，不重启服务）；改框架文件同理。
 
+### 接入要点：`style.css` 也必须走组装器（易漏）
+
+框架文件（`index.html` / `style.css` / `login.html` / `setup.html`）在组装产物里
+**只保留 `@frag:` 指令骨架，不含真实内容**。例如产物 `public/style.css` 通常只有几十字节：
+
+```css
+/* @frag:styles/variables.css */
+/* @frag:styles/base.css */
+/* @frag:styles/topbar.css */
+```
+
+服务端**必须在响应这些文件时调用组装器展开指令**，否则浏览器拿到的是指令文本本身，
+CSS 等于空文件——页面会完全失去样式（HTML 结构正常，但看起来像纯文本）。
+
+**接入时最容易踩的坑**：只对 `.html` 做组装。
+
+```js
+// ❌ 错误：只组装 HTML，style.css 原样输出 → 页面无样式
+if (ext === ".html") {
+  if (assembler.list().includes(rel)) raw = assembler.render(rel).text;
+}
+
+// ✅ 正确：按「组装清单」判断，与扩展名无关（框架 serveFragment 即此写法）
+const name = pathname === "/" ? "index.html" : pathname.replace(/^\//, "");
+if (assembler.list().includes(name)) {
+  const r = assembler.render(name);
+  const ctype = mimeMap[path.extname(name).toLowerCase()] || "text/html; charset=utf-8";
+  res.writeHead(200, { "Content-Type": ctype, "Cache-Control": "no-cache" });
+  return res.end(Buffer.from(r.text));
+}
+```
+
+框架层 `serveFragment()` 已按此实现，**自建静态路由时不要另写一套判据**；
+若确需自建，判据一律用 `assembler.list()`，不要用扩展名。
+
+**自检**：请求 `style.css`，响应体里不应出现 `@frag:`
+
+```bash
+curl -s http://127.0.0.1:<port>/style.css | grep -c '@frag:'   # 期望 0
+```
+
 ---
 
 ## 把旧项目改成组装式
@@ -517,5 +558,6 @@ dl-server-template/
 
 | 版本 | 内容 |
 |---|---|
+| 1.2.0 | 文档：新增「接入要点：`style.css` 也必须走组装器」——说明组装产物里框架文件只留 `@frag:` 指令骨架，服务端须按 `assembler.list()` 判据（而非扩展名）展开 `.css`，否则页面失去全部样式；附错误/正确写法与自检命令 |
 | 1.1.0 | `data-backup` 清单生成改为复用 `marker-manifest`（移除内联扫描解析，273→216 行），修正框架文档示例被当成数据条目、带引号 `desc="..."` 被原样输出的问题；新增 `test/data-backup-equivalence.test.sh` 备份迁移等价性验证脚本；`setup.sh` 缺清单时询问生成带注释的空模板、清单格式预校验前移；`assemble.json` 支持 `_comment` 注释键（组装时跳过 `files` 内 `_` 开头的键）；新增 `test/assemble-parse.test.sh` 组装行为自测 |
 | 1.0.0 | 初版：通用后端框架（HTTP / 鉴权 / 配置 / 路由工厂 / 备份 / 自动更新）+ 组装式前端 + 风格模板 |
