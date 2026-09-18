@@ -43,6 +43,19 @@ detect_dir() {
 }
 TEMPLATES_DIR="$(detect_dir "$ROOT/server/templates" "$ROOT/templates")"
 BLUEPRINT_DIR="$(detect_dir "$ROOT/server/project/blueprint" "$ROOT/project/blueprint")"
+
+# 清单「键」的源基准（键统一写成 server/... 形式）：
+#   模板仓库布局：素材在 <模板根>/server/  → 源基准 = 模板根
+#   synced 布局  ：素材在 <项目>/server/   → 源基准 = 项目根（即 $ROOT 的上一级）
+# 两种布局下「基准 + 键」都指向同一批素材，因此同一份 assemble.json 两边通用。
+# （此前固定用 $ROOT，synced 布局会拼出 <项目>/server/server/templates 而全部缺失。）
+if [ -d "$ROOT/server/templates" ] || [ -d "$ROOT/server/project/blueprint" ]; then
+  SRC_BASE="$ROOT"
+elif [ -d "$ROOT/templates" ] || [ -d "$ROOT/project/blueprint" ]; then
+  SRC_BASE="$(cd "$ROOT/.." && pwd)"
+else
+  SRC_BASE="$ROOT"
+fi
 if [ -d "$ROOT/server" ]; then DEFAULT_TARGET="$ROOT/server/project"; else DEFAULT_TARGET="$ROOT/project"; fi
 
 # ---------- 颜色 ----------
@@ -307,8 +320,8 @@ fi
 #         } }
 
 # 用 python3 把 assemble.json 展开为 cp 命令执行
-#   键 = 源，相对模板根 ROOT；值 = 目标，相对目标项目根 TARGET（如 server/public/login.html）
-python3 - "$ASSEMBLE_FILE" "$ROOT" "$TARGET" <<'PYEOF'
+#   键 = 源，相对源基准 SRC_BASE；值 = 目标，相对目标项目根 TARGET（如 server/public/login.html）
+python3 - "$ASSEMBLE_FILE" "$SRC_BASE" "$TARGET" <<'PYEOF'
 import json, os, sys, subprocess
 manifest, root, target = sys.argv[1], sys.argv[2], sys.argv[3]
 try:
