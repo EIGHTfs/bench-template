@@ -55,13 +55,15 @@ async function apiUpload(formData, targetDir) {
 // 登录相关
 async function apiAuthStatus() {
   try {
-    // 端点归框架通用件 routes-auth：GET /api/status → { ok, needsSetup, needsAuth, port }
-    // needsSetup=true 表示尚未设密码（此时写操作也开放）
+    // 端点归框架通用件 routes-auth：GET /api/status → { ok, needsSetup, needsAuth, authed, port }
+    // authed 由服务端按 session 判定（框架 2026-09-20 新增）；
+    // 不要用 !needsAuth 推导登录态——needsAuth 只是「密码已设置」，设密码后恒 true，
+    // 会让已登录用户被判未登录（收藏提示「请先登录」根因）
     const res = await fetch(API_BASE + '/status', FETCH_OPT);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const d = await res.json();
     return {
-      authed: !d.needsAuth,
+      authed: d.authed !== undefined ? !!d.authed : !d.needsAuth, // 兼容旧服务端无 authed 字段
       passwordSet: !!d.needsAuth,
       needsSetup: !!d.needsSetup,
     };

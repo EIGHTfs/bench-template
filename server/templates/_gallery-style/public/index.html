@@ -132,6 +132,36 @@
           <p class="settings-hint" id="updateTimeText" data-i18n="updateTimeNever">Not updated yet</p>
         </section>
 
+        <!-- 自动更新卡片（blueprint/auto-update-card.js；id 与通用件对齐，类名适配 gallery 设置面板风格） -->
+        <section class="settings-section">
+          <div class="section-header">
+            <h3>🔄 自动更新</h3>
+          </div>
+          <p class="settings-hint">服务端代码自动更新 + 优雅重启。github 模式定时从 GitHub 拉取（服务端无需 .git），开发机推送代码后自动同步。模式与间隔见下方；github 模式的仓库/分支/Token 在 server/config.json 手改（githubRepo / githubBranch / githubToken，Token 仅私有仓库需要）。</p>
+          <p class="settings-hint" style="margin:8px 0;display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+              <input type="checkbox" id="autoUpdateToggle"> 启用自动更新
+            </label>
+            <label>模式
+              <select id="autoUpdateMode">
+                <option value="watch">文件监控（watch）</option>
+                <option value="git">定时 git pull</option>
+                <option value="github">从 GitHub 拉取（无需 .git）</option>
+              </select>
+            </label>
+            <label id="autoUpdateIntervalRow" style="display:none">间隔（秒）
+              <input type="number" id="autoUpdateInterval" value="300" min="30" max="3600" style="width:90px">
+            </label>
+          </p>
+          <p class="settings-hint" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <button class="settings-btn" id="autoUpdateSaveBtn" type="button">保存</button>
+            <button class="settings-btn" id="autoUpdateCheckBtn" type="button" title="立即检查 GitHub 新版本（仅 github 模式）">🔍 立即检查</button>
+            <button class="settings-btn" id="autoUpdateRestartBtn" type="button" title="立即重启（不依赖文件变更检测）">🔄 立即重启</button>
+            <span class="settings-hint" id="autoUpdateStatus"></span>
+          </p>
+          <div class="settings-hint" id="autoUpdateInfo"></div>
+        </section>
+
       </div>
     </div>
 
@@ -168,6 +198,7 @@
   </div>
 
   <script src="./api-client.js?v=48"></script>
+  <script src="./auto-update-card.js"></script>
   <script src="./app.js?v=48"></script>
 </body>
 </html>

@@ -353,9 +353,10 @@
     try {
       const [favs, auth] = await Promise.all([
         window.API.apiGet('/favorites'),
-        // 端点归框架：/api/status 返回 { needsSetup, passwordSet }；
-        // needsSetup=true（未设密码）视为已可用，否则以服务端 401 判定为未登录
-        window.API.apiGet('/status').catch(() => ({ needsSetup: false, passwordSet: true }))
+        // 用 apiAuthStatus()（内部把框架 /status 的 needsAuth 转成 authed）判定登录态；
+        // 不要直接 apiGet('/status')——框架返回 needsAuth 字段而非 authed，
+        // 裸取 auth.authed 恒为 undefined → 已设密码时登录了 authedUser 仍为 false（收藏提示未登录）
+        window.API.apiAuthStatus()
       ]);
       // 规范化 src（兼容旧数据完整 URL）
       favoriteImages = (Array.isArray(favs) ? favs : []).map(f => ({ ...f, src: normalizeFavSrc(f.src) }));
@@ -1750,6 +1751,10 @@
     renderDirectories();
     renderUserImages();
     renderUpdateTime();
+    // 自动更新卡片：blueprint 通用件（auto-update-card.js 自包含，mount 幂等）
+    if (window.AutoUpdateCard && document.getElementById("autoUpdateToggle")) {
+      window.AutoUpdateCard.mount();
+    }
   }
 
   // 更新时间：只读展示自动更新后端上报的 lastUpdatedAt，不含任何操作入口
