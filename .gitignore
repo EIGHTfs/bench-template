@@ -11,20 +11,18 @@ downloads/
 server/project/*
 !server/project/blueprint/
 
-# 模板示例项目：example/ 是**普通项目**，组装与运行方式同任何项目。
-#   example/assemble.json      ← 入库（示例清单，演示混搭）
-#   example/ASSEMBLE-COVERAGE.md ← 入库（组装覆盖面说明，通用实例）
-#   example/server/            ← 组装产物，不入库，可随时删掉重装
-#   example/config.json        ← 运行期生成（含密码哈希）**绝不入库**
-#   example/sessions.json      ← 运行期生成（会话 token）**绝不入库**
-#   example/start.sh           ← 组装产物（由清单下发），不入库
+# 模板示例项目：example/ 是**完整演示项目，整体入库**（组装清单、组装产物、
+# 自研代码、假数据、自检脚本都提交，clone 即用、可作测试基准）。
+# 仅运行期生成文件例外：
+#   example/config.json       ← 运行期生成（含密码哈希）**绝不入库**
+#   example/sessions.json     ← 运行期生成（会话 token）**绝不入库**
+#   example/server/*.log      ← 运行日志，不入库
 # 注意 config.json / sessions.json 落在【项目根】而非 server/ 下，上面的
 # server/config.json 规则是锚定 server/ 的，管不到这里 —— 实测这两个文件
 # 会以未跟踪状态暴露出来（含密码哈希与有效会话 token，务必忽略）。
-example/server/
-example/start.sh
 example/config.json
 example/sessions.json
+example/server/*.log
 
 # 安全删除回收站 + setup.sh 备份
 server/templates/.trash-*/

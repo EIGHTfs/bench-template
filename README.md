@@ -884,10 +884,12 @@ require("./app.js");
 ```
 dl-server-template/
 ├── setup.sh                         # 组装脚本（--to 指定项目清单）
-├── example/                         # 模板自带的示例项目（普通项目，组装启动同任何项目）
+├── example/                         # 完整演示项目（整体入库）：通用件+风格混搭+自研代码+假数据
 │   ├── assemble.json                #   清单：演示风格混搭（iwara 骨架 + gbmd 下载面板）
 │   ├── ASSEMBLE-COVERAGE.md         #   组装覆盖面速查（通用规则 + example 实例）
-│   └── server/                      #   组装产物（不入库，可随时删掉重装）
+│   ├── json/items.json              #   假数据（项目数据，不受组装影响）
+│   ├── self-test.sh                 #   自检：组装→自研保留→混搭→启动→API 探测
+│   └── server/                      #   组装产物+自研代码，整体入库（运行期 config.json/sessions.json/日志除外）
 ├── test/
 │   ├── run-all.sh                   # 跑全部测试（npm test）
 │   ├── lib-test.sh                  # 测试共享库（断言/临时模板/跑组装）
@@ -940,7 +942,8 @@ dl-server-template/
 │   ├── scan-sh-commands.js        # sh 脚本命令清单扫描（usage/tools → JSON）
 │   ├── scan-bare-js-html.js       # 裸 JS 残留扫描
 │   ├── fix-bare-js-html.py        # 裸 JS 残留修复
-│   └── func-index.js              # 函数索引（定向读取大文件）
+│   ├── func-index.js              # 函数索引（定向读取大文件）
+│   └── verify-example-page.js     # example 页面验证（交付前真实渲染检查；jsdom 可选交互级）
 ├── setup.sh                       # 前端组装（支持 --to 任意目标）
 ├── start.sh                       # 启停脚本（start/stop/restart/status）
 └── README.md
@@ -952,7 +955,7 @@ dl-server-template/
 
 | 版本 | 内容 |
 |---|---|
-| 1.7.19+ | **sh 命令清单扫描 + 文档命令一致性检查（未升版）**：新增 `scripts/scan-sh-commands.js`——扫 sh 脚本，把注释里承诺的用法命令（usage）与实际调用的外部程序（tools）提成 JSON（命令作 key、脚本那句注释作 value，同源不另措辞）；`./` 前缀归一化（`./a.sh --check` 与 `a.sh --check` 视为同一条命令），并防「散文提到脚本名」的误报。新增配套测试 `test/scan-sh-commands.test.sh`。新增 `test/check-doc-commands.test.sh`：用 scan 生成的 JSON 校验 README.md 与 `docs/命令参数总览.md` 的命令命名——文档里写的每个「脚本名+选项」必须能在脚本用法注释中找到，否则报出（实测抓到 5 处不一致：README 3 处已废除的 `gbmd` 风格参数、总览 2 处已废除的 `--sync`/`--self-test`，已同步修正文档；同时修正 README 3 处 `--to` 传目录的旧写法为清单文件路径）。**另同步清理 README 全部「同步/就地组装」旧概念残留**：删除「直接复制模板当新项目（不用 sync）」小节（违反「组装脚本只在模板仓库执行、目标项目只有 assemble.json」的设计；sync 已废除后该场景失去存在理由）；「重同步/未同步/同步内容」等 --sync 时代措辞改为「重新组装/未组装」；项目入口示例 `require` 路径与 `blueprint/app.js` 实际代码对齐（`../framework` → `./core/index.js`）；目录树注释去掉已废除的 `sync-to-project.sh` 引用 |
+| 1.7.19+ | **sh 命令清单扫描 + 文档命令一致性检查（未升版）**：新增 `scripts/scan-sh-commands.js`——扫 sh 脚本，把注释里承诺的用法命令（usage）与实际调用的外部程序（tools）提成 JSON（命令作 key、脚本那句注释作 value，同源不另措辞）；`./` 前缀归一化（`./a.sh --check` 与 `a.sh --check` 视为同一条命令），并防「散文提到脚本名」的误报。新增配套测试 `test/scan-sh-commands.test.sh`。新增 `test/check-doc-commands.test.sh`：用 scan 生成的 JSON 校验 README.md 与 `docs/命令参数总览.md` 的命令命名——文档里写的每个「脚本名+选项」必须能在脚本用法注释中找到，否则报出（实测抓到 5 处不一致：README 3 处已废除的 `gbmd` 风格参数、总览 2 处已废除的 `--sync`/`--self-test`，已同步修正文档；同时修正 README 3 处 `--to` 传目录的旧写法为清单文件路径）。**另同步清理 README 全部「同步/就地组装」旧概念残留**：删除「直接复制模板当新项目（不用 sync）」小节（违反「组装脚本只在模板仓库执行、目标项目只有 assemble.json」的设计；sync 已废除后该场景失去存在理由）；「重同步/未同步/同步内容」等 --sync 时代措辞改为「重新组装/未组装」；项目入口示例 `require` 路径与 `blueprint/app.js` 实际代码对齐（`../framework` → `./core/index.js`）；目录树注释去掉已废除的 `sync-to-project.sh` 引用 | **example 升级为完整演示项目（整体入库）**：`assemble.json`、组装产物、自研代码（`server/routes/items.js`：`GET /api/items` 假数据 API + `/self-demo` 自研渲染页）、假数据（`json/items.json`，源风格混搭 iwara/gbmd/gallery）、自检脚本（`example/self-test.sh`：组装→自研保留→混搭→启动→API 探测一键跑，并接入 `test/example.test.sh` 进统一出口）全部入库，clone 即用、可作测试基准；`.gitignore` 只忽略 example 运行期文件（`config.json`/`sessions.json`/`server/*.log`）；示例端口改 `8090`（`config.schema.json`，避开模板其它项目默认端口）。**浏览器实测补漏**：首次交付后用户实测发现三类问题并已修复——①`@brand:` 原样输出（清单 brand 段键不全，缺 `title`/`displayTitle`/`icon`，顶栏/标题/图标三处原样）；②样式缺失（混搭清单只覆盖了 gbmd 下载面板、没连同其专属样式 `mod-group.css`/`grid-map.css` 一起下发，style.css 两处可选 @frag 残留）；③**标签页没有映射**（业务前端主脚本 `public/app.js` 模板不提供、须项目自研，缺失时页面能开但 tab 切换/列表渲染全不生效——example 已补自研版：tab 切换 + 调 `/api/items` 渲染假数据）。教训固化进 `example/ASSEMBLE-COVERAGE.md` 第九节（坑 6/7/8/9）：品牌键契约、风格专属片段须随面板下发、**交付前必须真实渲染验证（curl 不算）**、业务前端脚本须自研 |
 | 1.7.17 | **测试跟上 setup.sh 重新设计 + 清理旧设计残留注释**：1967be5 重写 setup.sh 后 `--to` 的语义已从「项目根」改为「项目清单文件」（清单所在目录即项目根），且移除了风格参数，但测试与三处注释没跟着改——①`test/assemble-parse.test.sh` 仍按旧契约传 `<项目根>/server`，12 个用例里 9 个因此失败（报「清单文件不存在」，与被测逻辑无关）。现按新契约重写：`--to` 传清单文件、去掉风格参数，并补 3 个契约用例（`--to` 指向不存在的清单 / `--to` 误传目录 / `--self-test` 组装到 example），从 4/9 变为 15/0。②setup.sh 注释里 `--to <项目根>…自动归一`、`--manifest <清单>`、`--with <组件,…>`三处均为旧设计残留（前者代码里根本没有归一逻辑，后两者参数解析里不存在——`--with` 混搭按新设计已由清单取代、系有意删除），一并删除。③移除 `test/data-backup-equivalence.test.sh`：它证明的是「旧 lib 实现 → 框架 createBackup」等价，而旧实现已从各项目删除、失去对比对象，且路径仍停在 `server/framework/` 旧布局（实际已移到 `server/store/`）；git 历史 2d14865 可恢复。④README 目录树同步实际布局（framework/ 平铺 17 模块 → 8 个子目录 + lib/），并更新已删测试的说明 |
 | 1.7.19 | **废除 `--sync`/tree 落点（设计错误）+ 测试拆分**：①`_setup_copy_manifest` 的 `COPY_LAYOUT=tree` 落点用的是清单 **src** 而不是 **dst**——清单里 `templates/` 只作 src 出现（取素材的来处），从不出现在 dst，即清单从未声明过任何文件该落到 `templates/`；tree 模式却凭空往那里写，于是项目里长出 `server/templates/_<风格>-style/` 整个目录（实测 gbmd、iwara 都有，gallery 没有——三者清单写法一致，差异只是跑没跑过 `--sync`）。对 src==dst 的素材条目 tree 与 out 恰好同路，所以问题长期只显现在产出条目上：`templates/_gbmd-style/public/app.js` 本该产出到 `server/public/app.js`，tree 却写回它自己。落点改回 dst 后 tree 与组装完全等价、命令失去存在理由，故 `setup.sh --sync` 与 `scripts/sync-to-project.sh`（含其 `--all` 分支直接 `cp -r server/templates`）一并废除，`--sync` 现按未知参数明确报错而非静默当组装跑。判据确立：**清单 dst 没声明的地方，项目里就不该有文件**。②测试拆分：`test/assemble-parse.test.sh` 单文件 146 行混装 15 组用例，改成按功能域拆的 5 个文件（清单注释键 / 清单错误结构 / 参数契约 / 组装行为 / 风格混搭）+ `lib-test.sh` 共享库 + `run-all.sh` 汇总入口（`npm test`），各自独立进程与临时目录。新增回归：「组装不创建 `server/templates/`」「`--sync` 已废除并报错」——前者反向验证过（临时把落点改回 src，测试立刻失败），不是永远通过的假测试。实测 23 通过 / 0 失败。 |
 | 1.7.18 | **组装预演 `--dry-run` + `--check` 新增「无引用」告警**：①组装此前是覆盖式写盘、跑之前看不到会动哪些文件，现支持 `--dry-run` 预演——每个单文件条目标注「新增 / 覆盖 / 相同」（覆盖项最值得留意），目录条目显示文件数、`DRY_VERBOSE=1` 可展开逐个文件；预演全程不落盘（已用「删产物文件→预演→确认未重建→正式组装→恢复」验证）。②`--check` 增加「无引用」告警：组装下发了某模块、但项目自有代码里没有任何 require 链能到达它，提示可能是搬模板时整份复制清单带进来的、本项目用不上的文件（告警不计入失败退出码）。判据刻意用**从项目自有入口出发的 require 传递可达性**，而非「有没有人 require 这个名字」——框架件靠 core/index.js 聚合、由项目 app.js 引一个入口带进来，逐文件字符串匹配会把整套框架全报成无引用；前端产物由 HTML 的 script src 引用，不参与判定。两个功能互为补充：预演让你在写盘前看条目，无引用告警在写盘后兜底。③动因是实际踩到的坑：gallery 从别的项目整份复制清单，搬进了 `search-date-range.cjs`，而 gallery 既没有按时间搜索的路由、前后端也都没有引用它——文件不报错、只是躺着，要等有人照着它改代码才踩坑。已移除该条目（项目侧产物由组装决定，下次组装即消失）。 |

@@ -22,3 +22,12 @@ server/templates/_iwara-style/public/vendor/
 # 实测：scripts/ 共 93 条 findings（占全仓 738 条的 12.6%），其中
 #       bench-html-assembly.js 33 条、func-index.js 21 条。
 scripts/*
+
+# ---------------------------------------------------------------------------
+# example/server/** 组装产物快照 + 项目示例代码（整体入库，仅作演示/测试基准）
+# 性质：真源在模板 server/framework/、server/project/blueprint/（那里照常审计），
+#       此处是下发副本 + example 的项目侧代码（routes/items.js 自研演示）。
+# 为何豁免：client-node-builtin-require 等规则对后端 Node 代码属误报
+#       （require('fs'/'path') 是服务端正常用法，不是浏览器 client）；
+#       副本质量以模板侧为准，真实运行已由 example/self-test.sh 实测验证。
+example/server/

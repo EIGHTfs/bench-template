@@ -3,12 +3,20 @@
 `setup.sh --to <项目清单>` 会按**项目自己**的 `assemble.json` 从模板拷文件进项目。
 **凡是出现在 assemble.json 里的目标路径，都是模板的拷贝 —— 改项目侧会被下次组装覆盖。**
 
-本文以模板自带的 `example/` 为实例讲通用规则。example 是个**普通项目**：组装、启动
-方式与任何真实项目完全一样，可以直接拿它试手。
+本文以模板自带的 `example/` 为实例讲通用规则。example 是**完整演示项目（整体入库）**，
+一份清单同时覆盖四件事：
+
+1. **通用件** —— framework（createServer/createRoute 等）+ lib（start.sh 等）下发
+2. **风格混搭** —— 骨架取 iwara（顶栏/各面板/logo），下载面板换成 gbmd 样式
+3. **自研代码** —— `server/routes/items.js`（不在模板里，组装/check 都不管）
+4. **假数据** —— `json/items.json`（项目数据，同样不受组装影响）
+
+组装、启动方式与任何真实项目完全一样；clone 下来即用，可一键自检：
 
 ```bash
 ./setup.sh --to example/assemble.json    # 组装（幂等，可反复跑）
-cd example && ./start.sh start           # 启动（首次无密码，会提示但可用）
+bash example/self-test.sh                # 一键自检：组装→自研保留→混搭→启动→API 探测
+cd example && ./start.sh start           # 启动（端口 8090，见 config.schema.json）
 ```
 
 ---
@@ -124,12 +132,31 @@ grep -oE "下载视频|下载 Mod" example/server/public/fragments/tab-panel/pan
 `app.js` 与 `config.schema.json` 不在清单里：全新项目首跑时由 setup.sh 从蓝图
 **初始化**（不存在才拷）。已有自己机制的项目用 `"init": false` 跳过。
 
+example 里还有**不属于组装**的部分（整体入库、不受组装影响）：
+
+| 文件 | 说明 |
+|------|------|
+| `server/routes/items.js` | 项目自研路由：`GET /api/items`（假数据 JSON）、`/self-demo`（自研渲染页） |
+| `server/app.js` / `config.schema.json` | 初始化后即项目自有（含自研路由注册、端口 8090） |
+| `json/items.json` | 假数据（8 条示例下载项，来源风格混搭 iwara/gbmd/gallery） |
+
 ## 六、不受组装影响的（改项目侧正确）
 
-- `server/app.js`、`server/config.schema.json`（初始化后即项目自有）
-- `server/config.json`、`server/sessions.json`（运行期生成）
-- 项目自己写的 `server/routes/**`、`server/lib/**`
-- `json/**`、`tool/**`、`docs/**`、`README.md`
+example 里实测这些文件**组装不会碰**（清单里没有它们）：
+
+- `server/routes/items.js` —— 项目自研代码（`GET /api/items`、`/self-demo`）
+- `server/app.js`、`server/config.schema.json` —— 初始化后即项目自有（自研路由注册、端口 8090 都在这里）
+- `json/items.json` —— 假数据（数据文件，代码与数据分离）
+- `server/config.json`、`server/sessions.json` —— 运行期生成（不入库）
+- 项目自己写的 `server/routes/**`、`server/lib/**`、`json/**`、`tool/**`、`docs/**`
+
+验证（重跑组装后自研代码与配置仍在）：
+
+```bash
+./setup.sh --to example/assemble.json
+grep -c "GET /api/items" example/server/routes/items.js   # → 2，重装不覆盖
+grep -c '"port".*8090' example/server/config.schema.json  # → 1，配置保留
+```
 
 > 判断方法：`python3 -c "import json;print(*json.load(open('assemble.json'))['files'],sep='\n')"`
 
@@ -150,6 +177,7 @@ cd dl-server-template
 ./setup.sh --to <清单> --check        # 清单两端是否同步（不一致 / 缺失 / 无引用告警）
 ./setup.sh --to <清单> --untracked    # 目录里有哪些文件不在清单（按 .gitignore 排除）
 ./setup.sh --to <清单> --dry-run      # 预演：只列会写入/覆盖哪些文件，不写盘
+bash example/self-test.sh             # example 一键自检（组装→自研→混搭→启动→API）
 ```
 
 ## 九、已知坑
@@ -168,3 +196,27 @@ cd dl-server-template
 5. **首跑初始化会因 `server/` 不存在而静默失败**：骨架初始化发生在清单复制**之前**，
    全新项目首跑时 `server/` 还没建，`cp` 报错却仍打 `✓`，结果 `app.js` 根本没生成、
    项目起不来。已在 setup.sh 里 `mkdir -p "$SERVER_DIR"` 并检查 `cp` 返回值修掉。
+6. **`@brand:` 指令原样输出 = 清单 brand 段键不全**：模板片段用
+   `@brand:title@` / `@brand:displayTitle@` / `@brand:icon@` / `@brand:logo@` 四个键，
+   brand.json 缺哪个、页面上就原样显示哪个——实测 example 清单 brand 段只写了
+   `name`/`logo`，顶栏标题、favicon、网页标题三处原样输出 `@brand:xxx@` 原文，
+   而 API 与测试全部正常（跑不出来）。brand 段要一次给全
+   `{ "name", "title", "displayTitle", "icon", "logo" }`。
+7. **风格专属样式片段是「可选 @frag」**：`style.css` 里的
+   `@frag:styles/mod-group.css`、`@frag:styles/grid-map.css` 只有 `_gbmd-style`
+   提供（分组折叠/网格映射行）。混搭清单若只覆盖下载面板、不连同这两个 css
+   一起下发，运行期装配后残留 2 处 `/* @frag */` 注释（CSS 注释不报错、页面
+   结构正常，缺的只是 gbmd 面板专属样式——又是「API 探不出来」的一类）。
+   「可选片段」注释在 style.css 里有说明：该类样式由风格层按需下发。
+8. **交付前必须实际打开页面验证，curl 不算**：本次把 example 升级为「完整演示
+   项目（整体入库）」后，自检、API、全量测试全绿，但用户浏览器实测才发现
+   brand 键缺失、样式缺失、标签页异常——curl 只能证明「服务活着 + 端点有响应」，
+   证明不了「页面渲染正确」。前端效果必须真实渲染验证（无头浏览器截图 /
+   打开页面观察），与 API 探测互补，缺一不可。
+9. **业务前端主脚本 `public/app.js` 必须项目自研，缺失表现=「标签页没有映射」**：
+   `scripts.html` 片段里有 `<script src="app.js">`，但模板**不提供** app.js——
+   它是各项目的业务前端入口（tab 切换、列表渲染都在这）。组装出来的项目若
+   没自研 app.js，页面能打开但任何交互都不生效（404 不会报错，页面看起来
+   「正常但点不动」）。example 的自研版实现：① `data-tab` → `.tab-panel` 切换
+   ② 调 `/api/items`（自研后端）渲染 `json/items.json` 假数据——前端/后端/数据
+   三件套全自研，演示「项目业务代码长在项目里，不碰模板」。

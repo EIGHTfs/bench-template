@@ -21,6 +21,9 @@
   ],
   "brand": {
     "name": "示例下载器",
+    "title": "示例下载器",
+    "displayTitle": "示例下载器",
+    "icon": "iwara-logo.png",
     "logo": "iwara-logo.png"
   },
   "files": {
@@ -74,6 +77,10 @@
     "server/templates/_iwara-style/public/iwara-logo.png": "server/public/iwara-logo.png",
 
     "_mix_2": "混搭：gbmd 下载面板覆盖上面 iwara 的同名分片。靠后的源覆盖靠前的同名文件（assemble-manifest.js 既定规则），故此条必须排在 iwara 之后，顺序不能调。",
-    "server/templates/_gbmd-style/fragments/tab-panel/panel-download.html": "server/public/fragments/tab-panel/panel-download.html"
+    "server/templates/_gbmd-style/fragments/tab-panel/panel-download.html": "server/public/fragments/tab-panel/panel-download.html",
+
+    "_mix_3": "gbmd 面板专属样式（mod-group=下载列表分组折叠，grid-map=网格映射行）：style.css 里的「可选 @frag」，只有 _gbmd-style 提供；混搭时须连同面板一起下发，否则该两处样式缺失（改造坑：见 ASSEMBLE-COVERAGE 第九节第 7 条）。",
+    "server/templates/_gbmd-style/fragments/styles/mod-group.css": "server/public/fragments/styles/mod-group.css",
+    "server/templates/_gbmd-style/fragments/styles/grid-map.css": "server/public/fragments/styles/grid-map.css"
   }
 }

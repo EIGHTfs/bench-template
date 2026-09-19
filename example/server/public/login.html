@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" type="image/png" href="favicon.png">
+<title><!-- @brand:title --> · 登录</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="auth-wrap">
+  <h1><img src="@brand:logo@" alt="@brand:title@" style="height:26px;vertical-align:middle"></h1><!-- dsh-skip-residue -->
+  <div class="card">
+    <h2>登录</h2>
+    <input type="password" id="pwd" placeholder="访问密码">
+    <!-- 2026-09-13：记住此设备——勾选后 30 天内免登录（默认勾选） -->
+    <label class="remember-row"><input type="checkbox" id="remember" checked> <span>记住此设备（30 天免登录）</span></label>
+    <button class="primary" id="btn">登录</button>
+    <div class="status" id="status"></div>
+  </div>
+</div>
+<script src="login.js"></script>
+</body>
+</html>
