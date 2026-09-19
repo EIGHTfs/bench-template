@@ -5,10 +5,14 @@
 
 ## --to 传什么
 
-传**项目根**（如 `.../iwara-downloader`），不是 `server/`。
+**一律基于「项目根」，两种写法等价**：
 
-- 传项目根：目标 = 项目根 + 清单值（`server/framework/` → `<项目>/server/framework/`）
-- 传 `server/`：目标 = `server/` + 清单值 → **多一层 `server/server/`**（组装静默报 ✓ 却写错位置）
+```bash
+./setup.sh gbmd --to /path/to/project          # 项目根，最直接
+./setup.sh gbmd --to /path/to/project/server   # 同样基于项目根，脚本自动归一
+```
+
+两种写法结果一致：目标 = 项目根 + 清单值（`server/framework/` → `<项目>/server/framework/`）。
 
 ## iwara-downloader 的组装目标（改这些 = 改模板）
 
@@ -51,5 +55,8 @@ cd dl-server-template
 
 ## 已知坑
 
-1. **`cp -rf` 不报错**：目标路径算错时会静默建出 `server/server/`，日志仍打印 `✓`。组装后检查有无 `server/server/`。
-2. **`--to` 传 `server/` 是错的**：脚本注释（第 8 行用法）与实际实现（第 126 行注释：值相对项目根）矛盾，以**项目根**为准。
+1. **组装「成功」不代表写对位置**：路径算错时组装会静默写偏，日志仍打印 `✓`、缺失仍报 0。
+   组装后留意「报组装了 N 个文件、项目却看不出变化」，以及项目里多出来的 `server/server/` 目录。
+2. **`brand.json` 不会跟随清单更新**：它「存在即保留」，改图片文件名后 `assemble.json` 会跟、
+   `brand.json` 不会，导致 `@brand:logo@` 指向已删除的文件（静默碎图）。改文件名要三处同改，
+   自检见 README「`@brand:` 引用的文件必须真实存在」一节。

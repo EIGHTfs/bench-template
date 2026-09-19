@@ -3,13 +3,13 @@
 # 模板组装脚本：把前端部件组装到目标 server/ 目录
 #
 # 用法：
-#   ./setup.sh <gbmd|iwara> [--to <目标server目录>] [--with <组件,...>] [--check]
+#   ./setup.sh <gbmd|iwara> [--to <项目根|项目根/server>] [--with <组件,...>] [--check]
 #
-# 目标说明（--to）：
+# 目标说明（--to）——一律基于「项目根」，两种写法等价：
 #   - 省略 --to：组装到模板仓库自身 server/project/（测试/参考用）
-#   - --to /path/to/project/server：组装到旧项目（gamebanana-mods-downloader /
-#     iwara-downloader 等），把前端部件写进对方的 server/public/
-#   - 目标 server/ 没有 app.js / config.schema.json 时，从 blueprint/ 复制初始化
+#   - --to /path/to/project       ：项目根，最直接
+#   - --to /path/to/project/server：同样基于项目根，脚本自动归一（少写一层）
+#   目标项目没有 app.js / config.schema.json 时，从 blueprint/ 复制初始化
 #
 # 组件（--with，从另一风格叠加前端，同名以主风格为准）：
 #   play   = iwara 播放页（play.html + play-app.js + vendor/artplayer.js）

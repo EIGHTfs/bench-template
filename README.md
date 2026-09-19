@@ -203,6 +203,30 @@ node scripts/scan-dead-files.js . || echo "有死文件，需清理"
 logo/icon 的文件本身仍要走 `files` 映射从风格模板拷进 `server/public/`，
 `brand.json` 里写的是**拷过去之后的文件名**。
 
+> ⚠️ **改名图片时必须手工同步 `brand.json`**
+>
+> 「存在即保留」意味着 **`brand.json` 与 `assemble.json` 会各自独立地漂移**：
+> 你把清单里的 `logo` 从 `brand.png` 改成 `logo.png`、把文件也改了名，
+> 组装**不会**去更新已存在的 `brand.json` —— 它仍是旧文件名。
+>
+> 后果不是报错，是**静默碎图**：`@brand:logo@` 被替换成那个已删除的旧文件名，
+> 顶栏 / 登录页 / 设置向导三处 `<img>` 一起 404。组装照旧报「0 缺失」，
+> 命令行与日志都看不出问题，只有打开页面才发现图裂了。
+>
+> 实测（gbmd 项目，2026-09）：`brand.png` 改名 `logo.png` 后 `assemble.json`
+> 已同步、`brand.json` 没跟，三处 src 全部指向不存在的 `brand.png`。
+>
+> **所以改图片文件名要一次改全三处**，改完按下节自检确认：
+>
+> | 位置 | 要改什么 |
+> |---|---|
+> | `assemble.json` 的 `brand.logo` | 新文件名 |
+> | `brand.json` 的 `logo` | 新文件名（**不会自动跟随，必须手改**） |
+> | `files` 映射的目标路径 | 新文件名（如 `server/public/logo.png`） |
+>
+> 若懒得三处对齐，另一条路是**保持 `brand.json` 与清单同名**：让清单里的
+> `brand.logo` 直接写 `brand.png`，图片就叫 `brand.png`，永不改名。
+
 **按需取用的三条约定**：
 
 1. **用不上就不填** —— 清单只列你要的，其余一概不碰。
@@ -528,6 +552,37 @@ if (assembler.list().includes(name)) {
 ```bash
 curl -s http://127.0.0.1:<port>/style.css | grep -c '@frag:'   # 期望 0
 ```
+
+---
+
+### 接入要点：`@brand:` 引用的文件必须真实存在（易漏）
+
+组装器只负责**把 `@brand:key@` 替换成 `brand.json` 里写的字符串**，
+它**不检查那个文件是否真的存在**。所以「清单里文件名改了、`brand.json` 没跟」
+这类漂移不会报错，直接产出指向空文件的 `<img>`。
+
+组装后按下面的方式自检——把三处引用 `@brand:logo@` 的模板各展开一次，
+确认 src 指向的文件真实存在：
+
+```bash
+cd <项目>/server/public
+node -e '
+const { expandFrags } = require("../framework/fragment-assembler.js");
+const fs = require("fs");
+const brand = JSON.parse(fs.readFileSync("brand.json", "utf8"));
+// 三处引用 @brand:logo@ 的模板：顶栏 / 登录页 / 设置向导
+for (const f of ["fragments/topbar/brand.html", "login.html", "setup.html"]) {
+  const src = (expandFrags(".", f, 0, brand).text.match(/src="([^"]+)"/) || [])[1];
+  console.log(f, "->", src, fs.existsSync(src) ? "OK" : "文件不存在 ❌");
+}
+'
+```
+
+三行都要是 `OK`。出现 `文件不存在` 就是上面说的 `brand.json` 漂移，
+按 `assemble.json` 一节改齐三处。
+
+> 同理适用于任何 `@brand:` 值指向文件的键（目前是 `logo` 与 `icon`；
+> `title` / `displayTitle` 是纯文本，不涉及文件）。
 
 ---
 
