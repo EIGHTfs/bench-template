@@ -29,7 +29,7 @@
   "files": {
     "_layout": "框架按功能子目录下发到 server/ 根下（server/framework/core/app.js → server/core/app.js）。不能整目录拷成 server/framework/，否则蓝图 app.js 的 require(\"./core/index.js\") 找不到模块。",
     "server/framework/assemble/fragment-assembler.js": "server/assemble/fragment-assembler.js",
-    "server/framework/search/search-date-range.cjs": "server/search/search-date-range.cjs",
+    "server/templates/_downloader-style/search/search-date-range.cjs": "server/search/search-date-range.cjs",
     "server/framework/auth/auth.js": "server/auth/auth.js",
     "server/framework/config/config-loader.js": "server/config/config-loader.js",
     "server/framework/core/app-log.js": "server/core/app-log.js",
@@ -55,16 +55,16 @@
     "server/lib/cjs-bootstrap.cjs": "server/lib/cjs-bootstrap.cjs",
     "server/lib/start.sh": "start.sh",
     "server/project/blueprint/boot.cjs": "server/boot.cjs",
-    "server/project/blueprint/search-date-range.js": "server/public/search-date-range.js",
-    "server/project/blueprint/login.html": "server/public/login.html",
-    "server/project/blueprint/login.js": "server/public/login.js",
-    "server/project/blueprint/setup.html": "server/public/setup.html",
-    "server/project/blueprint/setup-init.js": "server/public/setup-init.js",
+    "server/templates/_downloader-style/public/search-date-range.js": "server/public/search-date-range.js",
+    "server/templates/_downloader-style/public/login.html": "server/public/login.html",
+    "server/templates/_downloader-style/public/login.js": "server/public/login.js",
+    "server/templates/_downloader-style/public/setup.html": "server/public/setup.html",
+    "server/templates/_downloader-style/public/setup-init.js": "server/public/setup-init.js",
     "server/project/blueprint/theme-init.js": "server/public/theme-init.js",
     "server/project/blueprint/auto-update-card.js": "server/public/auto-update-card.js",
-    "server/project/blueprint/index.html/downloader/index.html": "server/public/index.html",
-    "server/project/blueprint/style.css": "server/public/style.css",
-    "server/project/blueprint/fragments/": "server/public/fragments/",
+    "server/templates/_downloader-style/public/index.html": "server/public/index.html",
+    "server/templates/_downloader-style/public/style.css": "server/public/style.css",
+    "server/templates/_downloader-style/fragments/": "server/public/fragments/",
     "_mix_1": "以下为 iwara 风格骨架：脚本/样式/顶栏 + 下载面板（稍后被 gbmd 覆盖）",
     "server/templates/_iwara-style/fragments/scripts.html": "server/public/fragments/scripts.html",
     "server/templates/_iwara-style/fragments/styles/row-thumb.css": "server/public/fragments/styles/row-thumb.css",
@@ -79,7 +79,6 @@
     "server/templates/_gbmd-style/fragments/tab-panel/panel-download.html": "server/public/fragments/tab-panel/panel-download.html",
     "_mix_3": "gbmd 面板专属样式（mod-group=下载列表分组折叠，grid-map=网格映射行）：style.css 里的「可选 @frag」，只有 _gbmd-style 提供；混搭时须连同面板一起下发，否则该两处样式缺失（改造坑：见 ASSEMBLE-COVERAGE 第九节第 7 条）。",
     "server/templates/_gbmd-style/fragments/styles/mod-group.css": "server/public/fragments/styles/mod-group.css",
-    "server/templates/_gbmd-style/fragments/styles/grid-map.css": "server/public/fragments/styles/grid-map.css",
-    "server/templates/_downloader-style/fragments/styles/themes/": "server/public/fragments/styles/themes/"
+    "server/templates/_gbmd-style/fragments/styles/grid-map.css": "server/public/fragments/styles/grid-map.css"
   }
 }
