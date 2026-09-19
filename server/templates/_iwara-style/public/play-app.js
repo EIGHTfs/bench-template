@@ -145,16 +145,24 @@ function initPlayer(info, poster) {
       if (v.currentTime > v.duration - 0.25) v.currentTime = Math.max(0, v.duration - 0.5);
     });
   }
+  // 自动连播：播完自动播放下一个（当前排序顺序）；列表末尾播完停止
+  art.on("video:ended", function () {
+    if (!autoNext) return;
+    var list = sortedVideos();
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === id) {
+        if (i + 1 < list.length) {
+          var next = list[i + 1];
+          setPlayUrl(next.id, false);
+          loadVideo(next.id);
+        }
+        break;
+      }
+    }
+  });
 }
 
-// ═══ 播放列表 ═══
-function catalogVideos(j) {
-  var map = (j && j.videos && typeof j.videos === "object") ? j.videos : {};
-  return Object.keys(map).map(function (vid) {
-    var e = map[vid] || {};
-    return { id: vid, title: e.title || vid, name: e.name || e.username || "", duration: e.duration || 0, fileId: e.fileId || "", createdAt: e.createdAt || "" };
-  }).sort(function (a, b) { return String(b.createdAt).localeCompare(String(a.createdAt)); });
-}
+// ═══ 播放列表模块（排序/分组/自动连播/持久化）见 play-list.js ═══
 
 // 2026-09-04：播放封面 URL 稳定，不再加 Date.now()。
 // 【原代码】thumbUrl / refreshCurrentThumb 每次 &t=时间戳，强迫浏览器丢掉上一张。
@@ -184,47 +192,7 @@ function bindPlaylistThumbRetry(img, vid) {
   };
 }
 
-function renderPlaylist(clear) {
-  var container = $("#playlist");
-  var countEl = $("#listCount");
-  var loadingEl = $("#loadingMore");
-  if (clear) { container.innerHTML = ""; displayedCount = 0; }
-  if (!allVideos.length) {
-    container.innerHTML = '<div class="sidebar-empty">索引里还没有其它视频</div>';
-    countEl.textContent = "";
-    loadingEl.style.display = "none";
-    return;
-  }
-  var start = displayedCount;
-  var end = Math.min(start + PAGE_SIZE, allVideos.length);
-  for (var i = start; i < end; i++) {
-    var v = allVideos[i];
-    var item = document.createElement("div");
-    item.className = "playlist-item" + (v.id === id ? " active" : "");
-    // 首次加载用普通 URL（浏览器缓存），切换视频后用时间戳刷新
-    var src = v.id ? "/api/thumb?id=" + encodeURIComponent(v.id) : "";
-    item.innerHTML =
-      (src ? '<img class="thumb" data-vid="' + esc(v.id) + '" src="' + esc(src) + '" alt="" loading="lazy">' : '<div class="thumb"></div>') +
-      '<div class="info">' +
-        '<div class="title" title="' + esc(v.title) + '">' + esc(v.title) + '</div>' +
-        '<div class="meta">' + esc(v.name) + (v.duration ? " · " + dur(v.duration) : "") + '</div>' +
-      '</div>';
-    item.onclick = (function (vid) {
-      return function () { if (vid !== id) { setPlayUrl(vid, false); loadVideo(vid); } };
-    })(v.id);
-    var imgEl = item.querySelector("img.thumb[data-vid]");
-    if (imgEl) bindPlaylistThumbRetry(imgEl, v.id);
-    container.appendChild(item);
-  }
-  displayedCount = end;
-  countEl.textContent = allVideos.length + " 个";
-  if (end < allVideos.length) {
-    loadingEl.style.display = "block";
-    loadingEl.textContent = "加载更多（还剩 " + (allVideos.length - end) + "）";
-  } else {
-    loadingEl.style.display = "none";
-  }
-}
+// 播放列表渲染（分组/折叠/工具条）函数见 play-list.js
 
 // 刷新当前视频的封面缩略图（列表里的 + poster）
 function refreshCurrentThumb() {
@@ -316,6 +284,7 @@ function loadVideo(newId) {
 // ═══ 首次启动：并行加载 play-info 和索引、前进后退、退出清理 ═══
 function initPage() {
   initTheme();
+  initPlayTools();
   // 前进/后退：/{id}
   window.addEventListener("popstate", function () {
     var newId = getIdFromPath() || getIdFromHash() || getIdFromQuery();

@@ -1,0 +1,13 @@
+{
+  "_comment": "example 示例项目的假数据（演示用）。项目数据文件（json/**）不受组装影响：清单里没有它，组装/check 都不管，改它≠改模板。由自研路由 server/routes/items.js 读取并提供给 API / 自研页面。",
+  "items": [
+    { "id": "iwara-001", "title": "【MMD】夏日沙滩漫步 4K 60FPS", "author": "SakuraMMD", "style": "iwara", "status": "done", "size": "1.4 GB", "updated": "2026-09-18" },
+    { "id": "iwara-002", "title": "【MMD】黄昏电车视角 1080P", "author": "RinMotion", "style": "iwara", "status": "paused", "size": "620 MB", "updated": "2026-09-16" },
+    { "id": "gbmd-001", "title": "武器外观 - 星辉长枪", "author": "ModMaster", "style": "gbmd", "status": "done", "size": "86 MB", "updated": "2026-09-15" },
+    { "id": "gbmd-002", "title": "角色替换 - 银狐套装", "author": "FurWorks", "style": "gbmd", "status": "done", "size": "312 MB", "updated": "2026-09-14" },
+    { "id": "gbmd-003", "title": "地图美化 - 晨雾森林", "author": "EnvTeam", "style": "gbmd", "status": "active", "size": "1.9 GB", "updated": "2026-09-19" },
+    { "id": "gallery-001", "title": "画集《星海拾光》全彩扫描", "author": "LumiArts", "style": "gallery", "status": "done", "size": "480 MB", "updated": "2026-09-12" },
+    { "id": "gallery-002", "title": "插画包 - 冬日祭典 50P", "author": "YukiGallery", "style": "gallery", "status": "done", "size": "260 MB", "updated": "2026-09-10" },
+    { "id": "gallery-003", "title": "壁纸合集 - 像素风 4K 40 张", "author": "PixelHouse", "style": "gallery", "status": "paused", "size": "1.1 GB", "updated": "2026-09-08" }
+  ]
+}
