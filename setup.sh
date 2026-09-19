@@ -556,6 +556,17 @@ fi
 
 
 
+# 2. 分发前预检：正式组装（非 --dry-run / --check）先跑一遍清单两端比对，
+#    把「将被本次组装覆盖的项目改动」（不一致）与「将补下发的文件」（缺失）
+#    亮出来，再直接分发覆盖——避免项目侧定制（如各项目自己的端口/脚本）
+#    被无感覆盖。只看不阻断（与 --check 行为一致，差异照常覆盖）。
+#    跳过：SETUP_SKIP_PRECHECK=1（脚本内部 / CI 批量组装时用）。
+if [ "$DRY_RUN" = "0" ] && [ "${SETUP_SKIP_PRECHECK:-0}" != "1" ]; then
+  echo "  ── 分发前预检（不一致 = 将被本次组装覆盖的项目改动；缺失 = 将补下发）──"
+  "$NODE_BIN" "$MANIFEST_TOOL" check "$ASSEMBLE_FILE" "$PROJECT_ROOT" "$SRC_BASE" || true
+  echo "  ── 预检结束，开始组装 ──"
+fi
+
 if [ -n "$NODE_BIN" ]; then
   _setup_copy_manifest
 else
