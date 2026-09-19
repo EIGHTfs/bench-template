@@ -311,8 +311,10 @@ echo "══ 组装 $STYLE 风格 → $TARGET ══"
 ASSEMBLE_FILE="$(find_assemble || true)"
 if [ -z "$ASSEMBLE_FILE" ]; then
   # 生成位置与 find_assemble 的首选查找位置保持一致：
-  #   --to 时首选 $TARGET（即目标 server/ 的上一级项目根）
-  if [ "$TO_SPECIFIED" = "1" ]; then GEN_PATH="$(cd "$TARGET/.." 2>/dev/null && pwd)/assemble.json"; else GEN_PATH="$TARGET/assemble.json"; fi
+    #   --to 时首查 $TARGET —— TARGET 在上方已归一为「项目根」（传 <项目>/server 也会被剥成项目根），
+    #   故生成位置即 $TARGET/assemble.json。历史缺陷：曾写成 "$TARGET/.." 多退一层，
+    #   导致提示的 cp 目标落到 <项目根>/../assemble.json（幽灵位置），生成后也找不到。
+  if [ "$TO_SPECIFIED" = "1" ]; then GEN_PATH="$TARGET/assemble.json"; else GEN_PATH="$TARGET/assemble.json"; fi
 
   err "❌ 未找到 assemble.json"
   err "   目标项目根需要它声明：从模板取哪些文件到本项目"

@@ -50,7 +50,7 @@ cd .. && ./start.sh start
 | 概念 | 位置 | 说明 |
 |---|---|---|
 | **framework** | `server/framework/` | 通用后端 JS（HTTP 服务/鉴权/配置/路由工厂/备份/自动更新）。两个风格共用，改它两个项目同时受益 |
-| **templates** | `server/templates/` | 前端素材：`_gbmd-style/`（gbmd 风格）+ `_iwara-style/`（iwara 风格），每个风格含 `public/`（非分片部件）+ `fragments/`（特有分片） |
+| **templates** | `server/templates/` | 风格层素材：`_gbmd-style/` + `_iwara-style/`（前端素材：`public/` 非分片部件 + `fragments/` 特有分片）、`_gallery-style/`（前端素材 **+ `server/` 后端业务实现**） |
 | **blueprint** | `server/project/blueprint/` | 组装蓝图：共用框架/分片/静态资源 + `app.js`（入口骨架）+ `config.schema.json`。两风格共用文件（login、theme-init、search-date-range）在这里；组装时目标没有就从这里复制 |
 
 **风格是自动发现的，不写死在脚本里**：`setup.sh` 遍历 `server/templates/` 下一层目录，
@@ -58,11 +58,18 @@ cd .. && ./start.sh start
 
 - **新增风格**：建目录 `server/templates/_<名>-style/`（内含 `public/`、`fragments/`）即可，
   `setup.sh` 无需改动，`./setup.sh --list` 会立刻列出它。
+- **风格层可以只带前端，也可以前后端一起带**：`_gbmd-style/`、`_iwara-style/` 只放前端素材，
+  业务后端留在各项目自己维护；`_gallery-style/` 是本仓库第一个**后端也进风格层**的风格——
+  它除 `public/` 外还带 `server/app.js`、`server/lib/`、`server/routes/`，
+  把该风格的业务实现一并作为风格素材分发。两种形态并存，按风格需要选择即可。
+  （`lib/cjs-bootstrap.cjs` 不属于风格层，它是框架下发文件，由 `setup.sh` 生成到项目的 `server/lib/`。）
 - **不适用的目录自动跳过**：不符合 `_*-style` 命名的目录（`.trash-*`、备份、临时目录）不会被当成风格。
 - **输出稳定**：风格列表去重后排序，`--list` 与「未知风格」错误提示的内容可复现。
 | **组装产物** | `server/public/`、`server/app.js`、`server/config.schema.json` | 由 setup.sh 生成，**不入库**，可反复重装 |
 
-后端业务代码（`server/routes/`、`server/lib/`）由项目自己实现，**不在模板仓库**。
+后端业务代码（`server/routes/`、`server/lib/`）**默认不在模板仓库**，由项目自己实现；
+但风格层**可按需携带**自己的后端实现——`_gallery-style/` 即携带 `server/`（`app.js` + `lib/` + `routes/`），
+组装时一并落到项目侧，作为该风格的完整业务素材分发。
 
 ---
 
@@ -288,6 +295,17 @@ logo/icon 的文件本身仍要走 `files` 映射从风格模板拷进 `server/p
 
 PID 写在项目根 `<项目目录名>.pid`。
 
+`start.sh` 是**通用启停脚本**：gallery / gbmd / iwara 三个项目共用同一份（分发后 md5 一致），
+拷进项目根即可用，不必按项目改脚本。三处通用化：
+
+| 通用化点 | 说明 |
+|---|---|
+| **PID 清理不写死项目名** | 历史 PID 位置（旧版落在 `server/` 或 `/tmp`）只按 `$PROJECT_NAME` 枚举——`server/app.pid`、`server/<项目名>.pid`、`/tmp/<项目名>.pid`、`/tmp/<项目名>-macos.pid`、`/tmp/start-<项目名>.pid` |
+| **`tools/` 与 `tool/` 双兼容** | 项目自带工具目录命名不一致（gallery 用 `tools/`，gbmd/iwara 用 `tool/`），脚本探测两个名字（先 `tools/` 后 `tool/`），`PATH` 与 `FFMPEG` 都基于探测结果；`find_node()` 候选同样覆盖两种命名 |
+| **默认端口读 schema** | 优先读 `server/config.schema.json` 的 `"port": { "default": N }`（gallery 8081；gbmd/iwara 未声明则回落 8642），读不到才用 8642——通用脚本不写死某一个项目的端口 |
+
+实际端口仍以各项目 `server/config.json` 为准，`DEFAULT_PORT` 仅在首次生成配置时作缺省值。
+
 ---
 
 ## 框架接口
@@ -321,6 +339,48 @@ registry.routePublic(["GET","HEAD"], /^\/avatar\//, handler);
 匹配核心 `route-core.js` 单独可用：`matchMethod` / `matchPath` / `match` / `normalizeRule` / `compilePattern`。
 闭包式的 handler 签名保持 `(req, res, api)`，框架不组装 ctx、不预读 body、默认不捕获异常
 （需要统一错误处理时给 `createRegistry({ onError })` 传回调）。
+
+#### 两范式互转：`routes-adapter.js`（表式项目复用闭包式通用件）
+
+框架的通用路由件 `routes-auth.js`（登录/登出/改密/状态）、`routes-auto-update.js`（自动更新四项）
+写成了**闭包式** `module.exports = function register(api) { api.route(...) }`——它最初是为 iwara 的
+`route-registry` 设计的。而 gbmd / gallery 走 **表式** `createRoute`，拿到通用件用不上，
+只能各自手抄一份同逻辑的表式实现：这正是通用件注释里吐槽的**「逻辑漂移」**来源
+（remember 长会话一处有一处没有、改密验旧密码一处有一处没有、会话文件一处落 `server/` 一处落 `json/`）。
+
+`framework/routes-adapter.js` 把这条鸿沟填上——**调用一次闭包式注册件，把 `route` / `routePublic`
+收集成表**，返回 `createRoute` 可直接消费的表：
+
+```js
+// server/routes/auth.js（表式项目复用闭包式通用件，全部内容）
+const { tableFromRegister } = require("../framework/routes-adapter");
+const authRoutes = require("../framework/routes-auth");
+
+module.exports = tableFromRegister(authRoutes, {
+  cfg, auth, sendJson, readBody, setSessionCookie,
+});
+```
+
+| 项 | 说明 |
+|---|---|
+| 签名 | `tableFromRegister(register, deps, opts)` |
+| `register` | 形如 `(api) => void` 的闭包式注册函数（框架通用件即此形态） |
+| `deps` | 注入给 `register` 的依赖对象（`cfg` / `auth` / `sendJson` / `readBody` / `autoUpdate` / `setSessionCookie` …），适配器会用 `route` / `routePublic` 补全成 `api` 传入 |
+| `opts.prefix` | 给所有路径加前缀（缺省不加） |
+| 返回 | `createRoute` 表；**公开路由挂在返回值的 `.public` 上**（对齐 gbmd 的 `module.exports.public` 约定），另外也暴露 `.public` 为空表时的兜底（调用方不必判 `undefined`） |
+
+几点约定：
+
+- **method 统一大写、同一 key 后者覆盖**，与 `createRoute` 同语义；`"*"` 表示任意方法。
+- **公开/鉴权分离**：通用件里 `route()` 注册的进主表、`routePublic()` 注册的进 `.public`，
+  两边的原有语义不变。
+- **依赖注入的时机**：`cfg` 往往在项目 `app.js` 装配阶段才创建，所以项目路由模块通常把适配器
+  包一层 `init(deps)` 延迟装配（`_gallery-style` 的 `server/routes/auth.js`、`routes/auto-update.js` 即此写法）。
+- **收益**：gallery 的 `routes/auth.js` 由 89 行降到 44 行、`routes/auto-update.js` 由 89 行降到 37 行，
+  且与 iwara 用的是**同一份**通用件实现，逻辑只剩一处。
+
+> 简言之：**闭包式写通用件（方便动态注册）、表式写项目（集中可读），适配器负责对接**——
+> 通用件只需要维护一份，表式项目不再复制粘贴。
 
 项目入口只做三件事（完整示例见 `server/project/blueprint/app.js`）：
 
@@ -368,6 +428,7 @@ createServer({
 | `createServer({ config, auth, publicDir, routes, onReady })` | HTTP 服务 + 鉴权门 + 静态文件 |
 | `createRoute({ 'GET /path': fn })` | 路由工厂（handler 签名 `(req, res, ctx)`，返回 true=已处理） |
 | `groupRoutes(...routes)` | 多个路由合并 |
+| `routes-adapter.js` 的 `tableFromRegister(register, deps, opts)` | 闭包式注册件 → 表式路由表（详见「路由：两种范式」） |
 | `createAutoUpdate({ projectName, defaultRepo, extraExclude })` | 自动更新（watch/git/github 三模式） |
 | `createBackup(...)` | 数据备份（用法见下） |
 | `sendJson` / `readBody` / `parseCredentialText` / `cleanCookie` | HTTP 工具 |
@@ -631,7 +692,7 @@ for (const f of ["fragments/topbar/brand.html", "login.html", "setup.html"]) {
 
 - **零依赖**：不引入 npm 包；不建 `package.json` / lock 文件（父目录有 `"type":"module"` 时，用 `server/boot.cjs` 强制 CJS，见下）
 - **CJS**：框架层用 `require()`
-- **模板不承载业务后端**：业务 `routes/`、`lib/` 在项目侧维护
+- **模板默认不承载业务后端**：业务 `routes/`、`lib/` 在项目侧维护；风格层可按需携带自己的后端实现（如 `_gallery-style/server/`）
 - **生成物不入库**：`server/project/*` 入 .gitignore，仅 `server/project/blueprint/` 白名单入库
 - **单文件 ≤ 400 行**：超过按功能拆分
 
@@ -664,17 +725,27 @@ dl-server-template/
 │   │   ├── route-core.js          # 路由匹配核心（两范式共享）
 │   │   ├── route-factory.js       # 路由工厂 createRoute（表式）
 │   │   ├── route-registry.js      # 路由注册 createRegistry（闭包式）
+│   │   ├── routes-adapter.js      # 两范式互转 tableFromRegister（闭包式 → 表式）
+│   │   ├── routes-auth.js         # 通用路由件：认证（闭包式 register）
+│   │   ├── routes-auto-update.js  # 通用路由件：自动更新（闭包式 register）
 │   │   ├── auth.js                # 鉴权（session + cookie）
 │   │   ├── auto-update.js         # 自动更新 createAutoUpdate
 │   │   ├── data-backup.js         # 数据备份
 │   │   ├── http-utils.js          # sendJson / readBody
 │   │   ├── cjs-bootstrap.cjs      # CJS 强制引导
 │   │   └── index.js               # 统一出口
-│   ├── templates/                 # 前端素材
+│   ├── templates/                 # 风格层素材
 │   │   ├── _gbmd-style/
 │   │   │   ├── public/            # gbmd 非分片部件（app.js / style.css 等）
 │   │   │   └── fragments/         # gbmd 特有分片（topbar/{badge,userscript} / tab-panel/ / styles/ 等）
-│   │   └── _iwara-style/public/   # iwara 风格部件
+│   │   ├── _iwara-style/public/   # iwara 风格部件
+│   │   └── _gallery-style/        # gallery 风格（唯一「前后端都进风格层」的风格）
+│   │       ├── public/            # 前端部件（含 locales/）
+│   │       ├── config.schema.json # 该风格的配置 schema（含 port 默认 8081）
+│   │       └── server/            # ← 后端业务实现也作为风格素材分发
+│   │           ├── app.js         # 入口装配层（建配置/路由/启动，不写业务逻辑）
+│   │           ├── lib/           # 领域逻辑（archive / auto-update / config / gif / scan / util）
+│   │           └── routes/        # 业务路由（archive / auth / auto-update / browse / favorites / gallery / upload）
 │   └── project/
 │       └── blueprint/             # 组装蓝图（入库；两风格共用文件都在这里，无独立 _shared/）
 │           ├── app.js             # 项目入口骨架
@@ -701,6 +772,7 @@ dl-server-template/
 
 | 版本 | 内容 |
 |---|---|
+| 1.7.13 | **新增路由范式适配器 + gallery 风格层携带后端 + 启停脚本去项目耦合**：①新增 `server/framework/routes-adapter.js`（`tableFromRegister(register, deps, opts)`）——把闭包式 `register(api)` 通用件转成 `createRoute` 表式，公开路由挂在返回值 `.public`（对齐 gbmd 的 `module.exports.public` 约定），`opts.prefix` 可加路径前缀；表式项目因此能直接复用 `framework/routes-auth.js`、`framework/routes-auto-update.js`，不必再手抄同逻辑实现。gallery 的 `routes/auth.js` 89 → 44 行、`routes/auto-update.js` 89 → 37 行，两文件改为注入依赖后延迟装配（`init(deps)`）。②gallery 风格层新增后端：`server/templates/_gallery-style/` 除 `public/` 与 `config.schema.json` 外，现含 `server/app.js` + `server/lib/`（archive/auto-update/config/gif/scan/util）+ `server/routes/`（archive/auth/auto-update/browse/favorites/gallery/upload）——本仓库第一个「后端也进风格层」的风格，风格层从「只带前端素材」扩展为「可按需携带自己的业务实现」。`lib/cjs-bootstrap.cjs` 仍属框架下发文件，不在风格层。③修 `setup.sh` 的 `GEN_PATH` 路径 bug：`$TARGET` 在上方已归一为「项目根」（`--to <项目>/server` 会被剥成项目根），原先再拼 `$TARGET/..` 多退一层，报错提示里的 `cp` 目标落到 `<项目根>/../assemble.json` 幽灵位置，且若真在该处生成、`find_assemble`（只查 `$TARGET` 与 `$TARGET/..`）也找不到而陷入死循环；现统一为 `GEN_PATH="$TARGET/assemble.json"`（实测 `--to tmp/gp2/server`：修复前落 `.../工作区/tmp/assemble.json`、修复后落 `.../工作区/tmp/gp2/assemble.json`）。④`start.sh` 通用化三处：`legacy_pid_files()` 去掉写死的 `gbmd.pid` / `/tmp/gbmd.pid` / `/tmp/gbmd-macos.pid`，改为只按 `$PROJECT_NAME` 枚举（`server/app.pid`、`server/<项目名>.pid`、`/tmp/<项目名>.pid`、`/tmp/<项目名>-macos.pid`、`/tmp/start-<项目名>.pid`）；新增 `TOOL_DIR` 探测，`tools/` 与 `tool/` 两种命名都认（gallery 用 `tools/`、gbmd/iwara 用 `tool/`），`PATH` 与 `FFMPEG` 基于它，`find_node()` 候选同步覆盖两种布局；默认端口改为优先读 `server/config.schema.json` 的 `port.default`（gallery 8081，gbmd/iwara 未声明回落 8642），不再写死 8642。结果：gallery / gbmd / iwara 三项目共用同一份 `start.sh`（分发后 md5 一致），无需按项目改脚本。⑤`framework/app.js` 启动日志补局域网地址：`server.listen(port)` 不传 host 时监听 `::`/`0.0.0.0`（局域网可访问），原日志只打 `http://localhost:<port>` 易被误读成只能本机访问，现输出 `服务启动: http://localhost:<port>  (局域网: http://<本机IP>:<port>)` |
 | 1.7.12 | **`--check` 支持「整目录条目 + 单文件条目写同一目标」**：清单可既用整目录取件、又对个别文件逐条显式列出（便于看清谁覆盖谁），但 `--check` 原先只认目录型条目的源，把逐文件列出的件判成「无任何源提供」、或与目录源比不中而误报（实测 iwara 拆出 8 条后误报 8 项）。现 `_checkDirEntry` 把「写该目标的单文件条目源」一并算作提供者，正向比对与反向孤儿判定都纳入。验证：iwara 拆分为 8 条具体条目后 `--check` 由 8 项不一致回到 0；负向测试人为改坏`row-thumb.css`（双源件）报 2 项、改坏 `scripts.html`（单文件条目件）准确报 1 项并指出条目，重新组装后归零；gbmd 回归仍 0 项不一致 |
 | 1.7.11 | **风格列表改为目录自动发现，不再硬编码**：`setup.sh` 原写死 `STYLES="gbmd iwara"`，新增风格必须改脚本本身。现改为遍历 `server/templates/` 下一层，把 `_<名>-style/` 目录识别为风格（风格名取中间段），新增风格只需建目录、`--list` 立即列出，脚本零改动。不合规目录名（`.trash-*`、备份、临时目录）自动跳过；列表去重排序，`--list` 与「未知风格」提示输出稳定可复现。同步清理写死风格的两处文案：`setup.sh` 用法/示例与 `blueprint/app.js` 的报错提示改为「`<风格>`，见 `--list`」；README 补「风格自动发现」说明。验证：新建 `_teststyle-style/` 自动出现、`_dash-style` 识别为 `dash`、`.trash-*`/`_backup`/`regular-dir`正确跳过、连跑 3 次输出一致；gbmd/iwara 端到端组装各 48 文件、framework 20 模块、无幽灵目录，gbmd `--check` 0 项不一致 |
 | 1.7.10 | **sync 复用 setup.sh 的复制实现 + `--check` 或逻辑修正**：①`sync-to-project.sh` 重写，不再自带一套「按素材根整目录搬」的逻辑，改为 `SETUP_LIB_ONLY=1` 加载 `setup.sh` 并调用它的 `_setup_copy_manifest`——两套复制实现对同一份清单的解读不一致，是长期漏搬的根源，现只有一套实现。落点差异由 `COPY_LAYOUT` 一个变量区分：`out`（组装，缺省）按清单 dst 写产出，`tree`（同步）按 src 落素材树。②`setup.sh` 加只加载守卫（被 source 时只定义函数、不跑主流程），函数定义集中到主流程之前。③修 `--check` 的或逻辑 bug：候选路径漏拼文件名，拿目录算 md5 恒为 null，导致「多源写同一目标目录」（blueprint 底座 + 风格层覆盖，如 iwara 的 `row-thumb.css`）全部误报不一致——iwara 实测 58 项误报清零。④清单不再写 `_comment` 段（字段含义统一在本 README），`setup.sh` 生成的清单同步精简，顶层只留 `files` / `brand` / `init` |

@@ -73,11 +73,15 @@ async function serveStaticFile(res, publicDir, pathname, mime, transformHtml) {
   } catch (_) { return false; }
 }
 
-function dispatchAuth(req, res, pathname, auth, loginPath, extraPaths, needsSetup) {
+function dispatchAuth(req, res, pathname, auth, loginPath, extraPaths, needsSetup, guestPages) {
   const hasExt = path.extname(pathname);
   if (hasExt) return true; // 静态资源不鉴权
   // 未设置密码（首次初始化阶段）：不做鉴权，允许设置密码/进入页面
   if (typeof needsSetup === "function" && needsSetup()) return true;
+
+  // 游客可读页面：画廊语义是「游客能看能传，登录才能改设置」，
+  // 故页面本身不做登录门；写操作由各路由的 requireAuth 单独把守。
+  if (guestPages && !pathname.startsWith("/api/")) return true;
 
   const whitelist = [loginPath, "/api/auth/"].concat(extraPaths || []);
   if (isWhitelisted(pathname, whitelist)) return true;
@@ -168,6 +172,7 @@ function createServer(opts) {
     config, auth, publicDir, routes = [],
     publicRoutes = [], loginPath = "/login.html", extraMime = {},
     transformHtml, needsSetup, setupPath = "/setup.html",
+    guestPages = false,   // true=页面不设登录门（游客可读），API 仍按 publicRoutes 把关
     port: portOpt, fragments, onReady,
   } = opts;
 
@@ -223,7 +228,7 @@ function createServer(opts) {
       }
     }
 
-    if (!dispatchAuth(req, res, pathname, auth, loginPath, publicRoutes, needsSetup)) return;
+    if (!dispatchAuth(req, res, pathname, auth, loginPath, publicRoutes, needsSetup, guestPages)) return;
 
     const ctx = { cfg: config, auth, sendJson };
     if (await dispatchRoutes(req, res, url, pathname, routes, ctx)) return;
@@ -242,7 +247,9 @@ function createServer(opts) {
   const port = portOpt || cfgPort || process.env.PORT || DEFAULT_PORT;
 
   server.listen(port, () => {
-    console.log("服务启动: http://localhost:" + port);
+      // 不传 host 时 Node 监听 ::/0.0.0.0（局域网可访问）。
+      // 旧日志只打 localhost，易被误读成「只能本机访问」，故补上局域网地址。
+      console.log("服务启动: http://localhost:" + port + "  (局域网: http://<本机IP>:" + port + ")");
     if (onReady) onReady(port);
   });
 
