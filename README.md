@@ -149,9 +149,34 @@ cd .. && ./start.sh start
 ./setup.sh gbmd --to /path/to/proj     # 组装到指定项目根
 ./setup.sh iwara --with play,search    # iwara 风格 + 混搭组件
 ./setup.sh iwara --to . --check        # 只做清单一致性检查，不组装（见下）
+./setup.sh --to /path/to/proj/assemble.json --dry-run   # 组装预演：只列会写什么，不写盘
 ```
 
 组装逻辑：按项目根的 `assemble.json` 逐项拷贝（详见下节）；蓝图框架与分片（HTML/CSS `@frag` 指令）在运行期由 framework 组装器拼装；`--with` 组件从另一风格叠加（同名不覆盖，以主风格为准）。
+
+#### `--dry-run`：组装预演（搬模板前先看一眼）
+
+组装是**覆盖式写盘**，且清单常常是整份从别的项目复制过来的。预演回答「这一跑会动到哪些文件」：
+
+```bash
+./setup.sh --to /path/to/proj/assemble.json --dry-run
+DRY_VERBOSE=1 ./setup.sh --to /path/to/proj/assemble.json --dry-run   # 目录条目展开到逐个文件
+```
+
+每个单文件条目标注三种状态之一——**覆盖**项最值得留意，那是会被模板内容盖掉的项目侧文件：
+
+| 标记 | 含义 |
+|---|---|
+| `[新增]` | 目标不存在，本次会新建 |
+| `[覆盖]` | 目标已存在且内容不同，本次会被模板版本盖掉 |
+| `[相同]` | 目标已存在且内容一致，写不写都一样 |
+
+目录条目显示「→ 目标（N 个文件）」；加 `DRY_VERBOSE=1` 可展开成逐个文件。
+
+> **为什么值得先跑预演**：清单整份复制会把**本项目用不上的条目**一起带进来（真实案例：gallery
+> 搬进了 `search-date-range.cjs`，而 gallery 既没有按时间搜索的路由、前端也没引它）。
+> 这类文件不报错、只是静静躺在项目里，要等有人照着它改代码才发现。
+> 预演让你在写盘**前**看到完整条目列表；`--check` 的「无引用」告警则在写盘**后**兜底。
 
 #### `--check`：清单一致性检查（不组装）
 
@@ -165,8 +190,15 @@ cd .. && ./start.sh start
 |---|---|
 | **不一致** | 清单某条两端内容不同——项目侧被改过（应改模板后重同步），或模板更新后未重新组装 |
 | **缺失** | 清单某条的某一侧不存在——未同步或未组装 |
+| **无引用**（告警） | 组装下发了该模块，但项目自有代码里没有任何 require 链能到达它 |
 
-退出码：有不一致或缺失 → `1`，可挂 CI。
+「无引用」是**告警不是失败**：它提示该文件可能是搬模板时整份复制清单带进来的、本项目用不上的东西。
+判据是**从项目自有入口出发的 require 传递可达性**——不是「有没有人 require 这个名字」。
+框架件靠 `core/index.js` 聚合、由项目 `app.js` 引一个入口带进来，逐文件做字符串匹配会把整套框架
+全报成无引用（那种误报会让人直接无视这条告警）。前端产物（`public/`）不参与判定：
+它们由 HTML 的 `<script src>` 引用，规则不同。
+
+退出码：有不一致或缺失 → `1`，可挂 CI（「无引用」单独不计入失败）。
 
 > 「清单外文件」原先也在这里报，现已独立为 `--untracked`：那需要扫**整棵目录树**并套 `.gitignore`
 > （项目文档、截图、本地配置本就该在清单外），与「两端是否同步」是两件事，混在一起只会长期报噪声。
@@ -917,6 +949,7 @@ dl-server-template/
 | 版本 | 内容 |
 |---|---|
 | 1.7.17 | **测试跟上 setup.sh 重新设计 + 清理旧设计残留注释**：1967be5 重写 setup.sh 后 `--to` 的语义已从「项目根」改为「项目清单文件」（清单所在目录即项目根），且移除了风格参数，但测试与三处注释没跟着改——①`test/assemble-parse.test.sh` 仍按旧契约传 `<项目根>/server`，12 个用例里 9 个因此失败（报「清单文件不存在」，与被测逻辑无关）。现按新契约重写：`--to` 传清单文件、去掉风格参数，并补 3 个契约用例（`--to` 指向不存在的清单 / `--to` 误传目录 / `--self-test` 组装到 example），从 4/9 变为 15/0。②setup.sh 注释里 `--to <项目根>…自动归一`、`--manifest <清单>`、`--with <组件,…>`三处均为旧设计残留（前者代码里根本没有归一逻辑，后两者参数解析里不存在——`--with` 混搭按新设计已由清单取代、系有意删除），一并删除。③移除 `test/data-backup-equivalence.test.sh`：它证明的是「旧 lib 实现 → 框架 createBackup」等价，而旧实现已从各项目删除、失去对比对象，且路径仍停在 `server/framework/` 旧布局（实际已移到 `server/store/`）；git 历史 2d14865 可恢复。④README 目录树同步实际布局（framework/ 平铺 17 模块 → 8 个子目录 + lib/），并更新已删测试的说明 |
+| 1.7.18 | **组装预演 `--dry-run` + `--check` 新增「无引用」告警**：①组装此前是覆盖式写盘、跑之前看不到会动哪些文件，现支持 `--dry-run` 预演——每个单文件条目标注「新增 / 覆盖 / 相同」（覆盖项最值得留意），目录条目显示文件数、`DRY_VERBOSE=1` 可展开逐个文件；预演全程不落盘（已用「删产物文件→预演→确认未重建→正式组装→恢复」验证）。②`--check` 增加「无引用」告警：组装下发了某模块、但项目自有代码里没有任何 require 链能到达它，提示可能是搬模板时整份复制清单带进来的、本项目用不上的文件（告警不计入失败退出码）。判据刻意用**从项目自有入口出发的 require 传递可达性**，而非「有没有人 require 这个名字」——框架件靠 core/index.js 聚合、由项目 app.js 引一个入口带进来，逐文件字符串匹配会把整套框架全报成无引用；前端产物由 HTML 的 script src 引用，不参与判定。两个功能互为补充：预演让你在写盘前看条目，无引用告警在写盘后兜底。③动因是实际踩到的坑：gallery 从别的项目整份复制清单，搬进了 `search-date-range.cjs`，而 gallery 既没有按时间搜索的路由、前后端也都没有引用它——文件不报错、只是躺着，要等有人照着它改代码才踩坑。已移除该条目（项目侧产物由组装决定，下次组装即消失）。 |
 | 1.7.16 | **日期范围检索独立为 `framework/search/`，README 修正不存在的 `frontend/`**：①把一个子目录塞两种职责（页面片段装配 + 日期范围检索）拆开——`framework/assemble/search-date-range.cjs` → `framework/search/search-date-range.cjs`，`assemble/` 只保留 `fragment-assembler.js`，README 目录表相应加 `search/` 行、`assemble/` 行改为只写「页面片段装配」。②README 目录表原先列了 `framework/frontend/`（通用前端 JS），但该目录实际不存在——前端 JS 一直以蓝图源文件形态放在 `server/project/blueprint/`、由清单组装进 `server/public/`，与后端模块不同（不经 require、不参与模块解析）。删掉该行，并把下面那条「为什么前端 JS 也算 framework」的说明改写为实际做法，避免下次照 README 去找不存在的目录 |
 | 1.7.15 | **迁移能力补全 + 模板 lib/ 归位 + 组装缺陷修复**：①`assemble-manifest migrate` 的工作列表从「清单条目」扩到「项目内全部 js/cjs」——此前只处理清单提到的文件，漏掉不在清单、却 require 框架的业务代码（实测 gbmd 有 12 个 `server/routes/*.js` 因此未被改写，迁移后启动报 `Cannot find module '../framework'`）；判定改不改仍由「旧落点→新落点」映射决定，解析不到旧落点一律不动，不误伤。②`--dry-run` 预演新增「引用将被改写 N 处（涉及 M 个文件）」清单，逐条列出 `旧引用 ⇒ 新引用`，并标出「本文件也会移动 → 新落点」；预演跑的是与实际执行同一份逻辑的只读模式，不会出现「预演说没事、执行却改了」。③`setup.sh` 内联 python 生成清单改为调新子命令 `assemble-manifest generate <路径>`——清单结构属于工具的知识，散在脚本里会与 `validate`/`loadManifest` 各写一份、逐渐漂移；同时修提示文案（原写「带注释的空模板」，实际无注释）。④新增概念 **lib**（`server/lib/` 放通用运行支撑件）：启停脚本 `start.sh` 与 CJS 劫持 `cjs-bootstrap.cjs` 归位到模板 `server/lib/`，经清单下发到项目根 / `server/lib/`；README「三个概念」与落位判据同步补 lib 一行。⑤删 `setup.sh` 里冗余的 `mkdir -p server/public`（清单条目落到 public/ 时复制分支已建父目录），改为由 `brand.json` 生成处自建父目录——谁写文件谁负责建目录。⑥模板源 `server/templates/_gallery-style/` 与 `server/project/blueprint/` 共 5 个文件 10 处仍写着旧布局引用（`require('./framework')`、`../framework/routes-auth` 等），导致任何新项目组装后都无法启动（实测 `Cannot find module './framework'`）；已全部改为新结构路径，全新项目组装后启动正常。⑦`.gitignore` 补 `example/server/`：`setup.sh` 注释里写「产物不入库（见 .gitignore）」，但并无对应规则，实际组装一次就把 61 个产物文件暴露成未跟踪状态；现只忽略产物目录，保留 `example/assemble.json` 与 `ASSEMBLE-COVERAGE.md`。⑧修 `example/assemble.json`（模板自测清单）残留的旧路径 `server/framework/core/cjs-bootstrap.cjs` → `server/lib/cjs-bootstrap.cjs`，自测从「缺失 1 个」恢复为「缺失 0 个」。 |
  + 修两个鉴权缺陷**：①`framework/app.js` 的 `loginPath` 允许传空串，表示本服务没有独立登录页（登录走页面内弹窗，如 gallery 的 🔒）。原先未登录的页面请求一律 `302 Location: <loginPath>`，项目若不分发登录页就会跳到 404；现 `loginPath` 为空时改为回 `401 JSON {ok:false,error:"未登录",needsLogin:true}`，不写 `Location` 头。②**修白名单空串放行漏洞**：`whitelist = [loginPath, "/api/auth/", ...].concat(extraPaths)` 未过滤空值，而 `isWhitelisted` 用 `pathname.startsWith(entry)` 判定——`startsWith("")` 恒为 `true`，只要 `loginPath` 为空（新支持的用法）就会让**所有路径无条件放行**；现加 `.filter(Boolean)` 剔除空串。此缺陷在 `loginPath` 只能为非空默认值的旧约束下不可达，随①的新用法一并引入风险，故同时堵上。③`loginPath` 默认值保持 `"/login.html"` 不变，gbmd/iwara 行为零变化（两者均显式或隐式使用登录页，文件照常分发）。验证：gallery 组装产物与项目逐文件一致、`--to` 组装缺失 0；设 scrypt 密码后实测——未登录 `POST /api/gallery`、`POST /api/change-password` 均 401，登录后放行，不存在的页面未登录返回 404（证明空串未污染白名单）；gbmd 清单组装缺失 0 不回归 |

@@ -10,7 +10,8 @@
 #
 # ── 常用命令（先看这段）────────────────────────────
 #   ./setup.sh --to <项目清单>                  组装：按清单产出到 server/public/
-#   ./setup.sh --to <项目清单> --check          检查：清单两端是否同步（不一致 / 缺失）
+#   ./setup.sh --to <项目清单> --dry-run        组装预演：只列会写入/覆盖哪些文件，不写盘 ★
+#   ./setup.sh --to <项目清单> --check          检查：清单两端是否同步（不一致 / 缺失 / 无引用）
 #   ./setup.sh --to <项目清单> --untracked      扫描：目录里有哪些文件不在清单（按 .gitignore 排除）
 #   ./setup.sh --migrate <旧清单> --to <新清单>  迁移：按新结构搬文件并自动改引用
 #   ./setup.sh --to <项目清单> --sync           下发：素材按原结构搬进项目素材树
@@ -23,11 +24,17 @@
 #   <项目清单> = <项目根>/assemble.json
 #   ★ 清单所在文件夹就是项目根 —— 清单里的相对路径全部相对它解析。
 #     所以只需给清单路径一个参数，项目根自动得出，不必也不能另行指定。
+#   ★ 搬模板（组装）是覆盖式写盘，建议先 --dry-run 看一眼，再正式跑。
+#     清单整份复制过来时会静默带进本项目用不上的条目——建成当时看不出来，
+#     要等有人照着它改代码才踩坑。--check 的「无引用」告警也是为这类问题加的。
 #
 # ── 参数 ──────────────────────────────────────────────
 #   --to <项目清单>     目标项目的 assemble.json。清单所在目录即项目根，
 #                       清单里的相对路径全部相对它解析——所以不另传项目根。
 #   --check            只检查不产出。
+#   --dry-run          预演不写盘（组装：列将写入的文件；迁移：列将搬动的文件）。
+#                      组装预演会标出每个文件是「新增 / 覆盖 / 相同」，
+#                      覆盖项最值得留意。配合 DRY_VERBOSE=1 可展开目录条目下的逐个文件。
 #   --sync             下发素材树（见下「两个方向」）。
 #   --pull [--write]   回流（默认只预演，--write 才写）。
 #
@@ -195,6 +202,13 @@ _setup_copy_manifest() {
   local src dst src_path dst_path n_dir=0 n_file=0 missing=0 line
   local layout="${COPY_LAYOUT:-out}"
   local copy_dst
+  # DRY_RUN：只报告「会写哪些文件」，一个字都不落盘。
+  # 动机：搬模板（组装）是覆盖式写盘，跑之前看不到会动到哪些文件；
+  # 清单整份复制过来时会静默带进本项目用不上的条目（参见 gallery 的
+  # search-date-range.cjs）——那次是先搬了才发现，只能事后清理。
+  # 有了预演就能在写盘前先看一眼清单里的条目是否都是本项目要的。
+  local dry="${DRY_RUN:-0}"
+  [ "$dry" = "1" ] && echo "  ── 预演（--dry-run：不写盘，只列将写入的文件）──"
   while IFS=$'\t' read -r src dst; do
     [ -n "$src" ] || continue
     src_path="$SRC_BASE/$src"
@@ -209,14 +223,24 @@ _setup_copy_manifest() {
         dst_path="${dst_path%/.}"
         src_path="$SRC_BASE/$src"
         if [ -d "$src_path" ]; then
-          mkdir -p "$dst_path"
-          # 逐文件强制覆盖：不能只靠 `cp -rf src/. dst/`——它在部分实现下不覆盖已存在的同名文件，
-          # 而清单允许「多个源写入同一目标目录」（blueprint 提供共用底座、风格层提供该风格专属），
-          # 靠后写入的源覆盖先写入的同名文件正是设计意图（如 iwara 风格层覆盖 blueprint 的 row-thumb.css）。
-          # 用 find + 逐文件 mkdir/cp 保证「后写必覆盖」，与清单顺序语义一致。
-          (cd "$src_path" && find . -type d -exec mkdir -p "$dst_path/{}" \; )
-          (cd "$src_path" && find . -type f -exec sh -c 'mkdir -p "$2/$(dirname "$1")" && cp -f "$1" "$2/$1"' _ {} "$dst_path" \; )
-          echo "  ✓ $src/ → $copy_dst"
+          if [ "$dry" = "1" ]; then
+            # 预演：列出该目录会写入的文件数，并按需展开逐个文件
+            local cnt
+            cnt="$(cd "$src_path" && find . -type f | wc -l | tr -d ' ')"
+            echo "  · $src/ → $copy_dst（$cnt 个文件）"
+            if [ "${DRY_VERBOSE:-0}" = "1" ]; then
+              (cd "$src_path" && find . -type f | sed 's|^\./|      |' | sort)
+            fi
+          else
+            mkdir -p "$dst_path"
+            # 逐文件强制覆盖：不能只靠 `cp -rf src/. dst/`——它在部分实现下不覆盖已存在的同名文件，
+            # 而清单允许「多个源写入同一目标目录」（blueprint 提供共用底座、风格层提供该风格专属），
+            # 靠后写入的源覆盖先写入的同名文件正是设计意图（如 iwara 风格层覆盖 blueprint 的 row-thumb.css）。
+            # 用 find + 逐文件 mkdir/cp 保证「后写必覆盖」，与清单顺序语义一致。
+            (cd "$src_path" && find . -type d -exec mkdir -p "$dst_path/{}" \; )
+            (cd "$src_path" && find . -type f -exec sh -c 'mkdir -p "$2/$(dirname "$1")" && cp -f "$1" "$2/$1"' _ {} "$dst_path" \; )
+            echo "  ✓ $src/ → $copy_dst"
+          fi
           n_dir=$((n_dir + 1))
         else
           echo "  ⚠️ 目录不存在: $src/（跳过）" >&2
@@ -225,9 +249,18 @@ _setup_copy_manifest() {
         ;;
       *)
         if [ -f "$src_path" ]; then
-          mkdir -p "$(dirname "$dst_path")"
-          cp -f "$src_path" "$dst_path"
-          echo "  ✓ $src → $copy_dst"
+          if [ "$dry" = "1" ]; then
+            # 预演：标出「新增 / 覆盖 / 内容相同」——覆盖是最需要留意的
+            local mark="新增"
+            if [ -e "$dst_path" ]; then
+              if cmp -s "$src_path" "$dst_path"; then mark="相同"; else mark="覆盖"; fi
+            fi
+            echo "  · $src → $copy_dst  [$mark]"
+          else
+            mkdir -p "$(dirname "$dst_path")"
+            cp -f "$src_path" "$dst_path"
+            echo "  ✓ $src → $copy_dst"
+          fi
           n_file=$((n_file + 1))
         else
           echo "  ⚠️ 文件不存在: $src（跳过）" >&2
@@ -504,8 +537,12 @@ fi
 if [ "$INIT_FLAG" = "1" ]; then
   for f in app.js config.schema.json; do
     if [ ! -f "$SERVER_DIR/$f" ] && [ -f "$BLUEPRINT_DIR/$f" ]; then
-      cp "$BLUEPRINT_DIR/$f" "$SERVER_DIR/$f"
-      echo "  ✓ blueprint/$f → 目标（初始化）"
+      if [ "${DRY_RUN:-0}" = "1" ]; then
+        echo "  · blueprint/$f → 目标（初始化）[新增]"
+      else
+        cp "$BLUEPRINT_DIR/$f" "$SERVER_DIR/$f"
+        echo "  ✓ blueprint/$f → 目标（初始化）"
+      fi
     fi
   done
 else
@@ -550,6 +587,9 @@ if [ $? -ne 0 ]; then exit 1; fi
 BRAND_JSON="$SERVER_DIR/public/brand.json"
 if [ -f "$BRAND_JSON" ]; then
   ok "  ✓ brand.json 已存在，保留（如需按清单重置请先删除该文件）"
+elif [ "${DRY_RUN:-0}" = "1" ]; then
+  # 预演：只提示会生成，不实际写文件（brand 导出依赖 node，预演时跳过调用）
+  echo "  · brand.json 不存在 → 会按清单 brand 段生成 [新增]"
 else
   # brand 导出：rc=0 生成成功；rc=3 表示清单未声明 brand 段（非错误，静默跳过）；
   # 其余 rc 才是真错误。必须直接在 if 上取 $?，否则会被后续命令覆盖。
