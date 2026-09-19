@@ -358,6 +358,121 @@ function _checkFileEntry(src, dst, ctx) {
  *
  * 退出码：0 = 全部一致且无孤儿；1 = 有真问题（供 CI / 脚本判据）
  */
+// ---- 无引用检查：清单里的**组装产出**是否真的被项目用到 ----
+//
+// 动机：模板下发的是通用件，但**不是每个项目都用得上**。搬模板时把清单整份复制过来，
+// 就会搬进一批本项目根本不引用、也没有对应功能入口的文件（真实案例：gallery 搬进了
+// search-date-range.cjs，而 gallery 既没有按时间搜索的路由、前端也没引它）。
+// 这种文件平时不报错、只是静静躺在项目里，直到某天有人照着它改代码或排查问题时被带偏。
+//
+// 判据：**从项目自有入口出发的 require 传递可达性**——不能只看「有没有人 require 这个名字」。
+// 框架件是靠 core/index.js 聚合、由项目 app.js 引一个入口带进来的，
+// 逐文件做字符串匹配会把整套框架全报成无引用（误报会让人直接无视这条告警）。
+//
+//   1) 起点 = 项目自有源码（server/ 下、非组装产物区、非前端 public/）。
+//   2) 从起点解析 require("…") 的相对路径，逐层展开，得到「可达文件」集合。
+//      解析不出的（node 内置模块、npm 包）直接跳过。
+//   3) 清单里落在产物区的服务端模块，若不在可达集合里 → 报「无引用」。
+//   4) 前端产物（public/ 下）不判：它们由 HTML 的 <script src> 引用，规则不同。
+//   5) 目录条目、非 JS 产物不判。
+//
+// 返回 [{ dst, src }]；调用方决定是告警还是失败。
+function _checkUnreferenced(files, ctx) {
+  const projAbs = ctx.projAbs;
+  // 组装产物区：清单目标里出现过的目录名（server/app.js 这类单文件产物另处理）
+  const productDirs = new Set();
+  const productFiles = new Set();
+  for (const [, d] of files) {
+    if (d.endsWith("/")) {
+      const seg = d.replace(/\/+$/, "").split("/").pop();
+      if (seg) productDirs.add(seg);
+    } else {
+      productFiles.add(d);
+    }
+  }
+  // 起点：项目自有源码（跳过产物区与前端）
+  const ownSources = [];
+  const walk = (dir, rel) => {
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); }
+    catch { return; }
+    for (const e of entries) {
+      const r = rel ? `${rel}/${e.name}` : e.name;
+      if (e.isDirectory()) {
+        if (e.name === "node_modules" || e.name === ".git" || e.name.startsWith(".trash")) continue;
+        if (productDirs.has(e.name)) continue;
+        if (e.name === "public") continue;              // 前端产物不参与可达性
+        walk(path.join(dir, e.name), r);
+      } else if (/\.(js|cjs)$/.test(e.name)) {
+        ownSources.push(path.join(dir, e.name));
+      }
+    }
+  };
+  walk(projAbs, "");
+
+  // 从起点做 require 可达性展开。
+  // 关键：不能只在项目目录里走——框架件之间是相对 require（../http/xxx.js），
+  // 它们在**模板仓库**里，项目侧是组装出来的副本。两侧都解析，才能把
+  // 「项目 app.js → core/index.js → ../http/fs-async.js」这条链走通。
+  const seen = new Set();
+  const queue = ownSources.slice();
+  const roots = [projAbs, ctx.baseAbs];
+  const resolveReq = (fromAbs, spec) => {
+    if (!spec.startsWith(".")) return null;
+    for (const root of roots) {
+      // 以 fromAbs 所在目录为基准；若该文件属于另一侧，改用它自己的侧为基准
+      const candidate = path.resolve(path.dirname(fromAbs), spec);
+      try { if (fs.statSync(candidate).isFile()) return candidate; } catch { /* 继续 */ }
+      for (const ext of [".js", ".cjs", "/index.js"]) {
+        try { if (fs.statSync(candidate + ext).isFile()) return candidate + ext; } catch { /* 继续 */ }
+      }
+      void root;
+    }
+    return null;
+  };
+  const reqRe = /require\(\s*["'`]([^"'`]+)["'`]\s*\)/g;
+  while (queue.length) {
+    const cur = queue.pop();
+    if (seen.has(cur)) continue;
+    seen.add(cur);
+    let txt;
+    try { txt = fs.readFileSync(cur, "utf8"); } catch { continue; }
+    reqRe.lastIndex = 0;
+    let m;
+    while ((m = reqRe.exec(txt))) {
+      const target = resolveReq(cur, m[1]);
+      if (target && !seen.has(target)) queue.push(target);
+    }
+  }
+
+  // 把可达集合折算成「相对项目根的产物路径」，便于与清单 dst 比较
+  const reachable = new Set();
+  for (const abs of seen) {
+    // 项目侧文件：直接用相对路径
+    if (abs.startsWith(projAbs + path.sep)) {
+      reachable.add(path.relative(projAbs, abs).split(path.sep).join("/"));
+    }
+  }
+
+  const out = [];
+  for (const [src, dst] of files) {
+    if (dst.endsWith("/") || src.endsWith("/")) continue;
+    if (!/\.(js|cjs)$/.test(dst)) continue;
+    if (dst.startsWith("public/") || dst.includes("/public/")) continue;   // 前端不判
+    if (reachable.has(dst)) continue;
+    // 项目自有同名文件接管了该职责（如 lib/auto-update.js 薄壳转发框架实现）→ 不报
+    const base = path.basename(dst);
+    const stem = base.replace(/\.(js|cjs)$/, "");
+    let ownSame = false;
+    for (const s of ownSources) {
+      if (path.basename(s) === base) { ownSame = true; break; }
+    }
+    if (ownSame) continue;
+    out.push({ src, dst, stem });
+  }
+  return out;
+}
+
 function cmdCheck(manifestPath, projectRoot, base) {
   const { files } = loadManifest(manifestPath);
   const ctx = {
@@ -376,9 +491,11 @@ function cmdCheck(manifestPath, projectRoot, base) {
   }
 
   // check 不再扫孤儿（见 untracked 命令）；这里只保留清单两端的比对结果
+  // 外加「无引用」告警：搬模板常整份复制清单，会搬进本项目用不上的文件（见 _checkUnreferenced）
   process.stdout.write(_renderCheckReport({
     manifestPath, baseAbs: ctx.baseAbs, projAbs: ctx.projAbs,
     entryCount: files.length, mismatch: ctx.mismatch, missing: ctx.missing,
+    unreferenced: _checkUnreferenced(files, ctx),
   }) + "\n");
 
   return (ctx.mismatch.length || ctx.missing.length) ? 1 : 0;
@@ -515,6 +632,16 @@ function _renderCheckReport(r) {
   }
   if (!r.mismatch.length && !r.missing.length) {
     out.push("  ✅ 清单两端一致");
+  }
+  // 无引用 = 告警而非失败：有些通用件确实「先备着」，是否移除由项目判断。
+  // 但值得每次 check 都提醒一句，因为这类文件搬进来后不会自己报错。
+  if (r.unreferenced && r.unreferenced.length) {
+    out.push("");
+    out.push("── 无引用 " + r.unreferenced.length + " 项（组装下发，但项目自有代码没有 require 它）──");
+    for (const m of r.unreferenced) out.push("  ⚠ " + m.dst);
+    out.push("    可能是搬模板时整份复制清单带进来的、本项目用不上的文件。");
+    out.push("    确认不需要就删掉对应清单条目（项目侧产物下次组装即消失）；");
+    out.push("    确实要预置就先留着，但别照它改代码。");
   }
   // 清单外文件已独立为 untracked 命令：check 只回答「清单与素材是否同步」，
   // 那需要扫整棵目录树并套 .gitignore（本项目/文档/截图等自有文件本就该在清单外），
