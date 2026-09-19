@@ -83,7 +83,9 @@ function dispatchAuth(req, res, pathname, auth, loginPath, extraPaths, needsSetu
   // 故页面本身不做登录门；写操作由各路由的 requireAuth 单独把守。
   if (guestPages && !pathname.startsWith("/api/")) return true;
 
-  const whitelist = [loginPath, "/api/auth/"].concat(extraPaths || []);
+  // 注意：loginPath 允许为空（项目无独立登录页），空串必须剔除 ——
+  // startsWith("") 恒为 true，混进白名单会让所有路径直接放行。
+  const whitelist = [loginPath, "/api/auth/"].concat(extraPaths || []).filter(Boolean);
   if (isWhitelisted(pathname, whitelist)) return true;
 
   const token = auth.extractToken(req);
@@ -91,9 +93,13 @@ function dispatchAuth(req, res, pathname, auth, loginPath, extraPaths, needsSetu
 
   if (pathname.startsWith("/api/")) {
     sendJson(res, { ok: false, error: "未登录" }, 401);
-  } else {
+  } else if (loginPath) {
     res.writeHead(302, { Location: loginPath });
     res.end();
+  } else {
+    // 本服务没有独立登录页（登录走页面内弹窗，如 gallery 的 🔒）：
+    // 不能 302 到空串（会变成自跳转死循环），改为明确告知。
+    sendJson(res, { ok: false, error: "未登录", needsLogin: true }, 401);
   }
   return false;
 }
@@ -117,7 +123,8 @@ async function dispatchRoutes(req, res, url, pathname, routes, ctx) {
  * @param {string}   opts.publicDir      - 静态文件目录
  * @param {Array}    opts.routes         - 路由列表 [{ prefix, handler }]
  * @param {Array}    [opts.publicRoutes] - 认证前放行的路径前缀（如 /api/status）
- * @param {string}   [opts.loginPath]    - 登录页路径
+ * @param {string}   [opts.loginPath]    - 登录页路径；传空串表示本服务没有独立登录页
+ *                                         （登录走页面内弹窗），未登录的页面请求返回 401 JSON
  * @param {object}   [opts.extraMime]    - 额外 MIME
  * @param {function} [opts.transformHtml]- HTML 二次处理 (html, pathname) => string
  * @param {function} [opts.needsSetup]   - 返回 true 时未配置密码：页面请求重定向到
