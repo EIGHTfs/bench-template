@@ -607,8 +607,9 @@ dataBackup.readManifest();                 // 读清单（文件缺失/损坏会
 「不要手改」），内容全部可从源码推导，**不应入库** —— 仓库 `.gitignore` 忽略它，
 首次导出或调用 `readManifest()` 时会自动生成。
 
-**迁移/改动本模块时**：改完新旧实现是否等价，用
-`test/data-backup-equivalence.test.sh <项目目录>` 验证（导出 zip 逐文件 hash 比对）。
+**迁移/改动本模块时**：改完是否等价，走项目自己的导出→导入流程验证即可。
+（原先配套的 `test/data-backup-equivalence.test.sh` 是「旧 `lib` 实现 → 框架
+`createBackup`」的一次性等价性证明；旧实现已从各项目删除、失去对比对象，该脚本随之移除。）
 
 ---
 
@@ -858,26 +859,25 @@ require("./app.js");
 
 ```
 dl-server-template/
-├── setup.sh                         # 组装脚本（--to 指定项目）
+├── setup.sh                         # 组装脚本（--to 指定项目清单）
 ├── test/
-│   ├── assemble-parse.test.sh       # 清单解析/组装行为自测（bash test/... 运行）
-│   └── data-backup-equivalence.test.sh  # 备份迁移等价性验证（传项目目录）
+│   └── assemble-parse.test.sh       # 清单解析/组装行为自测（bash test/... 运行）
 ├── server/
-│   ├── framework/                 # 通用后端 JS（17 个模块）
-│   │   ├── app.js                 # HTTP 服务骨架
-│   │   ├── config-loader.js       # 配置加载（schema 驱动）
-│   │   ├── route-core.js          # 路由匹配核心（两范式共享）
-│   │   ├── route-factory.js       # 路由工厂 createRoute（表式）
-│   │   ├── route-registry.js      # 路由注册 createRegistry（闭包式）
-│   │   ├── routes-adapter.js      # 两范式互转 tableFromRegister（闭包式 → 表式）
-│   │   ├── routes-auth.js         # 通用路由件：认证（闭包式 register）
-│   │   ├── routes-auto-update.js  # 通用路由件：自动更新（闭包式 register）
-│   │   ├── auth.js                # 鉴权（session + cookie）
-│   │   ├── auto-update.js         # 自动更新 createAutoUpdate
-│   │   ├── data-backup.js         # 数据备份
-│   │   ├── http-utils.js          # sendJson / readBody
-│   │   ├── cjs-bootstrap.cjs      # CJS 强制引导
-│   │   └── index.js               # 统一出口
+│   ├── framework/                 # 通用后端 JS，按功能分 8 个子目录
+│   │   ├── core/                  # 服务主体与聚合出口
+│   │   │   ├── app.js             # HTTP 服务骨架
+│   │   │   ├── app-log.js         # 日志（时间戳 + 事件）
+│   │   │   └── index.js           # 统一出口
+│   │   ├── route/                 # 路由核心：匹配/工厂/注册表/范式适配/通用路由件
+│   │   ├── auth/auth.js           # 鉴权（session + cookie）
+│   │   ├── http/                  # 底层通用件：http-utils / html-utils / fs-async / path-safe 等
+│   │   ├── config/config-loader.js # 配置加载（schema 驱动）
+│   │   ├── store/                 # 数据存取：json-dir / data-backup / marker-manifest
+│   │   ├── update/auto-update.js  # 自动更新 createAutoUpdate
+│   │   ├── assemble/              # 页面片段装配（fragment-assembler）
+│   │   └── search/                # 按时间搜索的日期窗口解析（search-date-range.cjs）
+│   ├── lib/                       # 通用运行支撑件（非业务）
+│   │   └── cjs-bootstrap.cjs      # CJS 强制引导
 │   ├── templates/                 # 风格层素材
 │   │   ├── _gbmd-style/
 │   │   │   ├── public/            # gbmd 非分片部件（app.js / style.css 等）
@@ -916,6 +916,7 @@ dl-server-template/
 
 | 版本 | 内容 |
 |---|---|
+| 1.7.17 | **测试跟上 setup.sh 重新设计 + 清理旧设计残留注释**：1967be5 重写 setup.sh 后 `--to` 的语义已从「项目根」改为「项目清单文件」（清单所在目录即项目根），且移除了风格参数，但测试与三处注释没跟着改——①`test/assemble-parse.test.sh` 仍按旧契约传 `<项目根>/server`，12 个用例里 9 个因此失败（报「清单文件不存在」，与被测逻辑无关）。现按新契约重写：`--to` 传清单文件、去掉风格参数，并补 3 个契约用例（`--to` 指向不存在的清单 / `--to` 误传目录 / `--self-test` 组装到 example），从 4/9 变为 15/0。②setup.sh 注释里 `--to <项目根>…自动归一`、`--manifest <清单>`、`--with <组件,…>`三处均为旧设计残留（前者代码里根本没有归一逻辑，后两者参数解析里不存在——`--with` 混搭按新设计已由清单取代、系有意删除），一并删除。③移除 `test/data-backup-equivalence.test.sh`：它证明的是「旧 lib 实现 → 框架 createBackup」等价，而旧实现已从各项目删除、失去对比对象，且路径仍停在 `server/framework/` 旧布局（实际已移到 `server/store/`）；git 历史 2d14865 可恢复。④README 目录树同步实际布局（framework/ 平铺 17 模块 → 8 个子目录 + lib/），并更新已删测试的说明 |
 | 1.7.16 | **日期范围检索独立为 `framework/search/`，README 修正不存在的 `frontend/`**：①把一个子目录塞两种职责（页面片段装配 + 日期范围检索）拆开——`framework/assemble/search-date-range.cjs` → `framework/search/search-date-range.cjs`，`assemble/` 只保留 `fragment-assembler.js`，README 目录表相应加 `search/` 行、`assemble/` 行改为只写「页面片段装配」。②README 目录表原先列了 `framework/frontend/`（通用前端 JS），但该目录实际不存在——前端 JS 一直以蓝图源文件形态放在 `server/project/blueprint/`、由清单组装进 `server/public/`，与后端模块不同（不经 require、不参与模块解析）。删掉该行，并把下面那条「为什么前端 JS 也算 framework」的说明改写为实际做法，避免下次照 README 去找不存在的目录 |
 | 1.7.15 | **迁移能力补全 + 模板 lib/ 归位 + 组装缺陷修复**：①`assemble-manifest migrate` 的工作列表从「清单条目」扩到「项目内全部 js/cjs」——此前只处理清单提到的文件，漏掉不在清单、却 require 框架的业务代码（实测 gbmd 有 12 个 `server/routes/*.js` 因此未被改写，迁移后启动报 `Cannot find module '../framework'`）；判定改不改仍由「旧落点→新落点」映射决定，解析不到旧落点一律不动，不误伤。②`--dry-run` 预演新增「引用将被改写 N 处（涉及 M 个文件）」清单，逐条列出 `旧引用 ⇒ 新引用`，并标出「本文件也会移动 → 新落点」；预演跑的是与实际执行同一份逻辑的只读模式，不会出现「预演说没事、执行却改了」。③`setup.sh` 内联 python 生成清单改为调新子命令 `assemble-manifest generate <路径>`——清单结构属于工具的知识，散在脚本里会与 `validate`/`loadManifest` 各写一份、逐渐漂移；同时修提示文案（原写「带注释的空模板」，实际无注释）。④新增概念 **lib**（`server/lib/` 放通用运行支撑件）：启停脚本 `start.sh` 与 CJS 劫持 `cjs-bootstrap.cjs` 归位到模板 `server/lib/`，经清单下发到项目根 / `server/lib/`；README「三个概念」与落位判据同步补 lib 一行。⑤删 `setup.sh` 里冗余的 `mkdir -p server/public`（清单条目落到 public/ 时复制分支已建父目录），改为由 `brand.json` 生成处自建父目录——谁写文件谁负责建目录。⑥模板源 `server/templates/_gallery-style/` 与 `server/project/blueprint/` 共 5 个文件 10 处仍写着旧布局引用（`require('./framework')`、`../framework/routes-auth` 等），导致任何新项目组装后都无法启动（实测 `Cannot find module './framework'`）；已全部改为新结构路径，全新项目组装后启动正常。⑦`.gitignore` 补 `example/server/`：`setup.sh` 注释里写「产物不入库（见 .gitignore）」，但并无对应规则，实际组装一次就把 61 个产物文件暴露成未跟踪状态；现只忽略产物目录，保留 `example/assemble.json` 与 `ASSEMBLE-COVERAGE.md`。⑧修 `example/assemble.json`（模板自测清单）残留的旧路径 `server/framework/core/cjs-bootstrap.cjs` → `server/lib/cjs-bootstrap.cjs`，自测从「缺失 1 个」恢复为「缺失 0 个」。 |
  + 修两个鉴权缺陷**：①`framework/app.js` 的 `loginPath` 允许传空串，表示本服务没有独立登录页（登录走页面内弹窗，如 gallery 的 🔒）。原先未登录的页面请求一律 `302 Location: <loginPath>`，项目若不分发登录页就会跳到 404；现 `loginPath` 为空时改为回 `401 JSON {ok:false,error:"未登录",needsLogin:true}`，不写 `Location` 头。②**修白名单空串放行漏洞**：`whitelist = [loginPath, "/api/auth/", ...].concat(extraPaths)` 未过滤空值，而 `isWhitelisted` 用 `pathname.startsWith(entry)` 判定——`startsWith("")` 恒为 `true`，只要 `loginPath` 为空（新支持的用法）就会让**所有路径无条件放行**；现加 `.filter(Boolean)` 剔除空串。此缺陷在 `loginPath` 只能为非空默认值的旧约束下不可达，随①的新用法一并引入风险，故同时堵上。③`loginPath` 默认值保持 `"/login.html"` 不变，gbmd/iwara 行为零变化（两者均显式或隐式使用登录页，文件照常分发）。验证：gallery 组装产物与项目逐文件一致、`--to` 组装缺失 0；设 scrypt 密码后实测——未登录 `POST /api/gallery`、`POST /api/change-password` 均 401，登录后放行，不存在的页面未登录返回 404（证明空串未污染白名单）；gbmd 清单组装缺失 0 不回归 |

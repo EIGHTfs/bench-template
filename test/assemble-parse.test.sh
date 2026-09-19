@@ -9,6 +9,11 @@
 #
 # 用法：bash test/assemble-parse.test.sh
 # 全程在临时目录操作，不触碰仓库内文件。
+#
+# ── setup.sh 契约（改设计时请同步本文件）─────────────────
+#   --to 收的是【清单文件路径】<项目根>/assemble.json，
+#   不是项目根目录，也没有风格参数（用哪套素材由清单决定）。
+#   项目根 = dirname(清单)，清单内相对路径全部相对它解析。
 # ============================================================
 set -uo pipefail
 
@@ -24,13 +29,14 @@ bad()  { echo "  ✗ $1"; fail=$((fail+1)); }
 cp -r "$ROOT" "$TMP/tpl" 2>/dev/null
 rm -rf "$TMP/tpl/.git"
 
-# 跑一次组装：$1=清单内容 $2=用例名；返回 stdout 到 $OUT，退出码到 $RC
+# 跑一次组装：$1=清单内容；返回 stdout 到 $OUT，退出码到 $RC
+# 清单写进 <dir>/assemble.json，--to 指向该文件（项目根即 <dir>）
 run_case() {
   local manifest="$1"
   local dir="$TMP/case-$RANDOM"
   mkdir -p "$dir/server"
   [ -n "$manifest" ] && printf '%s' "$manifest" > "$dir/assemble.json"
-  OUT="$(cd "$TMP/tpl" && timeout 30 ./setup.sh iwara --to "$dir/server" 2>&1)"; RC=$?
+  OUT="$(cd "$TMP/tpl" && timeout 30 ./setup.sh --to "$dir/assemble.json" 2>&1)"; RC=$?
   CASE_DIR="$dir"
 }
 
@@ -74,11 +80,21 @@ if grep -q "格式错误" <<<"$OUT"; then ok "files 非对象：被拒绝"; else
 run_case '{"files":{}}'
 if [ $RC -eq 0 ] && grep -q "文件 0 个" <<<"$OUT"; then ok "空 files：正常完成（0 文件）"; else bad "空 files：异常"; fi
 
-# --- 10. 缺清单 + 非交互：不挂起、退出 1 ---
+# --- 10. --to 指向不存在的清单：非交互下不挂起、退出非 0 ---
+# 新设计：--to 必须是存在的清单文件，故此处传一个不存在的路径。
 dir="$TMP/no-manifest"; mkdir -p "$dir/server"
-OUT="$(cd "$TMP/tpl" && echo "" | timeout 20 ./setup.sh iwara --to "$dir/server" 2>&1)"; RC=$?
-if [ $RC -ne 0 ] && grep -q "非交互环境" <<<"$OUT"; then ok "缺清单+非交互：提示并退出"; else bad "缺清单+非交互：行为不符"; fi
-if [ ! -f "$dir/assemble.json" ]; then ok "缺清单+非交互：未擅自生成"; else bad "缺清单+非交互：擅自生成了文件"; fi
+OUT="$(cd "$TMP/tpl" && echo "" | timeout 20 ./setup.sh --to "$dir/assemble.json" 2>&1)"; RC=$?
+if [ $RC -ne 0 ] && grep -q "清单文件不存在" <<<"$OUT"; then ok "--to 清单不存在：报错退出"; else bad "--to 清单不存在：行为不符"; fi
+if [ ! -f "$dir/assemble.json" ]; then ok "--to 清单不存在：未擅自生成"; else bad "--to 清单不存在：擅自生成了文件"; fi
+
+# --- 11. --to 传目录（旧设计写法）：明确报错而非静默出错 ---
+dir="$TMP/dir-as-to"; mkdir -p "$dir/server"; echo '{"files":{}}' > "$dir/assemble.json"
+OUT="$(cd "$TMP/tpl" && timeout 20 ./setup.sh --to "$dir" 2>&1)"; RC=$?
+if [ $RC -ne 0 ] && grep -q "清单文件不存在" <<<"$OUT"; then ok "--to 传目录：明确报错（不再支持项目根写法）"; else bad "--to 传目录：未按预期报错"; fi
+
+# --- 12. 省略 --to：用模板自带 example/ 自测，不报错 ---
+OUT="$(cd "$TMP/tpl" && timeout 30 ./setup.sh --self-test 2>&1)"; RC=$?
+if [ $RC -eq 0 ]; then ok "--self-test：组装到 example/ 正常"; else bad "--self-test：失败"; fi
 
 echo
 echo "  通过 $pass / 失败 $fail"
