@@ -273,15 +273,23 @@ function _checkFileSources(files) {
 // 比对一条「目录型」清单项：递归展开源目录，逐文件比 md5；
 // 目标目录里多出的文件（无任何源提供）也报为不一致。
 function _checkDirEntry(src, dst, ctx) {
-  const { baseAbs, projAbs, dirSources, matched, mismatch, missing } = ctx;
+  const { baseAbs, projAbs, dirSources, fileSources, matched, mismatch, missing } = ctx;
   const srcPath = path.join(baseAbs, src);
   const dstPath = path.join(projAbs, dst);
   if (!fs.existsSync(srcPath)) { missing.push({ src, dst, side: "模板源" }); return; }
 
   // 该目标目录的所有源目录聚成一组（blueprint 提供共用底座、风格层覆盖同名）。
   // 比对采「或」逻辑：遍历组内每个源，命中任一即算一致，全不命中才报。
-  const providers = (dirSources.get(dst.replace(/\/+$/, "")) || [])
+  const dirProviders = (dirSources.get(dst.replace(/\/+$/, "")) || [])
     .map((s) => path.join(baseAbs, s));
+  // 目录条目与单文件条目可写同一目录：清单既可用整目录取件、也可逐文件显式列出。
+  // 故「本目录内某文件由谁提供」还要算上写它的单文件条目，否则逐文件列出的件
+  // 会被判成「无任何源提供」（反向检查）或与目录源比不中（正向检查）而误报。
+  const fileProvidersOf = (rel) => {
+    const key = (dst + rel).replace(/\/+$/, "");
+    return (fileSources.get(key) || []).map((s) => path.join(baseAbs, s));
+  };
+  const providers = dirProviders.concat(fileProvidersOf(""));
 
   for (const rel of _checkWalk(srcPath)) {
     const dp = path.join(dstPath, rel);
@@ -289,8 +297,10 @@ function _checkDirEntry(src, dst, ctx) {
     if (!fs.existsSync(dp)) { missing.push({ src: src + rel, dst: dst + rel, side: "项目目标" }); continue; }
 
     // 候选 = 组内各源目录下与产出同名的**文件**（必须拼 rel，不能拿目录比）
-    const candidates = providers
+    //      + 显式写该文件的单文件条目源（逐文件清单项优先于整目录）
+    const candidates = dirProviders
       .map((pd) => path.join(pd, rel))
+      .concat(fileProvidersOf(rel))
       .filter((f) => fs.existsSync(f));
     if (candidates.length === 0) candidates.push(path.join(srcPath, rel));
 
@@ -307,7 +317,8 @@ function _checkDirEntry(src, dst, ctx) {
   for (const rel of _checkWalk(dstPath)) {
     const dp = path.join(dstPath, rel);
     matched.add(path.relative(projAbs, dp));
-    const provided = providers.some((sd) => fs.existsSync(path.join(sd, rel)));
+    const provided = dirProviders.some((sd) => fs.existsSync(path.join(sd, rel)))
+      || fileProvidersOf(rel).some((f) => fs.existsSync(f));
     if (!provided) mismatch.push({ src: "（无任何源提供）", dst: dst + rel });
   }
 }
