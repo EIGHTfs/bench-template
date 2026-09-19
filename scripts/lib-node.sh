@@ -7,7 +7,7 @@
 #   只把官方二进制解压到 tool/node/ 的部署方式都会踩到）。裸调 `node`
 #   会让依赖它的脚本静默失败——sync/setup 会「报成功但什么都没做」。
 #
-#   本文件此前在 start.sh / setup.sh / sync-to-project.sh 各有一份拷贝，
+#   本文件此前在 start.sh / setup.sh 各有一份拷贝，
 #   已出现的偏差是「候选路径列表不同」。收敛为一份，新增调用方直接 source。
 #
 # 用法：

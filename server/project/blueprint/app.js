@@ -22,11 +22,13 @@ const {
   createServer,   // ③ 启动服务（传配置 + 路由 + 静态目录）
   createRoute,    // ② 定义路由（传 handler 函数）
   createAutoUpdate, // ④ 自动更新（可选）
+  routesAuth,     // 框架层通用认证路由（登录/登出/改密 + 公开的 /api/status）
   sendJson,
+  readBody,
   appLog,
   auth,
-// 框架路径：组装后 app.js 与 framework/ 同级（同在 server/ 下）
 } = require("./core/index.js");
+const { tableFromRegister } = require("./route/routes-adapter.js");
 
 // ---------- ① 配置 ----------
 appLog.install();
@@ -59,29 +61,18 @@ if (process.argv.includes("--set-password")) {
 
 // ---------- ② 业务路由 ----------
 
-// 认证路由（挂到 /api/auth）
-const authRoutes = createRoute({
-  "POST /login": async (req, res, ctx) => {
-    const { password } = req.body || {};
-    if (!password) return sendJson(res, { ok: false, error: "请输入密码" });
-    if (!ctx.cfg.verifyPassword(password)) {
-      return sendJson(res, { ok: false, error: "密码错误" }, 401);
-    }
-    const session = ctx.auth.createSession({ hours: ctx.cfg.get("sessionHours") });
-    res.setHeader("Set-Cookie", `token=${session.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${session.hours * 3600}`);
-    sendJson(res, { ok: true });
-  },
-
-  "GET /status": async (req, res, ctx) => {
-    const token = ctx.auth.extractToken(req);
-    sendJson(res, { ok: true, loggedIn: !!(token && ctx.auth.isValidSession(token)) });
-  },
-
-  "POST /logout": async (req, res, ctx) => {
-    const token = ctx.auth.extractToken(req);
-    if (token) ctx.auth.destroySession(token);
-    res.setHeader("Set-Cookie", "token=; Path=/; HttpOnly; Max-Age=0");
-    sendJson(res, { ok: true });
+// 认证路由：用框架层的 routes-auth（登录/登出/改密 + **公开**的 /api/status）。
+// 不要自己写一份 —— 各项目各写会导致逻辑漂移（remember 有无、改密是否验旧密码、
+// 会话文件落 server/ 还是 json/ 都曾不一致），框架层已收敛为唯一实现。
+// routes-auth 是闭包式（register(api)），用 routes-adapter 转成表式即可直接用；
+// 其中公开路由挂在返回值的 .public 上，要作为独立路由表挂载 + 列进 publicRoutes。
+// ⚠ /api/status 必须公开：start.sh 的健康检查就打它，挂在鉴权门后会一直 401，
+//   启动被判「失败」而服务其实是好的（实测踩坑）。
+const authRoutes = tableFromRegister(routesAuth, {
+  sendJson, readBody, cfg: config, auth,
+  setSessionCookie(res, token, hours) {
+    res.setHeader("Set-Cookie",
+      `${auth.cookieName()}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${hours * 3600}`);
   },
 });
 
@@ -152,18 +143,45 @@ const autoUpdateRoutes = createRoute({
 });
 
 // ---------- ③ 启动服务 ----------
+
+// HTML 片段组装：public/ 下的页面里写 <!-- @frag:名称 -->，运行时由组装器
+// 从 public/fragments/ 取对应片段替换。缺这段，页面会原样输出 @frag 注释
+// （页面结构看着「没坏」，但内容全是空的 —— 实测踩坑）。
+// pages：页面名 → 框架文件；style.css 也走片段（CSS 里用 /* @frag:名称 */）。
+const PUBLIC_DIR = path.join(__dirname, "public");
+const FRAGMENT_PAGES = ["index.html", "style.css", "login.html", "setup.html"];
+const fragmentPages = {};
+for (const name of FRAGMENT_PAGES) {
+  const f = path.join(PUBLIC_DIR, name);
+  if (fs.existsSync(f) && fs.statSync(f).isFile()) fragmentPages[name] = f;
+}
+// 品牌配置：@brand:key 指令替换用；不存在则保留原注释（不报错）
+let brandConf = null;
+try {
+  const bf = path.join(PUBLIC_DIR, "brand.json");
+  if (fs.existsSync(bf)) brandConf = JSON.parse(fs.readFileSync(bf, "utf8"));
+} catch (_) { brandConf = null; }
+
 createServer({
   config,
   auth,
-  publicDir: path.join(__dirname, "public"),
+  publicDir: PUBLIC_DIR,
+  fragments: Object.keys(fragmentPages).length
+    ? { dir: path.join(PUBLIC_DIR, "fragments"), pages: fragmentPages, watch: true, brand: brandConf }
+    : null,
   routes: [
-    { prefix: "/api/auth",     handler: authRoutes },
+    // 公开路由（含 /api/status）——prefix 为 ""，路径自带 /api/ 全称
+    { prefix: "",              handler: authRoutes.public },
     { prefix: "/api/data",     handler: dataRoutes },
     { prefix: "/api/download", handler: downloadRoutes },
     // 自动更新路由（挂到 /api/auto-update）
     { prefix: "/api/auto-update", handler: autoUpdateRoutes },
+    // 需鉴权的认证路由（改密等；登录/登出/状态在 public 表里）
+    { prefix: "",              handler: authRoutes },
     // 新路由加这里：{ prefix: "/api/xxx", handler: xxxRoutes },
   ],
+  // 认证前放行的路径：健康检查打 /api/status，不加这里会 401 → start.sh 判启动失败
+  publicRoutes: ["/api/status", "/api/login", "/api/logout"],
   onReady(port) {
     // 启动后启用自动更新（config.autoUpdate 控制，默认关）
     autoUpdate.start(config.readConfig().autoUpdate || { enabled: false });

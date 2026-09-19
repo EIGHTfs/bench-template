@@ -14,10 +14,8 @@
 #   ./setup.sh --to <项目清单> --check          检查：清单两端是否同步（不一致 / 缺失 / 无引用）
 #   ./setup.sh --to <项目清单> --untracked      扫描：目录里有哪些文件不在清单（按 .gitignore 排除）
 #   ./setup.sh --migrate <旧清单> --to <新清单>  迁移：按新结构搬文件并自动改引用
-#   ./setup.sh --to <项目清单> --sync           下发：素材按原结构搬进项目素材树
 #   ./setup.sh --to <项目清单> --pull           回流预演：列出项目侧改过的素材
 #   ./setup.sh --to <项目清单> --pull --write   回流：把改动写回模板（写前备份）
-#   ./setup.sh --self-test                      自测：组装到模板自带 example/
 #   ./setup.sh --list                           列出可用风格素材目录
 #   ./setup.sh                                  输出帮助（等同 --help）
 #
@@ -35,11 +33,9 @@
 #   --dry-run          预演不写盘（组装：列将写入的文件；迁移：列将搬动的文件）。
 #                      组装预演会标出每个文件是「新增 / 覆盖 / 相同」，
 #                      覆盖项最值得留意。配合 DRY_VERBOSE=1 可展开目录条目下的逐个文件。
-#   --sync             下发素材树（见下「两个方向」）。
 #   --pull [--write]   回流（默认只预演，--write 才写）。
 #
 # ── 两个方向（别再混淆）──────────────────────────────
-#   下发 --sync ：模板 → 项目。把清单引用的**素材**按 src 结构落进项目素材树。
 #   回流 --pull ：项目 → 模板。把项目侧改过的**素材**写回模板对应位置。
 #   只处理素材条目（src==dst，位于 templates/ framework/ project/）；
 #   产出条目（src!=dst，如 → server/public/）不参与双向同步 —— 产物由组装生成。
@@ -109,10 +105,10 @@ else
     SRC_BASE="$ROOT"
   fi
 fi
-# 缺省目标（不传 --to 时）= 模板仓库自带的 example/ 实例。
-# 它既是「组装效果长什么样」的参考，也是 test/ 脚本的测试对象；
+# example/ 是模板自带的**示例项目**：它既是「组装效果长什么样」的参考，
+# 也是 test/ 脚本的测试对象。组装方式与任何普通项目一致 ——
+#   ./setup.sh --to example/assemble.json
 # 产物落在 example/server/ 且不入库（见 .gitignore），可反复重装。
-DEFAULT_TARGET="$ROOT/example"
 
 # ---------- 颜色 ----------
 C_GREEN="" C_YELLOW="" C_RED="" C_DIM="" C_RESET=""
@@ -148,23 +144,21 @@ STYLES="$(_detect_styles)"
 usage() {
   echo "用法:（清单即唯一真相：--to 直接指向项目的 assemble.json）"
   echo ""
-  echo "  ./setup.sh --to <项目清单>                    # 组装：按清单产出到 server/public/"
+  echo "  ./setup.sh --to <项目清单>                    # 组装：按清单产出到 dst"
   echo "  ./setup.sh --to <项目清单> --check            # 检查：清单两端是否同步（不一致 / 缺失）"
   echo "  ./setup.sh --to <项目清单> --untracked        # 扫描：目录里有哪些文件不在清单"
   echo "  ./setup.sh --migrate <旧清单> --to <新清单>    # 迁移：按新结构搬文件并自动改引用"
   echo "  ./setup.sh --migrate <旧清单> --to <新清单> --dry-run   # 迁移预演（不改盘）"
-  echo "  ./setup.sh --to <项目清单> --sync             # 下发：素材按原结构搬进项目素材树"
   echo "  ./setup.sh --to <项目清单> --pull             # 回流预演：列出项目侧改过的素材"
   echo "  ./setup.sh --to <项目清单> --pull --write     # 回流：把改动写回模板（写前备份）"
   echo ""
-  echo "  ./setup.sh --self-test                        # 自测：组装到模板自带 example/"
   echo "  ./setup.sh --list                             # 列出可用风格素材目录"
   echo "  ./setup.sh, -h, --help                        # 输出本帮助"
   echo ""
   echo "说明："
   echo "  · 清单（assemble.json）每条写明「来源 → 落点」，故本脚本没有风格参数；"
   echo "  · 清单所在文件夹 = 项目根（拼装时所有相对路径的基准），故只需给清单路径；"
-  echo "  · 素材（src==dst）参与 --sync / --pull；产出（src!=dst）只由组装生成。"
+  echo "  · 素材（src==dst）参与 --pull；产出（src!=dst）由 --to 组装生成。"
   echo "  · --untracked 扫清单所在目录整棵树，被 .gitignore 忽略的文件不计入（与 git 同一套规则）；"
   echo "  · --migrate 用旧清单看「现状」、新清单看「目标」，按落点文件名配对后搬文件，"
   echo "    并自动改写受影响文件的相对引用（含指向被搬文件的那些）。"
@@ -174,33 +168,40 @@ usage() {
   echo "  ./setup.sh --to ../iwara-downloader/assemble.json --check"
   echo "  ./setup.sh --to ../iwara-downloader/assemble.json --untracked"
   echo "  ./setup.sh --migrate /tmp/old.json --to ../gallery/assemble.json --dry-run"
-  echo "  ./setup.sh --self-test"
 }
 # assemble.json 查找（按需取用清单）：
 #   - --to 指定项目目标：必须用自己的 assemble.json（声明要取哪些模板文件），缺失报错
 #   - 无 --to（模板自测到 example/）：用 example/assemble.json（缺省回落 blueprint 默认清单）
-# 清单定位：TARGET 已是清单文件路径（参数区已解析 --to / --self-test）。
+# 清单定位：TARGET 已是清单文件路径（参数区已解析 --to）。
 # 未指定时回落到模板自带 example 实例，再回落 blueprint 默认清单（纯公共件）。
 find_assemble() {
-  local d
+  # 只认 --to 给的清单。此前这里还会依次兜底 example/、blueprint/、project/ ——
+  # 结果是「没给 --to」时静默组装某个内置清单，用户以为在操作自己的项目。
+  # 现在没有 --to 就报错（见下方调用处），example 也只是一份普通清单。
   if [ -n "$TARGET" ] && [ -f "$TARGET" ]; then echo "$TARGET"; return 0; fi
-  for d in "$ROOT/example" "$BLUEPRINT_DIR" "$ROOT/server/project" "$ROOT/project"; do
-    if [ -f "$d/assemble.json" ]; then echo "$d/assemble.json"; return 0; fi
-  done
   return 1
 }
 
 # 展开清单并复制：解析交给共享模块（list 输出 TSV: 源<TAB>目标），
 # 本处只负责「按行复制 + 计数 + 报缺失」，不再自行解析 JSON。
 # 目标以 / 结尾 = 目录整体拷贝（含点文件），否则单文件拷贝。
-# 落点模式（COPY_LAYOUT）：
-#   out （缺省）= 组装：落点按清单 dst（server/public/... 产出位置）
-#   tree        = 同步：落点按清单 src（保持素材树结构 server/templates/...）
-# 同一份清单的 dst 是「组装产出位置」，而同步要把素材备进项目的素材树供之后组装，
-# 故落点必须按 src 还原。两个工具共用这一段复制实现，差异只在这一个变量。
+#
+# 落点一律按清单 **dst**——清单是唯一真相，dst 声明了什么就落到哪里。
+#
+# 【已废除的 tree 模式】早先还有个 COPY_LAYOUT=tree：落点改用 src，
+# 声称「把素材备进项目的素材树（server/templates/…）供之后组装」。这是设计错误：
+#   · 清单里 templates/ 只作为 **src** 出现（取素材的来处），从不出现在 dst——
+#     即清单从未声明过任何文件该落到 templates/。tree 模式却凭空往那里写文件，
+#     于是项目里长出 server/templates/_<风格>-style/ 整个目录。实测 gbmd/iwara
+#     都有这个目录，而 gallery 没有——三者清单写法一致，差异只是跑没跑过 --sync。
+#   · 对 src==dst 的素材条目，tree 与 out 恰好同路，所以问题长期只显现在产出条目上：
+#     `templates/_gbmd-style/public/app.js` 本该产出到 server/public/app.js，
+#     tree 模式却写回它自己，产出位置反而没拿到文件。
+#   · 落点改回 dst 后，tree 与组装完全等价——这条命令没有存在理由，故连同
+#     setup.sh 的 --sync、scripts/sync-to-project.sh 一并废除。
+# 判据：**清单 dst 没声明的地方，项目里就不该有文件。**
 _setup_copy_manifest() {
   local src dst src_path dst_path n_dir=0 n_file=0 missing=0 line
-  local layout="${COPY_LAYOUT:-out}"
   local copy_dst
   # DRY_RUN：只报告「会写哪些文件」，一个字都不落盘。
   # 动机：搬模板（组装）是覆盖式写盘，跑之前看不到会动到哪些文件；
@@ -212,8 +213,8 @@ _setup_copy_manifest() {
   while IFS=$'\t' read -r src dst; do
     [ -n "$src" ] || continue
     src_path="$SRC_BASE/$src"
-    # tree 模式落点与源同构（src 本身），out 模式用清单声明的 dst
-    if [ "$layout" = "tree" ]; then copy_dst="$src"; else copy_dst="$dst"; fi
+    # 落点一律按清单 dst（见上方函数头注释：tree 模式已废除）
+    copy_dst="$dst"
     dst_path="$PROJECT_ROOT/$copy_dst"
     case "$copy_dst" in
       */)
@@ -302,9 +303,8 @@ fi
 # 清单文件（--to）是唯一入口参数：项目根由它推出（清单在 <项目根>/assemble.json）。
 MANIFEST_FILE=""    # --to <清单文件> 指定的 assemble.json
 CHECK_ONLY=0
-SYNC_MODE=""        # 空=组装 | project=下发素材树 | template=回流改动到模板
+SYNC_MODE=""        # 空=组装 | template=回流改动到模板（下发/--sync 已废除，组装即下发）
 PULL_WRITE=0        # --pull 缺省只预演；--write 才真写回模板（写前备份）
-SELF_TEST=0         # --self-test：组装到模板自带 example/（不需要清单参数）
 MIGRATE_FROM=""     # --migrate <旧清单>：按新清单整理文件（迁移结构 + 改引用）
 UNTRACKED_ONLY=0    # --untracked：扫清单目录，列出不在清单里的文件（按 .gitignore 排除）
 DRY_RUN=0           # --dry-run：迁移只预演不改盘
@@ -314,13 +314,14 @@ while [ $# -gt 0 ]; do
     --untracked) UNTRACKED_ONLY=1; shift ;;
     --migrate) MIGRATE_FROM="${2:-}"; [ -n "$MIGRATE_FROM" ] || { err "❌ --migrate 需要旧清单路径"; exit 1; }; shift 2 ;;
     --dry-run) DRY_RUN=1; shift ;;
-    --self-test) SELF_TEST=1; shift ;;
     --check) CHECK_ONLY=1; shift ;;
-    --sync) SYNC_MODE="project"; shift ;;
     --pull) SYNC_MODE="template"; shift ;;
     --write) PULL_WRITE=1; shift ;;
-    -*) shift ;;
-    *) shift ;;
+    # 未知选项必须报错。原先这里 `-*) shift` 静默吞掉：敲错一个参数（或用了已
+    # 移除的 --self-test）不会报错，脚本照跑，还会因 find_assemble 的兜底
+    # 组装到 example/ —— 表现为「命令打错了，却真把某个项目组了一遍」。
+    -*) err "❌ 未知参数: $1（可用 --help 查看）"; exit 1 ;;
+    *) err "❌ 多余的位置参数: $1（--to 直接收清单文件路径，不需要单独给项目根）"; exit 1 ;;
   esac
 done
 
@@ -336,19 +337,11 @@ done
 # 变量职责：
 #   TARGET       = 清单文件路径（恒为 …/assemble.json）
 #   PROJECT_ROOT = 项目根 = dirname(TARGET) = 清单所在目录
-# 不传 --to 也不传 --self-test 时，TARGET 指向模板自带的 example 实例。
+# 不传 --to 时无目标，直接输出帮助。
 TARGET=""
 PROJECT_ROOT=""
 TO_SPECIFIED=0
-if [ "$SELF_TEST" = "1" ]; then
-  # 自测：目标 = 模板自带 example/，清单也是它下面那份。
-  # TARGET 必须指向【清单文件】而不是目录 —— 下方 PROJECT_ROOT 是按
-  # dirname(TARGET) 算的，若这里塞目录，PROJECT_ROOT 会退成模板根，
-  # 目标变成 <模板根>/server/framework/（= 源自身），组装时报一堆
-  # "cp: ... are the same file" 且什么都装不出来（实测踩坑）。
-  TARGET="$DEFAULT_TARGET/assemble.json"
-  TO_SPECIFIED=1
-elif [ -n "$MANIFEST_FILE" ]; then
+if [ -n "$MANIFEST_FILE" ]; then
   [ -f "$MANIFEST_FILE" ] || { err "❌ 清单文件不存在: $MANIFEST_FILE"; exit 1; }
   [ "$(basename "$MANIFEST_FILE")" = "assemble.json" ] || {
     err "❌ --to 需要指向 assemble.json（收到: $(basename "$MANIFEST_FILE")）"; exit 1; }
@@ -364,8 +357,8 @@ fi
 #       ②按清单两端（模板源 → 项目目标）逐文件 md5 比对，报不一致
 # 用法：./setup.sh --to <项目根>/assemble.json --check
 if [ "$CHECK_ONLY" = "1" ]; then
-  # 缺省清单 = 模板自带 example/assemble.json（--to 未给时；--to 已保证 MANIFEST_FILE 存在）
-  CHECK_MANIFEST="${TARGET:-$DEFAULT_TARGET}"
+  CHECK_MANIFEST="$TARGET"
+  [ -n "$CHECK_MANIFEST" ] || { err "❌ --check 需要 --to <项目清单>"; exit 1; }
   [ -f "$CHECK_MANIFEST" ] || { err "❌ 找不到清单: $CHECK_MANIFEST"; exit 1; }
   # 素材基准：清单键固定写 server/...，按素材实际位置解析（synced/模板两种布局通用）
   CHECK_BASE="$("$NODE_BIN" "$MANIFEST_TOOL" resolve-base "$ROOT" 2>/dev/null || echo "$ROOT")"
@@ -418,9 +411,8 @@ if [ -n "$MIGRATE_FROM" ]; then
   exit $?
 fi
 
-# ---------- 素材同步（--sync / --pull）----------
+# ---------- 素材回流（--pull）----------
 # 两个方向共用同一份清单与同一套解析：
-#   --sync（下发）  模板 → 项目：把清单引用的**素材**按 src 结构落进项目的素材树
 #   --pull（回流）  项目 → 模板：把项目侧改过的**素材**改动写回模板仓库对应位置
 #
 # 为什么合并进 setup.sh：早先 scripts/sync-to-project.sh 声称复用本脚本的
@@ -434,28 +426,15 @@ if [ -n "$SYNC_MODE" ]; then
   SYNC_MANIFEST="$TARGET"
   if [ ! -f "$SYNC_MANIFEST" ]; then
     err "❌ 找不到清单: $SYNC_MANIFEST"
-    err "   同步以清单为唯一真相——它声明「这个项目从模板取哪些素材」。"
+    err "   回流以清单为唯一真相——它声明「这个项目从模板取哪些素材」。"
     exit 1
   fi
-  "$NODE_BIN" "$MANIFEST_TOOL" validate "$SYNC_MANIFEST" "$ROOT" 2>&1 | sed 's/^/  /' || true
-
-  if [ "$SYNC_MODE" = "project" ]; then
-    echo "══ 下发素材 → $PROJECT_ROOT ══"
-    echo "  -- 清单: $SYNC_MANIFEST"
-    SRC_BASE="$ROOT"; TARGET="$PROJECT_ROOT"; ASSEMBLE_FILE="$SYNC_MANIFEST"
-    # 落点模式 tree：按清单 src 还原素材树结构（server/templates/_<风格>-style/...）
-    COPY_LAYOUT=tree _setup_copy_manifest
-    echo ""
-    ok "✅ 素材已下发（产出请再跑一次不带 --sync 的组装）"
-  else
-    echo "══ 回流改动 $PROJECT_ROOT → 模板 ══"
-    echo "  -- 清单: $SYNC_MANIFEST"
-    # 缺省只预演（列出差异）；--write 才真写回，且写前备份模板原文件
-    "$NODE_BIN" "$MANIFEST_TOOL" pull "$SYNC_MANIFEST" "$PROJECT_ROOT" "$ROOT" \
-      $( [ "$PULL_WRITE" = "1" ] && echo --write )
-    exit $?
-  fi
-  exit 0
+  echo "══ 回流改动 $PROJECT_ROOT → 模板 ══"
+  echo "  -- 清单: $SYNC_MANIFEST"
+  # 缺省只预演（列出差异）；--write 才真写回，且写前备份模板原文件
+  "$NODE_BIN" "$MANIFEST_TOOL" pull "$SYNC_MANIFEST" "$PROJECT_ROOT" "$ROOT" \
+    $( [ "$PULL_WRITE" = "1" ] && echo --write )
+  exit $?
 fi
 
 echo "══ 组装 → $PROJECT_ROOT ══"
@@ -532,16 +511,22 @@ if [ -n "$NODE_BIN" ]; then
 else
   INIT_FLAG=1
 fi
-# 不在这里 mkdir public/：清单条目落到 public/ 时复制分支已 mkdir -p 父目录，
-# brand.json 由下面第 3b 段自己建父目录（谁写文件谁负责建目录）。
+# 本段自己建 $SERVER_DIR：骨架初始化发生在清单复制**之前**，此时 server/ 可能
+# 还不存在（全新项目首跑必现）——曾因此 cp 失败却仍打印 ✓，结果是 app.js 根本没生成、
+# 项目起不来，而日志一路「成功」（实测：example 首次组装）。谁写文件谁负责建目录。
 if [ "$INIT_FLAG" = "1" ]; then
   for f in app.js config.schema.json; do
     if [ ! -f "$SERVER_DIR/$f" ] && [ -f "$BLUEPRINT_DIR/$f" ]; then
       if [ "${DRY_RUN:-0}" = "1" ]; then
         echo "  · blueprint/$f → 目标（初始化）[新增]"
       else
-        cp "$BLUEPRINT_DIR/$f" "$SERVER_DIR/$f"
-        echo "  ✓ blueprint/$f → 目标（初始化）"
+        mkdir -p "$SERVER_DIR"
+        if cp "$BLUEPRINT_DIR/$f" "$SERVER_DIR/$f"; then
+          echo "  ✓ blueprint/$f → 目标（初始化）"
+        else
+          err "  ❌ blueprint/$f 初始化失败（目标目录不可写？）: $SERVER_DIR"
+          exit 1
+        fi
       fi
     fi
   done

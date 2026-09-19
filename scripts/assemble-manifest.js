@@ -7,7 +7,6 @@
  *   此前「清单怎么解析」散在三个地方各写一遍——
  *     setup.sh 内嵌 python（展开 files 并复制）
  *     setup.sh 内嵌 python（brand 段）
- *     scripts/sync-to-project.sh 内嵌 python（反推素材根）
  *   于是同一个约定被实现成不同口径，实测已产生过这些真实故障：
  *     · 基准目录不一致 → 拼出 <项目>/server/server/templates（幽灵目录）
  *     · synced 布局下清单找到却全部报缺失（基准写死 $ROOT）

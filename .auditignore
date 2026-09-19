@@ -2,7 +2,7 @@
 # 照常 git 跟踪/提交，仅审计扫描跳过；与 .gitignore 叠加生效（各管各的）。
 #
 # 豁免原则：只豁免「非产品代码」——即不参与运行、不随组装产物交付的东西。
-#   产品代码（framework/、templates/、setup.sh、start.sh、sync-to-project.sh）
+#   产品代码（framework/、templates/、setup.sh、start.sh）
 #   一律照常审计，不因为「报错多」而豁免。
 #
 # 注意：`vendor/` 这种「忽略整个目录」写法下，`!某文件` 无法恢复
@@ -22,6 +22,3 @@ server/templates/_iwara-style/public/vendor/
 # 实测：scripts/ 共 93 条 findings（占全仓 738 条的 12.6%），其中
 #       bench-html-assembly.js 33 条、func-index.js 21 条。
 scripts/*
-# 例外：sync-to-project.sh 是交付给用户执行的同步入口（README 推荐用法），
-# 属产品代码，照常审计——用 ! 把它从上面的豁免里恢复出来。
-!scripts/sync-to-project.sh

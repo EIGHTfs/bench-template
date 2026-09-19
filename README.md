@@ -12,13 +12,12 @@
 # 1. 建目录
 mkdir my-downloader && cd my-downloader
 
-# 2. 从模板仓库同步素材（按项目 assemble.json 清单，只搬被引用的素材）
-<模板仓库>/scripts/sync-to-project.sh "$PWD/server"
-# 例如：/path/to/dl-server-template/scripts/sync-to-project.sh "$PWD/server"
+# 2. 组装（从模板仓库执行；--to 指向本项目的 assemble.json）
+<模板仓库>/setup.sh --to "$PWD/assemble.json"
+# 例如：/path/to/dl-server-template/setup.sh --to "$PWD/assemble.json"
 
-# 3. 组装前端（风格见 ./setup.sh --list —— 扫 server/templates/_*-style/ 自动发现）
-cd server
-./setup.sh gbmd --to .        # 生成 server/public/（13 个前端文件）+ 蓝图初始化 app.js
+# 3. 之后想同步模板最新素材 → 重跑第 2 步即可（风格由清单声明，无需在命令行指定；
+#     ./setup.sh --list 可列出模板自带的所有素材目录）
 
 # 4. 写业务后端（app.js 里填业务路由；蓝图为起点），然后启动
 cp <模板仓库>/start.sh ..
@@ -31,17 +30,11 @@ cd ..
 
 > 首次访问会引导设置密码（鉴权门由 framework 提供）。
 >
-> 注意：`sync-to-project.sh` 必须**在模板仓库里执行**（脚本以自身位置为素材源）。在项目自身里执行会被拒绝（防自毁）。
+> 注意：`setup.sh` 必须**在模板仓库里执行**（脚本以自身位置为素材源），`--to` 指向项目清单。
+> 项目里不放 setup.sh，也不放素材副本——素材在模板仓库，项目只保留产出。
 
-### 直接复制模板当新项目（不用 sync）
-
-```bash
-cp -r dl-server-template my-downloader
-cd my-downloader/server
-mv ../setup.sh .              # setup.sh 移到 server/ 下就地组装
-./setup.sh gbmd --to .        # 素材已在 server/ 下（framework/ + templates/ + project/blueprint/）
-cd .. && ./start.sh start
-```
+> 新项目不需要复制整个模板：目标项目里只有一份 `assemble.json`（素材与组装脚本都留在模板仓库），
+> 组装命令从模板仓库执行，见上方步骤 2。
 
 ---
 
@@ -130,29 +123,30 @@ cd .. && ./start.sh start
 
 ## 命令速查
 
-### 同步素材（把模板能力搬到项目）
+### 组装（把模板素材变为项目产出）
 
 ```bash
-./scripts/sync-to-project.sh <目标server目录>
-# 例：./scripts/sync-to-project.sh /path/to/my-downloader/server
+./setup.sh --to <项目>/assemble.json          # 组装
+./setup.sh --to <项目>/assemble.json --dry-run # 预演：只列会写什么，不写盘
 ```
 
-同步内容：`framework/` + `templates/` + `project/blueprint/` + `setup.sh`（覆盖式，模板为权威）。目标项目的 `app.js` / `public/` / `routes/` / `lib/` 不动。
+落点一律按清单 **dst**——清单是唯一真相。dst 没声明的地方，项目里就不该有文件。
+
+模板侧维护的素材源：`framework/` + `templates/` + `project/blueprint/`（清单键指向它们）；
+组装按清单把选中的文件下发到项目侧的 dst。公共能力改在模板侧，不直接改项目侧。
 
 ### 组装前端
 
 ```bash
-./setup.sh --list                      # 查看风格与组件
-./setup.sh gbmd                        # 组装到 server/project/（缺省，模板自测，用 blueprint 默认清单）
-./setup.sh gbmd --to .                 # 组装到当前目录（项目根）
-./setup.sh gbmd --to ./server          # 也可指向 server/，脚本会自动归一
-./setup.sh gbmd --to /path/to/proj     # 组装到指定项目根
-./setup.sh iwara --with play,search    # iwara 风格 + 混搭组件
-./setup.sh iwara --to . --check        # 只做清单一致性检查，不组装（见下）
-./setup.sh --to /path/to/proj/assemble.json --dry-run   # 组装预演：只列会写什么，不写盘
+./setup.sh --list                      # 查看可用素材目录
+./setup.sh --to example/assemble.json  # 组装模板自带的示例项目 example/
+./setup.sh --to /path/to/proj/assemble.json   # 组装指定项目（清单即唯一参数）
+./setup.sh --to /path/to/proj/assemble.json --check      # 只做清单一致性检查，不组装
+./setup.sh --to /path/to/proj/assemble.json --dry-run    # 组装预演：只列会写什么，不写盘
+./setup.sh --to /path/to/proj/assemble.json --untracked  # 列出不在清单里的文件
 ```
 
-组装逻辑：按项目根的 `assemble.json` 逐项拷贝（详见下节）；蓝图框架与分片（HTML/CSS `@frag` 指令）在运行期由 framework 组装器拼装；`--with` 组件从另一风格叠加（同名不覆盖，以主风格为准）。
+组装逻辑：按清单逐项拷贝（详见下节）；蓝图框架与分片（HTML/CSS `@frag` 指令）在运行期由 framework 组装器拼装。**风格靠清单表达，没有风格参数**——同一份清单里写多个风格层的条目即可混搭，同名目标「靠后的源覆盖靠前的」（详见 `example/ASSEMBLE-COVERAGE.md`）。
 
 #### `--dry-run`：组装预演（搬模板前先看一眼）
 
@@ -188,8 +182,8 @@ DRY_VERBOSE=1 ./setup.sh --to /path/to/proj/assemble.json --dry-run   # 目录�
 
 | 输出类别 | 含义 |
 |---|---|
-| **不一致** | 清单某条两端内容不同——项目侧被改过（应改模板后重同步），或模板更新后未重新组装 |
-| **缺失** | 清单某条的某一侧不存在——未同步或未组装 |
+| **不一致** | 清单某条两端内容不同——项目侧被改过（应改模板后重新组装），或模板更新后未重新组装 |
+| **缺失** | 清单某条的某一侧不存在——未组装 |
 | **无引用**（告警） | 组装下发了该模块，但项目自有代码里没有任何 require 链能到达它 |
 
 「无引用」是**告警不是失败**：它提示该文件可能是搬模板时整份复制清单带进来的、本项目用不上的东西。
@@ -201,11 +195,11 @@ DRY_VERBOSE=1 ./setup.sh --to /path/to/proj/assemble.json --dry-run   # 目录�
 退出码：有不一致或缺失 → `1`，可挂 CI（「无引用」单独不计入失败）。
 
 > 「清单外文件」原先也在这里报，现已独立为 `--untracked`：那需要扫**整棵目录树**并套 `.gitignore`
-> （项目文档、截图、本地配置本就该在清单外），与「两端是否同步」是两件事，混在一起只会长期报噪声。
+> （项目文档、截图、本地配置本就该在清单外），与「两端是否一致」是两件事，混在一起只会长期报噪声。
 
 这是发现「改动改错了地方」的**主要手段**：公共能力（`framework/`、`blueprint/`）必须改在模板，
-若被改在项目侧，check 会把它报成「不一致」——此时应把改动补进模板再重新同步组装，
-而不是留在项目里（留在项目里的改动会在下次同步时被模板旧版覆盖）。
+若被改在项目侧，check 会把它报成「不一致」——此时应把改动补进模板再重新组装，
+而不是留在项目里（留在项目里的改动会在下次组装时被模板旧版覆盖）。
 
 `check` 的比对遵循组装的**后写覆盖**语义：多个源写同一目标目录时（blueprint 提供共用底座、
 风格层提供该风格专属），取清单中最后一个提供该文件的源来比，因此「风格层有意覆盖 blueprint」
@@ -317,10 +311,10 @@ node scripts/scan-dead-files.js . || echo "有死文件，需清理"
 > 解析器仍会忽略 `files` 段内以 `_` 开头的键（历史清单兼容用），但新写的清单
 > 不要再依赖这个机制。
 
-**脚本放在模板仓库**：`sync-to-project.sh`、`setup.sh` 及其依赖的
+**脚本放在模板仓库**：`setup.sh` 及其依赖的
 `assemble-manifest.js` / `lib-node.sh` 都只在模板仓库运行，**不复制进项目**。
 项目里只留素材（`server/templates/`、`server/project/`）与产出（`server/public/`）。
-同步与组装都从模板仓库执行，见「命令速查」。
+组装都从模板仓库执行，见「命令速查」。
 
 **品牌配置（`brand` 段）**：页面里的标题、logo、icon 用 `@brand:key@` 占位符
 （HTML 属性位）或 `<!-- @brand:key -->` 注释（元素文本位）书写，运行期由
@@ -394,7 +388,8 @@ logo/icon 的文件本身仍要走 `files` 映射从风格模板拷进 `server/p
 - `--to` 指定项目时：打印清单格式说明，并**询问是否生成带注释的空模板**
   （交互环境答 `y` 即在项目根生成 `assemble.json`，填好取件项后重跑本命令）。
 - 非交互环境（管道 / CI）：不询问，打印提示后退出，不会挂住等输入。
-- 不带 `--to` 的模板自测：走 `project/blueprint/assemble.json` 默认清单（纯公共件）。
+- 不传 `--to`：直接打印帮助（没有「缺省目标」这回事——用哪个项目就显式给哪份清单，
+  模板自带的 `example/` 也一样：`--to example/assemble.json`）。
 
 清单内容会在初始化蓝图**之前**校验：JSON 语法错、`files` 不是对象、值不是字符串
 都会立即报错退出，不会留下「蓝图已初始化、`boot.cjs` 已生成」的半成品目录。
@@ -564,7 +559,7 @@ module.exports = tableFromRegister(authRoutes, {
 const {
   createConfig, createServer, createRoute, createAutoUpdate,
   sendJson, appLog, auth,
-} = require("../framework");   // 已同步素材时路径为 ./framework
+} = require("./core/index.js");
 
 // ① 配置（schema 驱动）
 appLog.install();
@@ -852,11 +847,8 @@ for (const f of ["fragments/topbar/brand.html", "login.html", "setup.html"]) {
 旧项目（如 gamebanana-mods-downloader / iwara-downloader）的既有结构不动，只把前端改成组装生成：
 
 ```bash
-# 1. 同步素材到旧项目（旧项目自带 framework + templates 副本）
-./scripts/sync-to-project.sh /path/to/old-project/server
-
-# 2. 组装前端到旧项目（覆盖 server/public/）
-./setup.sh gbmd --to /path/to/old-project/server
+# 1. 组装前端到旧项目（覆盖 server/public/；旧项目根放一份 assemble.json 声明要取的素材）
+./setup.sh --to /path/to/old-project/assemble.json
 
 # 3. 之后改模板前端 → 重跑第 2 步即同步生效；改后端逻辑 → 直接在旧项目改
 ```
@@ -892,8 +884,20 @@ require("./app.js");
 ```
 dl-server-template/
 ├── setup.sh                         # 组装脚本（--to 指定项目清单）
+├── example/                         # 模板自带的示例项目（普通项目，组装启动同任何项目）
+│   ├── assemble.json                #   清单：演示风格混搭（iwara 骨架 + gbmd 下载面板）
+│   ├── ASSEMBLE-COVERAGE.md         #   组装覆盖面速查（通用规则 + example 实例）
+│   └── server/                      #   组装产物（不入库，可随时删掉重装）
 ├── test/
-│   └── assemble-parse.test.sh       # 清单解析/组装行为自测（bash test/... 运行）
+│   ├── run-all.sh                   # 跑全部测试（npm test）
+│   ├── lib-test.sh                  # 测试共享库（断言/临时模板/跑组装）
+│   ├── manifest-comments.test.sh    # 清单注释键
+│   ├── manifest-invalid.test.sh     # 清单错误结构拒绝
+│   ├── args.test.sh                 # 参数契约（--to/未知参数/已废除命令）
+│   ├── assemble.test.sh             # 组装行为（落点按 dst、不造 templates/）
+│   ├── mix.test.sh                  # 风格混搭覆盖顺序
+│   ├── scan-sh-commands.test.sh     # sh 命令清单扫描
+│   └── check-doc-commands.test.sh   # 文档命令一致性（README/总览 vs 脚本用法注释）
 ├── server/
 │   ├── framework/                 # 通用后端 JS，按功能分 8 个子目录
 │   │   ├── core/                  # 服务主体与聚合出口
@@ -931,9 +935,9 @@ dl-server-template/
 │           ├── index.html/downloader/index.html   # 共同框架（@frag 指令）
 │           └── fragments/         # 通用分片（tabs / topbar.html / topbar/{brand,time} / styles/ 等）
 ├── scripts/
-│   ├── assemble-manifest.js       # 清单解析唯一实现（setup.sh 与同步脚本共用）
-│   ├── lib-node.sh                # Node 定位唯一实现（setup/start/sync/测试共用）
-│   ├── sync-to-project.sh         # 素材同步到项目
+│   ├── assemble-manifest.js       # 清单解析唯一实现（setup.sh 依赖的清单工具）
+│   ├── lib-node.sh                # Node 定位唯一实现（setup/start/测试共用）
+│   ├── scan-sh-commands.js        # sh 脚本命令清单扫描（usage/tools → JSON）
 │   ├── scan-bare-js-html.js       # 裸 JS 残留扫描
 │   ├── fix-bare-js-html.py        # 裸 JS 残留修复
 │   └── func-index.js              # 函数索引（定向读取大文件）
@@ -948,7 +952,9 @@ dl-server-template/
 
 | 版本 | 内容 |
 |---|---|
+| 1.7.19+ | **sh 命令清单扫描 + 文档命令一致性检查（未升版）**：新增 `scripts/scan-sh-commands.js`——扫 sh 脚本，把注释里承诺的用法命令（usage）与实际调用的外部程序（tools）提成 JSON（命令作 key、脚本那句注释作 value，同源不另措辞）；`./` 前缀归一化（`./a.sh --check` 与 `a.sh --check` 视为同一条命令），并防「散文提到脚本名」的误报。新增配套测试 `test/scan-sh-commands.test.sh`。新增 `test/check-doc-commands.test.sh`：用 scan 生成的 JSON 校验 README.md 与 `docs/命令参数总览.md` 的命令命名——文档里写的每个「脚本名+选项」必须能在脚本用法注释中找到，否则报出（实测抓到 5 处不一致：README 3 处已废除的 `gbmd` 风格参数、总览 2 处已废除的 `--sync`/`--self-test`，已同步修正文档；同时修正 README 3 处 `--to` 传目录的旧写法为清单文件路径）。**另同步清理 README 全部「同步/就地组装」旧概念残留**：删除「直接复制模板当新项目（不用 sync）」小节（违反「组装脚本只在模板仓库执行、目标项目只有 assemble.json」的设计；sync 已废除后该场景失去存在理由）；「重同步/未同步/同步内容」等 --sync 时代措辞改为「重新组装/未组装」；项目入口示例 `require` 路径与 `blueprint/app.js` 实际代码对齐（`../framework` → `./core/index.js`）；目录树注释去掉已废除的 `sync-to-project.sh` 引用 |
 | 1.7.17 | **测试跟上 setup.sh 重新设计 + 清理旧设计残留注释**：1967be5 重写 setup.sh 后 `--to` 的语义已从「项目根」改为「项目清单文件」（清单所在目录即项目根），且移除了风格参数，但测试与三处注释没跟着改——①`test/assemble-parse.test.sh` 仍按旧契约传 `<项目根>/server`，12 个用例里 9 个因此失败（报「清单文件不存在」，与被测逻辑无关）。现按新契约重写：`--to` 传清单文件、去掉风格参数，并补 3 个契约用例（`--to` 指向不存在的清单 / `--to` 误传目录 / `--self-test` 组装到 example），从 4/9 变为 15/0。②setup.sh 注释里 `--to <项目根>…自动归一`、`--manifest <清单>`、`--with <组件,…>`三处均为旧设计残留（前者代码里根本没有归一逻辑，后两者参数解析里不存在——`--with` 混搭按新设计已由清单取代、系有意删除），一并删除。③移除 `test/data-backup-equivalence.test.sh`：它证明的是「旧 lib 实现 → 框架 createBackup」等价，而旧实现已从各项目删除、失去对比对象，且路径仍停在 `server/framework/` 旧布局（实际已移到 `server/store/`）；git 历史 2d14865 可恢复。④README 目录树同步实际布局（framework/ 平铺 17 模块 → 8 个子目录 + lib/），并更新已删测试的说明 |
+| 1.7.19 | **废除 `--sync`/tree 落点（设计错误）+ 测试拆分**：①`_setup_copy_manifest` 的 `COPY_LAYOUT=tree` 落点用的是清单 **src** 而不是 **dst**——清单里 `templates/` 只作 src 出现（取素材的来处），从不出现在 dst，即清单从未声明过任何文件该落到 `templates/`；tree 模式却凭空往那里写，于是项目里长出 `server/templates/_<风格>-style/` 整个目录（实测 gbmd、iwara 都有，gallery 没有——三者清单写法一致，差异只是跑没跑过 `--sync`）。对 src==dst 的素材条目 tree 与 out 恰好同路，所以问题长期只显现在产出条目上：`templates/_gbmd-style/public/app.js` 本该产出到 `server/public/app.js`，tree 却写回它自己。落点改回 dst 后 tree 与组装完全等价、命令失去存在理由，故 `setup.sh --sync` 与 `scripts/sync-to-project.sh`（含其 `--all` 分支直接 `cp -r server/templates`）一并废除，`--sync` 现按未知参数明确报错而非静默当组装跑。判据确立：**清单 dst 没声明的地方，项目里就不该有文件**。②测试拆分：`test/assemble-parse.test.sh` 单文件 146 行混装 15 组用例，改成按功能域拆的 5 个文件（清单注释键 / 清单错误结构 / 参数契约 / 组装行为 / 风格混搭）+ `lib-test.sh` 共享库 + `run-all.sh` 汇总入口（`npm test`），各自独立进程与临时目录。新增回归：「组装不创建 `server/templates/`」「`--sync` 已废除并报错」——前者反向验证过（临时把落点改回 src，测试立刻失败），不是永远通过的假测试。实测 23 通过 / 0 失败。 |
 | 1.7.18 | **组装预演 `--dry-run` + `--check` 新增「无引用」告警**：①组装此前是覆盖式写盘、跑之前看不到会动哪些文件，现支持 `--dry-run` 预演——每个单文件条目标注「新增 / 覆盖 / 相同」（覆盖项最值得留意），目录条目显示文件数、`DRY_VERBOSE=1` 可展开逐个文件；预演全程不落盘（已用「删产物文件→预演→确认未重建→正式组装→恢复」验证）。②`--check` 增加「无引用」告警：组装下发了某模块、但项目自有代码里没有任何 require 链能到达它，提示可能是搬模板时整份复制清单带进来的、本项目用不上的文件（告警不计入失败退出码）。判据刻意用**从项目自有入口出发的 require 传递可达性**，而非「有没有人 require 这个名字」——框架件靠 core/index.js 聚合、由项目 app.js 引一个入口带进来，逐文件字符串匹配会把整套框架全报成无引用；前端产物由 HTML 的 script src 引用，不参与判定。两个功能互为补充：预演让你在写盘前看条目，无引用告警在写盘后兜底。③动因是实际踩到的坑：gallery 从别的项目整份复制清单，搬进了 `search-date-range.cjs`，而 gallery 既没有按时间搜索的路由、前后端也都没有引用它——文件不报错、只是躺着，要等有人照着它改代码才踩坑。已移除该条目（项目侧产物由组装决定，下次组装即消失）。 |
 | 1.7.16 | **日期范围检索独立为 `framework/search/`，README 修正不存在的 `frontend/`**：①把一个子目录塞两种职责（页面片段装配 + 日期范围检索）拆开——`framework/assemble/search-date-range.cjs` → `framework/search/search-date-range.cjs`，`assemble/` 只保留 `fragment-assembler.js`，README 目录表相应加 `search/` 行、`assemble/` 行改为只写「页面片段装配」。②README 目录表原先列了 `framework/frontend/`（通用前端 JS），但该目录实际不存在——前端 JS 一直以蓝图源文件形态放在 `server/project/blueprint/`、由清单组装进 `server/public/`，与后端模块不同（不经 require、不参与模块解析）。删掉该行，并把下面那条「为什么前端 JS 也算 framework」的说明改写为实际做法，避免下次照 README 去找不存在的目录 |
 | 1.7.15 | **迁移能力补全 + 模板 lib/ 归位 + 组装缺陷修复**：①`assemble-manifest migrate` 的工作列表从「清单条目」扩到「项目内全部 js/cjs」——此前只处理清单提到的文件，漏掉不在清单、却 require 框架的业务代码（实测 gbmd 有 12 个 `server/routes/*.js` 因此未被改写，迁移后启动报 `Cannot find module '../framework'`）；判定改不改仍由「旧落点→新落点」映射决定，解析不到旧落点一律不动，不误伤。②`--dry-run` 预演新增「引用将被改写 N 处（涉及 M 个文件）」清单，逐条列出 `旧引用 ⇒ 新引用`，并标出「本文件也会移动 → 新落点」；预演跑的是与实际执行同一份逻辑的只读模式，不会出现「预演说没事、执行却改了」。③`setup.sh` 内联 python 生成清单改为调新子命令 `assemble-manifest generate <路径>`——清单结构属于工具的知识，散在脚本里会与 `validate`/`loadManifest` 各写一份、逐渐漂移；同时修提示文案（原写「带注释的空模板」，实际无注释）。④新增概念 **lib**（`server/lib/` 放通用运行支撑件）：启停脚本 `start.sh` 与 CJS 劫持 `cjs-bootstrap.cjs` 归位到模板 `server/lib/`，经清单下发到项目根 / `server/lib/`；README「三个概念」与落位判据同步补 lib 一行。⑤删 `setup.sh` 里冗余的 `mkdir -p server/public`（清单条目落到 public/ 时复制分支已建父目录），改为由 `brand.json` 生成处自建父目录——谁写文件谁负责建目录。⑥模板源 `server/templates/_gallery-style/` 与 `server/project/blueprint/` 共 5 个文件 10 处仍写着旧布局引用（`require('./framework')`、`../framework/routes-auth` 等），导致任何新项目组装后都无法启动（实测 `Cannot find module './framework'`）；已全部改为新结构路径，全新项目组装后启动正常。⑦`.gitignore` 补 `example/server/`：`setup.sh` 注释里写「产物不入库（见 .gitignore）」，但并无对应规则，实际组装一次就把 61 个产物文件暴露成未跟踪状态；现只忽略产物目录，保留 `example/assemble.json` 与 `ASSEMBLE-COVERAGE.md`。⑧修 `example/assemble.json`（模板自测清单）残留的旧路径 `server/framework/core/cjs-bootstrap.cjs` → `server/lib/cjs-bootstrap.cjs`，自测从「缺失 1 个」恢复为「缺失 0 个」。 |
