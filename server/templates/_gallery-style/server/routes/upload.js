@@ -3,7 +3,8 @@
 //   POST /api/upload    上传单张图片（手写 multipart 解析，零依赖）
 //   GET  /api/uploaded  列出项目本地 uploads/ 的图片
 //
-// 权限：
+// 权限规则：不登录只能上传到预设分类「游客」（存项目本地），
+//   其他目录需登录后才能上传：
 //   · 无 targetDir → 游客/本地：写入项目 uploads/
 //   · 带 targetDir → 需登录，且目录必须真实存在
 //
@@ -17,7 +18,7 @@ const fs = require("fs");
 const path = require("path");
 
 const { jsonRes, formatSize, parseQuery, readMultipartUpload } = require("../lib/util");
-const { auth } = require("../framework");
+const { auth } = require("../core/index.js");
 
 // 写操作鉴权：未设密码视为开放；已设密码则校验框架会话。
 // 注意：本模块是原生 handler，createServer 传进来的 ctx 只有 {cfg,auth,sendJson}，

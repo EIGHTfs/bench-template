@@ -11,9 +11,9 @@
 // 与 gbmd 的 `module.exports.public` 约定一致。
 //
 // 用法（表式项目）：
-//   const { createRoute } = require("../framework");
-//   const { tableFromRegister } = require("../framework/routes-adapter");
-//   const authRoutes = require("../framework/routes-auth");
+//   const { createRoute } = require("../core/index.js");
+//   const { tableFromRegister } = require("../route/routes-adapter.js");
+//   const authRoutes = require("../route/routes-auth.js");
 //   module.exports = tableFromRegister(authRoutes, { cfg, auth, sendJson, readBody, setSessionCookie });
 // ============================================================
 "use strict";

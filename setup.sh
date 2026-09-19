@@ -1,38 +1,53 @@
 #!/usr/bin/env bash
 # ============================================================
-# 模板组装脚本：把前端部件组装到目标 server/ 目录
+# 模板工具：组装 / 检查 / 同步 / 回流，四个动作一个入口
 #
-# 用法：
-#   ./setup.sh <风格> [--to <项目根|项目根/server>] [--with <组件,...>] [--check]
+# ★ 核心：清单（assemble.json）是「要哪些素材」的唯一真相
+#   清单每条写明 来源 → 落点，如：
+#     "server/templates/_gbmd-style/public/app.js": "server/public/app.js"
+#   所以本脚本**没有风格参数** —— 用哪套素材完全由清单决定。
+#   混搭（从另一风格叠加素材）用 --with，见下。）
 #
-# 风格（<风格>）：由 server/templates/_<名>-style/ 目录自动发现，新增风格只需建目录。
-#   现有：gbmd / iwara（详见 ./setup.sh --list）
+# ── 常用命令（先看这段）────────────────────────────
+#   ./setup.sh --to <项目清单>                  组装：按清单产出到 server/public/
+#   ./setup.sh --to <项目清单> --check          检查：清单两端是否同步（不一致 / 缺失）
+#   ./setup.sh --to <项目清单> --untracked      扫描：目录里有哪些文件不在清单（按 .gitignore 排除）
+#   ./setup.sh --migrate <旧清单> --to <新清单>  迁移：按新结构搬文件并自动改引用
+#   ./setup.sh --to <项目清单> --sync           下发：素材按原结构搬进项目素材树
+#   ./setup.sh --to <项目清单> --pull           回流预演：列出项目侧改过的素材
+#   ./setup.sh --to <项目清单> --pull --write   回流：把改动写回模板（写前备份）
+#   ./setup.sh --self-test                      自测：组装到模板自带 example/
+#   ./setup.sh --list                           列出可用风格素材目录
+#   ./setup.sh                                  输出帮助（等同 --help）
 #
-# 目标说明（--to）——一律基于「项目根」，两种写法等价：
-#   - 省略 --to：组装到模板仓库自身 server/project/（测试/参考用）
-#   - --to /path/to/project       ：项目根，最直接
-#   - --to /path/to/project/server：同样基于项目根，脚本自动归一（少写一层）
-#   目标项目没有 app.js / config.schema.json 时，从 blueprint/ 复制初始化
+#   <项目清单> = <项目根>/assemble.json
+#   ★ 清单所在文件夹就是项目根 —— 清单里的相对路径全部相对它解析。
+#     所以只需给清单路径一个参数，项目根自动得出，不必也不能另行指定。
 #
-# 组件（--with，从另一风格叠加前端，同名以主风格为准）：
-#   play   = iwara 播放页（play.html + play-app.js + vendor/artplayer.js）
-#   setup  = gbmd 设置向导（setup.html + setup-init.js + path-picker.js）
-#   video  = iwara 视频功能（video 相关前端）
-#   merge  = gbmd 整理合并（merge 相关前端）
-#   search = 从另一风格叠加搜索（search-date-range.js）
+# ── 参数 ──────────────────────────────────────────────
+#   --to <项目根>       目标项目根。写 <项目根>/server 也行（脚本自动归一，
+#                       避免落到 <项目>/server/server/ 幽灵目录）。
+#   --manifest <清单>   显式指定清单文件（默认找 <项目根>/assemble.json）。
+#   --with <组件,...>   从另一风格叠加素材（混搭），同名以清单顺序靠后者为准。
+#                       play / setup / video / merge / search，见 --list。
+#   --check            只检查不产出。
+#   --sync             下发素材树（见下「两个方向」）。
+#   --pull [--write]   回流（默认只预演，--write 才写）。
 #
-# 原理：
-#   server/framework/            ← 通用 JS（两个风格共用，直接引用）
-#   server/templates/            ← 前端素材（只读，不改）
-#     _gbmd-style/public/        ← gbmd 前端（非分片部件）
-#     _iwara-style/public/       ← iwara 前端（非分片部件）
-#   server/project/blueprint/    ← 组装蓝图（共用框架/分片/静态资源 + app.js 骨架，入库）：
-#                                  login.html/login.js、theme-init.js、search-date-range.js
-#                                  等两风格共用文件也从这里拷（_shared/ 已并入 blueprint/）
-#   server/project/              ← 缺省组装目标（生成物，不入库）
+# ── 两个方向（别再混淆）──────────────────────────────
+#   下发 --sync ：模板 → 项目。把清单引用的**素材**按 src 结构落进项目素材树。
+#   回流 --pull ：项目 → 模板。把项目侧改过的**素材**写回模板对应位置。
+#   只处理素材条目（src==dst，位于 templates/ framework/ project/）；
+#   产出条目（src!=dst，如 → server/public/）不参与双向同步 —— 产物由组装生成。
 #
-# 后端 JS 不在模板：通用 JS 在 framework/（createServer/createRoute 接口），
-#   业务后端 JS 在旧项目/新项目自己实现。
+# ── 素材布局 ───────────────────────────────────────────
+#   server/framework/          ← 通用 JS（HTTP/鉴权/路由工厂/配置/备份/自动更新）
+#   server/templates/          ← 风格素材（只读）：_<名>-style/，新增风格=建目录
+#   server/project/blueprint/  ← 组装蓝图（共用分片/静态资源 + app.js 骨架，入库）
+#   server/project/            ← 缺省组装目标（生成物，不入库）
+#
+# 后端业务 JS 不在模板：通用件在 framework/，业务实现由各项目自己维护
+#   （_gallery-style 例外：它连同 server/app.js + lib/ + routes/ 一起带）。
 # ============================================================
 set -uo pipefail
 
@@ -90,7 +105,10 @@ else
     SRC_BASE="$ROOT"
   fi
 fi
-if [ -d "$ROOT/server" ]; then DEFAULT_TARGET="$ROOT/server/project"; else DEFAULT_TARGET="$ROOT/project"; fi
+# 缺省目标（不传 --to 时）= 模板仓库自带的 example/ 实例。
+# 它既是「组装效果长什么样」的参考，也是 test/ 脚本的测试对象；
+# 产物落在 example/server/ 且不入库（见 .gitignore），可反复重装。
+DEFAULT_TARGET="$ROOT/example"
 
 # ---------- 颜色 ----------
 C_GREEN="" C_YELLOW="" C_RED="" C_DIM="" C_RESET=""
@@ -122,38 +140,49 @@ _detect_styles() {
 STYLES="$(_detect_styles)"
 
 # 组件定义：每个组件 = 来源风格 + 前端文件列表
-declare -A COMPONENTS
-COMPONENTS[play]="iwara|play.html,play-app.js,vendor/artplayer.js,vendor/NOTICE.md,iwara-logo.png"
-COMPONENTS[setup]="gbmd|setup.html,setup-init.js,path-picker.js,logo.png"
-COMPONENTS[video]="iwara|"
-COMPONENTS[merge]="gbmd|"
-COMPONENTS[search]="iwara|search-date-range.js"
 
 usage() {
-  echo "用法:"
-  echo "  ./setup.sh <风格> [--to <项目根>] [--with <组件,...>]"
-  echo "  ./setup.sh --list                          # 查看可用风格与组件（风格=扫 server/templates/_*-style/ 自动发现）"
+  echo "用法:（清单即唯一真相：--to 直接指向项目的 assemble.json）"
+  echo ""
+  echo "  ./setup.sh --to <项目清单>                    # 组装：按清单产出到 server/public/"
+  echo "  ./setup.sh --to <项目清单> --check            # 检查：清单两端是否同步（不一致 / 缺失）"
+  echo "  ./setup.sh --to <项目清单> --untracked        # 扫描：目录里有哪些文件不在清单"
+  echo "  ./setup.sh --migrate <旧清单> --to <新清单>    # 迁移：按新结构搬文件并自动改引用"
+  echo "  ./setup.sh --migrate <旧清单> --to <新清单> --dry-run   # 迁移预演（不改盘）"
+  echo "  ./setup.sh --to <项目清单> --sync             # 下发：素材按原结构搬进项目素材树"
+  echo "  ./setup.sh --to <项目清单> --pull             # 回流预演：列出项目侧改过的素材"
+  echo "  ./setup.sh --to <项目清单> --pull --write     # 回流：把改动写回模板（写前备份）"
+  echo ""
+  echo "  ./setup.sh --self-test                        # 自测：组装到模板自带 example/"
+  echo "  ./setup.sh --list                             # 列出可用风格素材目录"
+  echo "  ./setup.sh, -h, --help                        # 输出本帮助"
+  echo ""
+  echo "说明："
+  echo "  · 清单（assemble.json）每条写明「来源 → 落点」，故本脚本没有风格参数；"
+  echo "  · 清单所在文件夹 = 项目根（拼装时所有相对路径的基准），故只需给清单路径；"
+  echo "  · 素材（src==dst）参与 --sync / --pull；产出（src!=dst）只由组装生成。"
+  echo "  · --untracked 扫清单所在目录整棵树，被 .gitignore 忽略的文件不计入（与 git 同一套规则）；"
+  echo "  · --migrate 用旧清单看「现状」、新清单看「目标」，按落点文件名配对后搬文件，"
+  echo "    并自动改写受影响文件的相对引用（含指向被搬文件的那些）。"
   echo ""
   echo "示例:"
-  echo "  ./setup.sh gbmd                            # 组装到 server/project/（缺省）"
-  echo "  ./setup.sh gbmd --to /path/to/proj/server  # 组装到旧项目 server/"
-  echo "  ./setup.sh iwara --to ../iwara-downloader/server --with play"
+  echo "  ./setup.sh --to ../iwara-downloader/assemble.json"
+  echo "  ./setup.sh --to ../iwara-downloader/assemble.json --check"
+  echo "  ./setup.sh --to ../iwara-downloader/assemble.json --untracked"
+  echo "  ./setup.sh --migrate /tmp/old.json --to ../gallery/assemble.json --dry-run"
+  echo "  ./setup.sh --self-test"
 }
-
 # assemble.json 查找（按需取用清单）：
 #   - --to 指定项目目标：必须用自己的 assemble.json（声明要取哪些模板文件），缺失报错
-#   - 无 --to（模板自测到 server/project/）：用 blueprint/assemble.json 默认（纯公共件）
+#   - 无 --to（模板自测到 example/）：用 example/assemble.json（缺省回落 blueprint 默认清单）
+# 清单定位：TARGET 已是清单文件路径（参数区已解析 --to / --self-test）。
+# 未指定时回落到模板自带 example 实例，再回落 blueprint 默认清单（纯公共件）。
 find_assemble() {
   local d
-  if [ "$TO_SPECIFIED" = "1" ]; then
-    for d in "$TARGET" "$TARGET/.."; do
-      if [ -f "$d/assemble.json" ]; then echo "$d/assemble.json"; return 0; fi
-    done
-  else
-    for d in "$TARGET" "$BLUEPRINT_DIR" "$ROOT/server/project" "$ROOT/project"; do
-      if [ -f "$d/assemble.json" ]; then echo "$d/assemble.json"; return 0; fi
-    done
-  fi
+  if [ -n "$TARGET" ] && [ -f "$TARGET" ]; then echo "$TARGET"; return 0; fi
+  for d in "$ROOT/example" "$BLUEPRINT_DIR" "$ROOT/server/project" "$ROOT/project"; do
+    if [ -f "$d/assemble.json" ]; then echo "$d/assemble.json"; return 0; fi
+  done
   return 1
 }
 
@@ -174,7 +203,7 @@ _setup_copy_manifest() {
     src_path="$SRC_BASE/$src"
     # tree 模式落点与源同构（src 本身），out 模式用清单声明的 dst
     if [ "$layout" = "tree" ]; then copy_dst="$src"; else copy_dst="$dst"; fi
-    dst_path="$TARGET/$copy_dst"
+    dst_path="$PROJECT_ROOT/$copy_dst"
     case "$copy_dst" in
       */)
         # 目录：src 去掉尾部斜杠，目标去掉尾部 "/." 或 "/"
@@ -228,93 +257,186 @@ if [ "${SETUP_LIB_ONLY:-0}" = "1" ]; then
   return 0 2>/dev/null || exit 0
 fi
 
+# 无参数 / --list / -h / --help：一律输出用法（无参数 = 帮助）
 if [ $# -eq 0 ] || [ "$1" = "--list" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
   usage
   echo ""
-  echo "可用风格: $STYLES"
-  echo "可用组件: ${!COMPONENTS[@]}"
-  echo "组件说明:"
-  for k in $(echo "${!COMPONENTS[@]}" | tr ' ' '\n' | sort); do
-    case "$k" in
-      play)  echo "  play   = iwara 播放页（play.html + artplayer）";;
-      setup) echo "  setup  = gbmd 设置向导（目录选择器）";;
-      video) echo "  video  = iwara 视频功能（索引/封面/改名）";;
-      merge) echo "  merge  = gbmd 整理合并（映射/哈希/合并目录）";;
-      search) echo "  search = 叠加对方搜索功能素材";;
-    esac
-  done
+  echo "模板自带的风格素材目录（server/templates/）:"
+  for s in $STYLES; do echo "  _${s}-style/"; done
+  echo ""
+  echo "注意：风格目录只是素材的存放处——用哪套由清单声明，本脚本没有风格参数。"
   exit 0
 fi
 
-STYLE="$1"
-shift
-
 # 解析参数
-TARGET="$DEFAULT_TARGET"
-WITH=""
-TO_SPECIFIED=0
+# 清单文件（--to）是唯一入口参数：项目根由它推出（清单在 <项目根>/assemble.json）。
+MANIFEST_FILE=""    # --to <清单文件> 指定的 assemble.json
 CHECK_ONLY=0
+SYNC_MODE=""        # 空=组装 | project=下发素材树 | template=回流改动到模板
+PULL_WRITE=0        # --pull 缺省只预演；--write 才真写回模板（写前备份）
+SELF_TEST=0         # --self-test：组装到模板自带 example/（不需要清单参数）
+MIGRATE_FROM=""     # --migrate <旧清单>：按新清单整理文件（迁移结构 + 改引用）
+UNTRACKED_ONLY=0    # --untracked：扫清单目录，列出不在清单里的文件（按 .gitignore 排除）
+DRY_RUN=0           # --dry-run：迁移只预演不改盘
 while [ $# -gt 0 ]; do
   case "$1" in
-    --to) TARGET="${2:-}"; [ -n "$TARGET" ] || { err "❌ --to 需要路径参数"; exit 1; }; TO_SPECIFIED=1; shift 2 ;;
-    --with) WITH="${2:-}"; shift 2 ;;
+    --to) MANIFEST_FILE="${2:-}"; [ -n "$MANIFEST_FILE" ] || { err "❌ --to 需要清单文件路径"; exit 1; }; shift 2 ;;
+    --untracked) UNTRACKED_ONLY=1; shift ;;
+    --migrate) MIGRATE_FROM="${2:-}"; [ -n "$MIGRATE_FROM" ] || { err "❌ --migrate 需要旧清单路径"; exit 1; }; shift 2 ;;
+    --dry-run) DRY_RUN=1; shift ;;
+    --self-test) SELF_TEST=1; shift ;;
     --check) CHECK_ONLY=1; shift ;;
+    --sync) SYNC_MODE="project"; shift ;;
+    --pull) SYNC_MODE="template"; shift ;;
+    --write) PULL_WRITE=1; shift ;;
     -*) shift ;;
     *) shift ;;
   esac
 done
 
-# 校验风格
-FOUND=0
-for s in $STYLES; do
-  [ "$s" = "$STYLE" ] && FOUND=1
-done
-if [ "$FOUND" != 1 ]; then
-  err "❌ 未知风格: $STYLE （可用: $STYLES）"
-  exit 1
+# ┌─ 核心约定：清单所在文件夹 = 项目根 ─────────────────────────┐
+# │ 拼装（以及检查/同步/回流）一律以「清单所在目录」为项目根，   │
+# │ 清单里的 dst 等相对路径全部相对这个根解析。                 │
+# │                                                             │
+# │ 也就是说：把 assemble.json 放哪，哪就是项目根 —— 不需要再   │
+# │ 用另一个参数重复描述项目在哪（少一处可以说谎的地方），也    │
+# │ 杜绝了「--to 传 server/ 导致落到 <项目>/server/server/」    │
+# │ 那类幽灵路径（组装全报成功、真实文件一个没更新）。          │
+# └─────────────────────────────────────────────────────────────┘
+# 变量职责：
+#   TARGET       = 清单文件路径（恒为 …/assemble.json）
+#   PROJECT_ROOT = 项目根 = dirname(TARGET) = 清单所在目录
+# 不传 --to 也不传 --self-test 时，TARGET 指向模板自带的 example 实例。
+TARGET=""
+PROJECT_ROOT=""
+TO_SPECIFIED=0
+if [ "$SELF_TEST" = "1" ]; then
+  # 自测：目标 = 模板自带 example/，清单也是它下面那份。
+  # TARGET 必须指向【清单文件】而不是目录 —— 下方 PROJECT_ROOT 是按
+  # dirname(TARGET) 算的，若这里塞目录，PROJECT_ROOT 会退成模板根，
+  # 目标变成 <模板根>/server/framework/（= 源自身），组装时报一堆
+  # "cp: ... are the same file" 且什么都装不出来（实测踩坑）。
+  TARGET="$DEFAULT_TARGET/assemble.json"
+  TO_SPECIFIED=1
+elif [ -n "$MANIFEST_FILE" ]; then
+  [ -f "$MANIFEST_FILE" ] || { err "❌ 清单文件不存在: $MANIFEST_FILE"; exit 1; }
+  [ "$(basename "$MANIFEST_FILE")" = "assemble.json" ] || {
+    err "❌ --to 需要指向 assemble.json（收到: $(basename "$MANIFEST_FILE")）"; exit 1; }
+  TARGET="$(cd "$(dirname "$MANIFEST_FILE")" && pwd)/assemble.json"
+  TO_SPECIFIED=1
 fi
-
-STYLE_DIR="$TEMPLATES_DIR/_${STYLE}-style"
-[ -d "$STYLE_DIR" ] || { err "❌ 模板目录缺失: $STYLE_DIR"; exit 1; }
+if [ -n "$TARGET" ]; then
+  PROJECT_ROOT="$(dirname "$TARGET")"
+fi
 
 # --check：只做清单一致性检查，不组装。
 # 作用：①找出项目里存在、但 json 清单两端都没提到的文件（清单外文件）
 #       ②按清单两端（模板源 → 项目目标）逐文件 md5 比对，报不一致
-# 用法：./setup.sh <风格> --to <项目根> --check [--with 组件]
+# 用法：./setup.sh --to <项目根>/assemble.json --check
 if [ "$CHECK_ONLY" = "1" ]; then
-  # 清单取目标项目根下的 assemble.json（没有则用模板自测清单）
-  if [ -f "$TARGET/assemble.json" ]; then
-    CHECK_MANIFEST="$TARGET/assemble.json"
-  elif [ -f "$ROOT/server/project/blueprint/assemble.json" ]; then
-    CHECK_MANIFEST="$ROOT/server/project/blueprint/assemble.json"
-  else
-    err "❌ 找不到 assemble.json（项目根: $TARGET）"; exit 1
-  fi
+  # 缺省清单 = 模板自带 example/assemble.json（--to 未给时；--to 已保证 MANIFEST_FILE 存在）
+  CHECK_MANIFEST="${TARGET:-$DEFAULT_TARGET}"
+  [ -f "$CHECK_MANIFEST" ] || { err "❌ 找不到清单: $CHECK_MANIFEST"; exit 1; }
   # 素材基准：清单键固定写 server/...，按素材实际位置解析（synced/模板两种布局通用）
   CHECK_BASE="$("$NODE_BIN" "$MANIFEST_TOOL" resolve-base "$ROOT" 2>/dev/null || echo "$ROOT")"
-  "$NODE_BIN" "$MANIFEST_TOOL" check "$CHECK_MANIFEST" "$TARGET" "$CHECK_BASE"
+  "$NODE_BIN" "$MANIFEST_TOOL" check "$CHECK_MANIFEST" "$PROJECT_ROOT" "$CHECK_BASE"
   exit $?
 fi
 
-# 目标 server 目录（--to 传项目根，server 在其下；assemble.json 的值同样相对项目根）
-# --to 归一：文档写的是 `--to <项目>/server`，而下面按「项目根」推导 SERVER_DIR
-# （SERVER_DIR=$TARGET/server）。两种写法都接受，避免传 server/ 时落到
-# <项目>/server/server/（幽灵目录：组装全报成功，真实文件一个没更新）。
-if [ "$TO_SPECIFIED" = "1" ] && [ "$(basename "$(cd "$TARGET" 2>/dev/null && pwd || echo "$TARGET")")" = "server" ]; then
-  TARGET="$(cd "$TARGET/.." 2>/dev/null && pwd || echo "$TARGET/..")"
-fi
-SERVER_DIR="$TARGET/server"
+# 目标 server 目录（TARGET 已在参数区由清单反推为项目根；清单值同样相对项目根）
+SERVER_DIR="$PROJECT_ROOT/server"
 
-echo "══ 组装 $STYLE 风格 → $TARGET ══"
+# ---------- 清单外文件扫描（--untracked <清单>）----------
+# 扫清单所在目录的整棵树（含子目录），列出不在清单里的文件；
+# 被 .gitignore 忽略的（.git/、node_modules/、构建产物、本地配置等）不计入。
+# 与 --check 的分工：check 只比对清单两端是否同步，本命令回答「目录里还有什么没进清单」。
+if [ "$UNTRACKED_ONLY" = "1" ]; then
+  if [ -z "$MANIFEST_FILE" ]; then
+    err "❌ --untracked 需要配合 --to <清单> 指定要扫描的清单"
+    exit 1
+  fi
+  [ -f "$MANIFEST_FILE" ] || { err "❌ 清单不存在: $MANIFEST_FILE"; exit 1; }
+  echo "══ 清单外文件扫描 ══"
+  "$NODE_BIN" "$MANIFEST_TOOL" untracked "$MANIFEST_FILE" "$(cd "$(dirname "$MANIFEST_FILE")" && pwd)"
+  exit $?
+fi
+
+# ---------- 结构迁移（--migrate <旧清单> + --to <新清单>）----------
+# 场景：项目里已有素材，但结构要重排（如 framework/ 平铺 → 分子目录）。
+#   旧清单说明「文件现在在哪」（按其 dst），新清单说明「该搬到哪」（按其 dst）。
+#   按落点的**文件名**配对（结构重排通常只改目录层级、不改文件名），
+#   然后移动磁盘文件；移动后再改写被搬文件的相对引用。
+if [ -n "$MIGRATE_FROM" ]; then
+  if [ -z "$MANIFEST_FILE" ]; then
+    err "❌ --migrate 需要配合 --to <新清单>（旧清单说现状，新清单说目标）"
+    exit 1
+  fi
+  [ -f "$MIGRATE_FROM" ] || { err "❌ 旧清单不存在: $MIGRATE_FROM"; exit 1; }
+  echo "══ 结构迁移 ══"
+  echo "  旧清单: $MIGRATE_FROM"
+  echo "  新清单: $MANIFEST_FILE"
+  # 缺省就是真迁移（--dry-run 才预演）：迁移是常规操作，不该每次都要额外加参数。
+  # 注意用 if 而非 `[ ... ] && ...`：后者在条件为假时返回非零，配合 set -e 语义
+  # 或后续判断容易误判成失败（实测：导致 --write 一直没传上、只预演不执行）。
+  if [ "$DRY_RUN" = "1" ]; then
+    "$NODE_BIN" "$MANIFEST_TOOL" migrate "$MIGRATE_FROM" "$MANIFEST_FILE" \
+      --proj-root="$PROJECT_ROOT" --dry-run
+  else
+    "$NODE_BIN" "$MANIFEST_TOOL" migrate "$MIGRATE_FROM" "$MANIFEST_FILE" \
+      --proj-root="$PROJECT_ROOT" --write
+  fi
+  exit $?
+fi
+
+# ---------- 素材同步（--sync / --pull）----------
+# 两个方向共用同一份清单与同一套解析：
+#   --sync（下发）  模板 → 项目：把清单引用的**素材**按 src 结构落进项目的素材树
+#   --pull（回流）  项目 → 模板：把项目侧改过的**素材**改动写回模板仓库对应位置
+#
+# 为什么合并进 setup.sh：早先 scripts/sync-to-project.sh 声称复用本脚本的
+# _setup_copy_manifest，实际另写了 rsync/cp 一套落盘逻辑，两套实现对「目录条目」
+# 「后写覆盖」的解读不一致，是漏搬与误报的长期根源。现在只有一处实现、一个入口。
+#
+# 素材 vs 产出：清单里 src==dst 的条目是素材（templates/ 风格层、framework/ 框架、
+# project/blueprint/ 蓝图），要双向同步；src!=dst 的是组装产出（→ server/public/），
+# 由组装生成、不参与双向同步（回流产物无意义，下发也由 --to 组装负责）。
+if [ -n "$SYNC_MODE" ]; then
+  SYNC_MANIFEST="$TARGET"
+  if [ ! -f "$SYNC_MANIFEST" ]; then
+    err "❌ 找不到清单: $SYNC_MANIFEST"
+    err "   同步以清单为唯一真相——它声明「这个项目从模板取哪些素材」。"
+    exit 1
+  fi
+  "$NODE_BIN" "$MANIFEST_TOOL" validate "$SYNC_MANIFEST" "$ROOT" 2>&1 | sed 's/^/  /' || true
+
+  if [ "$SYNC_MODE" = "project" ]; then
+    echo "══ 下发素材 → $PROJECT_ROOT ══"
+    echo "  -- 清单: $SYNC_MANIFEST"
+    SRC_BASE="$ROOT"; TARGET="$PROJECT_ROOT"; ASSEMBLE_FILE="$SYNC_MANIFEST"
+    # 落点模式 tree：按清单 src 还原素材树结构（server/templates/_<风格>-style/...）
+    COPY_LAYOUT=tree _setup_copy_manifest
+    echo ""
+    ok "✅ 素材已下发（产出请再跑一次不带 --sync 的组装）"
+  else
+    echo "══ 回流改动 $PROJECT_ROOT → 模板 ══"
+    echo "  -- 清单: $SYNC_MANIFEST"
+    # 缺省只预演（列出差异）；--write 才真写回，且写前备份模板原文件
+    "$NODE_BIN" "$MANIFEST_TOOL" pull "$SYNC_MANIFEST" "$PROJECT_ROOT" "$ROOT" \
+      $( [ "$PULL_WRITE" = "1" ] && echo --write )
+    exit $?
+  fi
+  exit 0
+fi
+
+echo "══ 组装 → $PROJECT_ROOT ══"
 
 
 ASSEMBLE_FILE="$(find_assemble || true)"
 if [ -z "$ASSEMBLE_FILE" ]; then
   # 生成位置与 find_assemble 的首选查找位置保持一致：
-    #   --to 时首查 $TARGET —— TARGET 在上方已归一为「项目根」（传 <项目>/server 也会被剥成项目根），
-    #   故生成位置即 $TARGET/assemble.json。历史缺陷：曾写成 "$TARGET/.." 多退一层，
-    #   导致提示的 cp 目标落到 <项目根>/../assemble.json（幽灵位置），生成后也找不到。
-  if [ "$TO_SPECIFIED" = "1" ]; then GEN_PATH="$TARGET/assemble.json"; else GEN_PATH="$TARGET/assemble.json"; fi
+    # 生成位置 = 项目根下的 assemble.json（与 find_assemble 首查位置一致）。
+    # 历史缺陷：曾写成 "$TARGET/.." 多退一层，提示的 cp 目标落到幽灵位置。
+  GEN_PATH="$PROJECT_ROOT/assemble.json"
 
   err "❌ 未找到 assemble.json"
   err "   目标项目根需要它声明：从模板取哪些文件到本项目"
@@ -336,27 +458,11 @@ if [ -z "$ASSEMBLE_FILE" ]; then
     exit 1
   fi
 
-  printf '\n是否生成带注释的空模板？[y/N] '
+  printf '\n是否生成空白清单骨架？[y/N] '
   read -r ans || ans=""
   case "$ans" in
     y|Y|yes|YES)
-      if ! python3 - "$GEN_PATH" <<'PYGEN'
-import json, sys
-path = sys.argv[1]
-# 清单不带注释段：字段含义与用法统一写在模板仓库 README 的
-# 「assemble.json（按需取用）」章节，避免同一份说明在多处漂移。
-m = {
-    "files": {},
-    "init": False,
-}
-with open(path, "w", encoding="utf-8") as f:
-    json.dump(m, f, ensure_ascii=False, indent=2)
-    f.write("\n")
-# 回读校验，确保写出的确实是合法 JSON
-with open(path, encoding="utf-8") as f:
-    json.load(f)
-PYGEN
-      then
+      if ! "$NODE_BIN" "$MANIFEST_TOOL" generate "$GEN_PATH"; then
         err "   ❌ 生成失败（目录不可写？）: $GEN_PATH"
         exit 1
       fi
@@ -396,7 +502,8 @@ if [ -n "$NODE_BIN" ]; then
 else
   INIT_FLAG=1
 fi
-mkdir -p "$SERVER_DIR/public"
+# 不在这里 mkdir public/：清单条目落到 public/ 时复制分支已 mkdir -p 父目录，
+# brand.json 由下面第 3b 段自己建父目录（谁写文件谁负责建目录）。
 if [ "$INIT_FLAG" = "1" ]; then
   for f in app.js config.schema.json; do
     if [ ! -f "$SERVER_DIR/$f" ] && [ -f "$BLUEPRINT_DIR/$f" ]; then
@@ -408,27 +515,14 @@ else
   echo "  ✓ 跳过蓝图骨架初始化（assemble.json init=false，项目自带 app.js/config）"
 fi
 
-# 1b. CJS 启动器（父目录 "type":"module" 时必需；不写本地 package.json）
-#     boot.cjs 加载 lib/cjs-bootstrap.cjs（只劫持本项目根内的 .js）
-if [ ! -f "$SERVER_DIR/boot.cjs" ]; then
-  BOOTSTRAP_SRC=""
-  for c in "$SERVER_DIR/framework/cjs-bootstrap.cjs" "$TEMPLATES_DIR/../framework/cjs-bootstrap.cjs"; do
-    [ -f "$c" ] && BOOTSTRAP_SRC="$c" && break
-  done
-  if [ -n "$BOOTSTRAP_SRC" ]; then
-    mkdir -p "$SERVER_DIR/lib"
-    cp "$BOOTSTRAP_SRC" "$SERVER_DIR/lib/cjs-bootstrap.cjs"
-    cat > "$SERVER_DIR/boot.cjs" <<'BOOT'
-// 零依赖启动器：强制本项目 .js 按 CommonJS 加载。
-// 父目录 package.json 为 "type":"module" 时，直接 node app.js 会被当 ESM 导致 require 失败。
-// .cjs 永远是 CJS；只劫持本项目根内的 .js，项目外仍走 Node 原逻辑。
-"use strict";
-require("./lib/cjs-bootstrap.cjs");
-require("./app.js");
-BOOT
-    echo "  ✓ boot.cjs + lib/cjs-bootstrap.cjs → 目标（CJS 启动器）"
-  fi
-fi
+# 1b. CJS 启动器（boot.cjs + cjs-bootstrap.cjs）改由清单下发，不在这里生成。
+#     理由：脚本硬编码具体文件路径，会与「清单即唯一真相」冲突——
+#     框架目录一改结构（如 framework/ 平铺 → 分子目录），这里的路径就静默失效，
+#     表现为新项目 boot.cjs 根本不生成、而脚本没有任何提示。
+#     现在这两条写在项目清单里：
+#       "server/project/blueprint/boot.cjs":               "server/boot.cjs"
+#       "server/lib/cjs-bootstrap.cjs":                    "server/lib/cjs-bootstrap.cjs"
+#     路径对不上时，--check 会直接报「缺失」，而不是悄悄跳过。
 
 # 2. 按 assemble.json 组装（清单由各项目自己维护）
 #     assemble.json 放在目标项目根（--to 指向的 server/ 的上一级，或模板根缺省）。
@@ -465,6 +559,7 @@ else
   if [ -z "$NODE_BIN" ]; then
     :                                # 无 node：跳过（前面清单复制已会报错退出）
   else
+    mkdir -p "$(dirname "$BRAND_JSON")"
     "$NODE_BIN" "$MANIFEST_TOOL" brand "$ASSEMBLE_FILE" "$BRAND_JSON"
     rc=$?
     if [ "$rc" = "0" ]; then
@@ -475,39 +570,11 @@ else
   fi
 fi
 
-# 4. 混搭组件叠加（同名不覆盖，以主风格为准；只叠加前端）
-if [ -n "$WITH" ]; then
-  echo ""
-  echo "── 混搭组件叠加 ──"
-  OLD_IFS="$IFS"; IFS=','
-  for comp in $WITH; do
-    IFS="$OLD_IFS"
-    comp="$(echo "$comp" | tr -d ' ')"
-    [ -z "$comp" ] && continue
-    if [ -z "${COMPONENTS[$comp]:-}" ]; then
-      warn "  ⚠️  未知组件: $comp （跳过）"
-      continue
-    fi
-    IFS='|' read -r src_style pub_files <<< "${COMPONENTS[$comp]}"
-    SRC_DIR="$TEMPLATES_DIR/_${src_style}-style"
-    echo "  ▶ $comp（来源 $_${src_style}-style）"
-    if [ -n "$pub_files" ]; then
-      IFS=','; for f in $pub_files; do
-        if [ -f "$SRC_DIR/public/$f" ]; then
-          mkdir -p "$SERVER_DIR/public/$(dirname "$f")"
-          cp -f "$SRC_DIR/public/$f" "$SERVER_DIR/public/$f"
-          echo "      public/$f"
-        fi
-      done; IFS='|'
-    fi
-    IFS="$OLD_IFS"
-  done
-  IFS="$OLD_IFS"
-fi
+# （--with 混搭组件已移除：素材来源由清单声明，不再需要按风格名叠加）
 
 echo ""
-ok "✅ $STYLE 风格前端组装完成${WITH:+（混搭: $WITH）}"
-echo "   目标: $TARGET"
+ok "✅ 前端组装完成"
+echo "   目标: $PROJECT_ROOT"
 echo "   public/ : $(find "$SERVER_DIR/public" -type f | wc -l) 个文件"
 echo ""
 warn "注意："

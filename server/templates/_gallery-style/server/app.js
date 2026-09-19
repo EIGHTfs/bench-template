@@ -31,7 +31,7 @@ const {
   readBody,
   appLog,
   auth: fwAuth,
-} = require("./framework");
+} = require("./core/index.js");
 
 
 
@@ -185,7 +185,9 @@ createServer({
     "/api/gif",
   ],
   needsSetup,
-  loginPath: "/login.html",
+  // 画廊没有登录页：登录走页面内的 🔒 弹窗（index.html 的 loginModal + POST /api/login），
+  // 故不声明 loginPath —— 留空表示「本服务无独立登录页」，框架不会 302 到不存在的地址。
+  loginPath: "",
   // 页面不设登录门：游客直接进画廊看图，也能上传到「游客」分类；
   // 设置 / 收藏 / 改密等写操作由各路由的 requireAuth 把关。
   guestPages: true,

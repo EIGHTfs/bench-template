@@ -17,9 +17,9 @@
 // ============================================================
 "use strict";
 
-const { sendJson, readBody, auth } = require("../framework");
-const { tableFromRegister } = require("../framework/routes-adapter");
-const routesAuth = require("../framework/routes-auth");
+const { sendJson, readBody, auth } = require("../core/index.js");
+const { tableFromRegister } = require("../route/routes-adapter.js");
+const routesAuth = require("../route/routes-auth.js");
 
 // 依赖在注册时注入（闭包捕获），handler 签名仍是 (req, res)
 // cfg 由 app.js 在装配阶段通过 init 传入 —— 见下方 setDeps

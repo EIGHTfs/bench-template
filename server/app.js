@@ -26,7 +26,7 @@ const {
   appLog,
   auth,
 // 框架路径：组装后 app.js 与 framework/ 同级（同在 server/ 下）
-} = require("./core/index.js");
+} = require("./framework");
 
 // ---------- ① 配置 ----------
 appLog.install();

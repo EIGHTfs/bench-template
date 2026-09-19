@@ -5,7 +5,7 @@
 // ============================================================
 "use strict";
 
-const { createAutoUpdate } = require("../framework/auto-update.js");
+const { createAutoUpdate } = require("../update/auto-update.js");
 
 module.exports = createAutoUpdate({
   projectName: "gallery",

@@ -8,8 +8,8 @@ const fsp = fs.promises;
 const path = require("path");
 const urlMod = require("url");
 
-const { sendJson } = require("./http-utils");
-const { createFragmentAssembler } = require("./fragment-assembler");
+const { sendJson } = require("../http/http-utils.js");
+const { createFragmentAssembler } = require("../assemble/fragment-assembler.js");
 
 const DEFAULT_PORT = 3000;
 const CACHE_MAX_AGE = 3600;

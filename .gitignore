@@ -11,6 +11,12 @@ downloads/
 server/project/*
 !server/project/blueprint/
 
+# 模板自测产物：setup.sh --self-test 组装到 example/server/。
+# 只忽略产物目录，保留 example/assemble.json 与 ASSEMBLE-COVERAGE.md 这两个源文件
+# （setup.sh 注释里写的「见 .gitignore」原先并无对应规则，实测组装一次就会
+#  把 61 个产物文件暴露成未跟踪状态）。
+example/server/
+
 # 安全删除回收站 + setup.sh 备份
 server/templates/.trash-*/
 setup.sh.bak*

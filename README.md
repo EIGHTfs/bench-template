@@ -47,11 +47,54 @@ cd .. && ./start.sh start
 
 ## 三个概念
 
-| 概念 | 位置 | 说明 |
+| 概念 | 位置 | 该放什么 |
 |---|---|---|
-| **framework** | `server/framework/` | 通用后端 JS（HTTP 服务/鉴权/配置/路由工厂/备份/自动更新）。两个风格共用，改它两个项目同时受益 |
-| **templates** | `server/templates/` | 风格层素材：`_gbmd-style/` + `_iwara-style/`（前端素材：`public/` 非分片部件 + `fragments/` 特有分片）、`_gallery-style/`（前端素材 **+ `server/` 后端业务实现**） |
-| **blueprint** | `server/project/blueprint/` | 组装蓝图：共用框架/分片/静态资源 + `app.js`（入口骨架）+ `config.schema.json`。两风格共用文件（login、theme-init、search-date-range）在这里；组装时目标没有就从这里复制 |
+| **framework** | `server/framework/` | **只放通用 JS**（通用指「与风格无关、任何项目都同一份」）。按功能分子目录，见下 |
+| **lib** | `server/lib/` | **通用运行支撑件**：启停脚本、CJS 劫持等「不是业务逻辑、但每个项目都要有」的文件。下发到项目后同样落在 `server/lib/`（与项目自有业务 JS 同目录，靠文件名区分） |
+| **project** | `server/project/` | **只放通用 html / json / css**（不含 JS）。共用片段、样式、蓝图清单在这里 |
+| **templates** | `server/templates/` | 风格专属素材：`_<名>-style/`，html / css / js / json **都可以放** |
+
+**三条落位规则（新素材按此判断放哪）**：
+
+| 素材类型 | 放哪 | 判据 |
+|---|---|---|
+| 通用 JS（后端或前端） | `server/framework/` | 两个以上风格共用、内容一致 |
+| 通用运行支撑件（.sh / 启动劫持） | `server/lib/` | 每个项目都要有、但不属于业务逻辑 |
+| 通用 html / css / json | `server/project/blueprint/` | 两个以上风格共用、且不是 JS |
+| 风格专属（任意类型） | `server/templates/_<风格>-style/` | 只有该风格用，或各风格内容不同 |
+
+**`server/lib/` 的判据**：放进来的文件应满足「所有项目内容完全一致」，
+且与风格、业务无关——改它等于改所有项目。项目自有的业务 JS 也放 `server/lib/`，
+但那属于项目自己的代码，**不进模板、不进清单**。两类混在同一目录是有意为之：
+下发件与业务件在项目里同层，`require("../lib/xxx")` 不用区分来源。
+
+**framework 内部按功能分类**（子目录，模块间相对 `require` 由工具自动推导，见「路径映射与引用自动推导」）：
+
+| 子目录 | 职责 |
+|---|---|
+| `framework/core/` | 服务主体与聚合出口（`index.js` 是唯一对外出口） |
+| `framework/route/` | 路由核心：匹配、工厂、注册表、范式适配、鉴权/更新路由表 |
+| `framework/auth/` | 会话与密码校验 |
+| `framework/http/` | 底层通用件：HTTP 工具、HTML 工具、异步 IO、路径安全、同级模块定位 |
+| `framework/config/` | 配置装载与 schema 校验 |
+| `framework/store/` | 数据存取：JSON 目录、备份、标记清单 |
+| `framework/update/` | 自动更新 |
+| `framework/assemble/` | 页面片段装配、日期范围检索 |
+| `framework/frontend/` | 通用**前端** JS（`theme-init` / `login` / `setup-init` / `search-date-range` / `auto-update-card` / 入口骨架 `app.js`） |
+
+> **为什么前端 JS 也算 framework**：规则是「通用 JS 进 framework」，不区分前后端。
+> 判据是「是否通用」而非「跑在哪」——`project/` 只收非 JS，正是因为 JS 一律归 framework。
+
+**文件名括号标识（约定，按需启用）**：同一功能出现多种实现、需要彼此区分时，
+把描述写进**真实文件名**的括号里，靠**清单重命名**剥掉：
+
+```json
+"server/framework/route/route-core.js(默认线性匹配)": "server/framework/route/route-core.js",
+"server/framework/route/route-core.js(带通配符匹配)": "server/framework/route/route-core.js"
+```
+
+清单左值是素材原名（带括号），右值是落到项目后的真实路径（剥括号）。
+**只在重复时加**——不重复就用普通文件名，避免目录里全是括号噪音。
 
 **风格是自动发现的，不写死在脚本里**：`setup.sh` 遍历 `server/templates/` 下一层目录，
 把名为 `_<名>-style/` 的目录识别为一个风格，风格名取中间的 `<名>`。
@@ -72,6 +115,15 @@ cd .. && ./start.sh start
 组装时一并落到项目侧，作为该风格的完整业务素材分发。
 
 ---
+
+## 更多文档
+
+| 文档 | 内容 |
+|---|---|
+| [`docs/命令参数总览.md`](docs/命令参数总览.md) | `setup.sh` 与清单工具的全部参数、退出码、扫描范围差异 |
+| [`docs/清单驱动重构.md`](docs/清单驱动重构.md) | 多项目重复代码问题的成因与清单驱动解法、各功能实际作用 |
+| [`docs/旧项目模板化改造指南.md`](docs/旧项目模板化改造指南.md) | 把扁平架构的旧项目改为模板架构的实操记录 |
+| [`docs/前端片段化改造指南.md`](docs/前端片段化改造指南.md) | 整份 HTML 拆成片段、按需组装的实测数据 |
 
 ## 命令速查
 
@@ -100,19 +152,21 @@ cd .. && ./start.sh start
 
 #### `--check`：清单一致性检查（不组装）
 
-按清单两端（模板源 → 项目目标）逐文件 md5 比对，回答三个问题：
+按清单两端（模板源 → 项目目标）逐文件 md5 比对，回答两个问题：
 
 ```bash
-./setup.sh iwara --to /path/to/proj --check
+./setup.sh --to /path/to/proj/assemble.json --check
 ```
 
 | 输出类别 | 含义 |
 |---|---|
 | **不一致** | 清单某条两端内容不同——项目侧被改过（应改模板后重同步），或模板更新后未重新组装 |
 | **缺失** | 清单某条的某一侧不存在——未同步或未组装 |
-| **清单外文件** | 项目里存在、但清单两端都没提到的文件（扫描范围 = 清单目标涉及的顶层目录，如 `server/`） |
 
 退出码：有不一致或缺失 → `1`，可挂 CI。
+
+> 「清单外文件」原先也在这里报，现已独立为 `--untracked`：那需要扫**整棵目录树**并套 `.gitignore`
+> （项目文档、截图、本地配置本就该在清单外），与「两端是否同步」是两件事，混在一起只会长期报噪声。
 
 这是发现「改动改错了地方」的**主要手段**：公共能力（`framework/`、`blueprint/`）必须改在模板，
 若被改在项目侧，check 会把它报成「不一致」——此时应把改动补进模板再重新同步组装，
@@ -121,6 +175,43 @@ cd .. && ./start.sh start
 `check` 的比对遵循组装的**后写覆盖**语义：多个源写同一目标目录时（blueprint 提供共用底座、
 风格层提供该风格专属），取清单中最后一个提供该文件的源来比，因此「风格层有意覆盖 blueprint」
 不会误报为不一致（例：iwara 风格层的 `row-thumb.css` 覆盖 blueprint 的灯箱版）。
+
+#### `--untracked`：找出目录里不在清单的文件
+
+扫**清单所在目录的整棵树**（含子目录），列出不在清单里的文件：
+
+```bash
+./setup.sh --to /path/to/proj/assemble.json --untracked
+```
+
+被 `.gitignore` 忽略的文件不计入——**复用 git 自己的规则**（`.git/`、`node_modules/`、
+构建产物、日志、本地配置等），不自己实现匹配逻辑（gitignore 语义边角多，自实现必然与 git 漂移）。
+无 git、非仓库或无 `.gitignore` 时降级为「不忽略任何文件」并明确提示。
+
+发现清单外文件时**退出码为 1**，可挂 CI。
+
+用途：迁移/重构后确认「该进清单的都进了」，或反过来查「项目里这些文件是哪来的」。
+与 `--check` 的分工是——`check` 管「清单两端同不同步」，`untracked` 管「目录里还有什么没被清单覆盖」。
+
+```bash
+# 只想要机器可读结果（供脚本消费）
+node scripts/assemble-manifest.js untracked /path/to/proj/assemble.json --json
+```
+
+#### `--migrate`：按新结构搬文件并改引用
+
+项目已有素材、但结构要重排时（如 `framework/` 从平铺改为分子目录），用两份清单对照迁移：
+
+```bash
+./setup.sh --migrate <旧清单> --to <新清单> --dry-run   # 预演，不动盘
+./setup.sh --migrate <旧清单> --to <新清单>             # 执行
+```
+
+- **旧清单**说明「文件现在在哪」，**新清单**说明「该搬到哪」；
+- 按**落点文件名**配对（结构重排通常只改目录层级、不改文件名）；
+- 搬完**自动改写相对引用**：既改被搬文件内部的 `require`，也改**指向**被搬文件的那些
+  （如 `app.js` 的 `require("./framework")` → `./framework/core/index.js`）；
+- 同名文件多个时先按父目录精确配对，仍不能一一对应的**报歧义让人工核对，绝不瞎搬**。
 
 ### 体检：扫死文件
 
@@ -273,16 +364,66 @@ logo/icon 的文件本身仍要走 `files` 映射从风格模板拷进 `server/p
 清单内容会在初始化蓝图**之前**校验：JSON 语法错、`files` 不是对象、值不是字符串
 都会立即报错退出，不会留下「蓝图已初始化、`boot.cjs` 已生成」的半成品目录。
 
-### 混搭组件（`--with`）
+### 路径映射与引用自动推导
 
-| 组件 | 来源 | 前端内容 |
+清单的每条 `源 → 目标` **本身就是一份路径映射表**：素材在模板里的位置，搬到项目后往往变了
+（最典型的 `server/lib/cjs-bootstrap.cjs` → `server/lib/cjs-bootstrap.cjs`）。
+素材内部的相对引用（JS 的 `require("./x")`、HTML 的 `<script src="./x.js">`）如果还按老位置写，
+搬完就指不到人——**有映射表就不必手抄路径**，工具可以自动推。
+
+#### 推导三步
+
+以 `server/framework/update/auto-update.js` 里的 `require("../http/require-sibling")` 为例：
+
+| 步骤 | 做法 | 本例结果 |
 |---|---|---|
-| `play` | iwara | play.html + play-app.js + vendor/artplayer.js + iwara-logo.png |
-| `setup` | gbmd | setup.html + setup-init.js + path-picker.js + logo.png |
-| `search` | iwara | search-date-range.js |
-| `video` / `merge` | iwara / gbmd | 随主风格（无独立前端文件） |
+| ① 解析成源路径 | 按**源侧**把引用解析为模板内的逻辑位置 | `server/framework/http/require-sibling` |
+| ② 查表翻成目标路径 | 用清单映射（含补 `.js` 后缀、目录前缀替换） | `server/lib/require-sibling.js` |
+| ③ 按目标侧重算相对引用 | 从引用所在文件的目标位置出发 | `./require-sibling.js` |
 
-**混搭边界**：主应用（`index.html + app.js + style.css`）是整体，二选一不可拆；附加页（play.html / setup.html / vendor/）可跨风格叠加。
+于是引用自动跟着落点走：**改目录结构、改落点，都不用逐个手改引用**。
+
+#### 两个工具
+
+**`scripts/scan-framework-refs.js` —— 扫描，给分类整理当依据**
+
+```bash
+node scripts/scan-framework-refs.js            # 全量报告
+node scripts/scan-framework-refs.js --cycles   # 只查循环依赖（拆目录前必跑）
+node scripts/scan-framework-refs.js --json     # 机器可读
+```
+
+输出三块：每个模块的**正向依赖（→ 它 require 谁）与反向引用（← 谁 require 它）**、
+**循环依赖检测**、**前端脚本/样式表被哪些 html 引用**（判断某 js 算不算「前端域」）。
+
+拆子目录前先跑 `--cycles`：**有环就不能直接拆**（移动任一侧都会断链），无环才安全。
+
+**`scripts/rewrite-refs.js` —— 按映射改写相对引用**
+
+```bash
+node scripts/rewrite-refs.js <清单>            # 预演：只列出「旧引用 ⇒ 新引用」
+node scripts/rewrite-refs.js <清单> --apply     # 执行：写回模板源文件
+```
+
+只处理**相对引用**（`./` `../` 开头）。外部包、绝对路径、以及跨边界引用
+（如风格层 `app.js` 里的 `require("./framework")` —— 它指的是项目**组装后**的位置，
+清单里没有对应源）一律不动，并在报告里标 `⚠️ 无法解析` 供人工判断。
+
+#### 三个已踩的坑（工具里已处理）
+
+| 坑 | 现象 | 处理 |
+|---|---|---|
+| **注释里的示例代码被当成真依赖** | `require-sibling.js`、`routes-adapter.js` 的用法示例写在注释里，扫出两个**假的自引用循环依赖** | 解析前先剥块注释与行注释 |
+| **`require` 省略后缀** | 素材普遍写 `require("./x")`（无 `.js`），而清单键是 `x.js`，**全部匹配不上** | 查表时补 `.js`/`.cjs`/`.mjs`，并支持目录 `index.js` |
+| **HTML 引用的缓存查询串** | `./app.js?v=48` 被当成路径一部分，报「无法解析」 | 比对与改写只看路径，查询串原样接回 |
+
+另外：算出的新路径若与**原写法等价**（都是 `./x` 而只是一个带 `.js` 后缀），**保留原写法**——
+避免产生无意义的 diff 噪音。
+
+#### 风格与组件
+
+用哪套素材**由清单决定**，`setup.sh` 没有风格参数。要跨风格叠加素材（如 iwara 项目加
+gbmd 的设置向导页面），直接在清单里加对应条目即可，同名文件以**清单顺序靠后者**为准。
 
 ### 启停
 
@@ -348,13 +489,13 @@ registry.routePublic(["GET","HEAD"], /^\/avatar\//, handler);
 只能各自手抄一份同逻辑的表式实现：这正是通用件注释里吐槽的**「逻辑漂移」**来源
 （remember 长会话一处有一处没有、改密验旧密码一处有一处没有、会话文件一处落 `server/` 一处落 `json/`）。
 
-`framework/routes-adapter.js` 把这条鸿沟填上——**调用一次闭包式注册件，把 `route` / `routePublic`
+`framework/route/routes-adapter.js` 把这条鸿沟填上——**调用一次闭包式注册件，把 `route` / `routePublic`
 收集成表**，返回 `createRoute` 可直接消费的表：
 
 ```js
 // server/routes/auth.js（表式项目复用闭包式通用件，全部内容）
-const { tableFromRegister } = require("../framework/routes-adapter");
-const authRoutes = require("../framework/routes-auth");
+const { tableFromRegister } = require("../framework/route/routes-adapter");
+const authRoutes = require("../framework/route/routes-auth");
 
 module.exports = tableFromRegister(authRoutes, {
   cfg, auth, sendJson, readBody, setSessionCookie,
@@ -497,7 +638,7 @@ dataBackup.readManifest();                 // 读清单（文件缺失/损坏会
 
 ```js
 // server/lib/auto-update.js（项目实例，约 20 行）
-const { createAutoUpdate } = require("../framework/auto-update.js");
+const { createAutoUpdate } = require("../framework/update/auto-update.js");
 
 module.exports = createAutoUpdate({
   projectName: "my-downloader",       // 日志前缀 + User-Agent
@@ -517,7 +658,7 @@ module.exports = createAutoUpdate({
 | `extraExclude` | **github 模式** | 列出的路径**绝不覆盖**（运行态数据、本机权威配置） |
 | `extraWatchExclude` | **watch 模式** | 列出的路径**改动不触发重启**（前端框架/片段，由组装器 mtime 热更新） |
 
-框架实现只有一份（`framework/auto-update.js`），改框架代码全部项目受益；项目侧别再拷贝框架主体。
+框架实现只有一份（`framework/update/auto-update.js`），改框架代码全部项目受益；项目侧别再拷贝框架主体。
 
 重启走 `./start.sh restart`（项目唯一启停入口）。
 
@@ -545,7 +686,7 @@ module.exports = createAutoUpdate({
 if (window.AutoUpdateCard) window.AutoUpdateCard.mount();
 ```
 
-卡片对应 4 个框架层接口（各项目 `routes/auto-update.js` 已提供）：`GET /api/auto-update/status`、`POST /api/auto-update/config`、`POST /api/auto-update/check`、`POST /api/auto-update/restart`。后端能力来自 `framework/auto-update.js`，前端能力来自这个公共件——两头都不用在项目里重复实现。
+卡片对应 4 个框架层接口（各项目 `routes/auto-update.js` 已提供）：`GET /api/auto-update/status`、`POST /api/auto-update/config`、`POST /api/auto-update/check`、`POST /api/auto-update/restart`。后端能力来自 `framework/update/auto-update.js`，前端能力来自这个公共件——两头都不用在项目里重复实现。
 
 ---
 
@@ -772,7 +913,8 @@ dl-server-template/
 
 | 版本 | 内容 |
 |---|---|
-| 1.7.14 | **支持「无独立登录页」的项目 + 修两个鉴权缺陷**：①`framework/app.js` 的 `loginPath` 允许传空串，表示本服务没有独立登录页（登录走页面内弹窗，如 gallery 的 🔒）。原先未登录的页面请求一律 `302 Location: <loginPath>`，项目若不分发登录页就会跳到 404；现 `loginPath` 为空时改为回 `401 JSON {ok:false,error:"未登录",needsLogin:true}`，不写 `Location` 头。②**修白名单空串放行漏洞**：`whitelist = [loginPath, "/api/auth/", ...].concat(extraPaths)` 未过滤空值，而 `isWhitelisted` 用 `pathname.startsWith(entry)` 判定——`startsWith("")` 恒为 `true`，只要 `loginPath` 为空（新支持的用法）就会让**所有路径无条件放行**；现加 `.filter(Boolean)` 剔除空串。此缺陷在 `loginPath` 只能为非空默认值的旧约束下不可达，随①的新用法一并引入风险，故同时堵上。③`loginPath` 默认值保持 `"/login.html"` 不变，gbmd/iwara 行为零变化（两者均显式或隐式使用登录页，文件照常分发）。验证：gallery 组装产物与项目逐文件一致、`--to` 组装缺失 0；设 scrypt 密码后实测——未登录 `POST /api/gallery`、`POST /api/change-password` 均 401，登录后放行，不存在的页面未登录返回 404（证明空串未污染白名单）；gbmd 清单组装缺失 0 不回归 |
+| 1.7.15 | **迁移能力补全 + 模板 lib/ 归位 + 组装缺陷修复**：①`assemble-manifest migrate` 的工作列表从「清单条目」扩到「项目内全部 js/cjs」——此前只处理清单提到的文件，漏掉不在清单、却 require 框架的业务代码（实测 gbmd 有 12 个 `server/routes/*.js` 因此未被改写，迁移后启动报 `Cannot find module '../framework'`）；判定改不改仍由「旧落点→新落点」映射决定，解析不到旧落点一律不动，不误伤。②`--dry-run` 预演新增「引用将被改写 N 处（涉及 M 个文件）」清单，逐条列出 `旧引用 ⇒ 新引用`，并标出「本文件也会移动 → 新落点」；预演跑的是与实际执行同一份逻辑的只读模式，不会出现「预演说没事、执行却改了」。③`setup.sh` 内联 python 生成清单改为调新子命令 `assemble-manifest generate <路径>`——清单结构属于工具的知识，散在脚本里会与 `validate`/`loadManifest` 各写一份、逐渐漂移；同时修提示文案（原写「带注释的空模板」，实际无注释）。④新增概念 **lib**（`server/lib/` 放通用运行支撑件）：启停脚本 `start.sh` 与 CJS 劫持 `cjs-bootstrap.cjs` 归位到模板 `server/lib/`，经清单下发到项目根 / `server/lib/`；README「三个概念」与落位判据同步补 lib 一行。⑤删 `setup.sh` 里冗余的 `mkdir -p server/public`（清单条目落到 public/ 时复制分支已建父目录），改为由 `brand.json` 生成处自建父目录——谁写文件谁负责建目录。⑥模板源 `server/templates/_gallery-style/` 与 `server/project/blueprint/` 共 5 个文件 10 处仍写着旧布局引用（`require('./framework')`、`../framework/routes-auth` 等），导致任何新项目组装后都无法启动（实测 `Cannot find module './framework'`）；已全部改为新结构路径，全新项目组装后启动正常。⑦`.gitignore` 补 `example/server/`：`setup.sh` 注释里写「产物不入库（见 .gitignore）」，但并无对应规则，实际组装一次就把 61 个产物文件暴露成未跟踪状态；现只忽略产物目录，保留 `example/assemble.json` 与 `ASSEMBLE-COVERAGE.md`。⑧修 `example/assemble.json`（模板自测清单）残留的旧路径 `server/framework/core/cjs-bootstrap.cjs` → `server/lib/cjs-bootstrap.cjs`，自测从「缺失 1 个」恢复为「缺失 0 个」。 |
+ + 修两个鉴权缺陷**：①`framework/app.js` 的 `loginPath` 允许传空串，表示本服务没有独立登录页（登录走页面内弹窗，如 gallery 的 🔒）。原先未登录的页面请求一律 `302 Location: <loginPath>`，项目若不分发登录页就会跳到 404；现 `loginPath` 为空时改为回 `401 JSON {ok:false,error:"未登录",needsLogin:true}`，不写 `Location` 头。②**修白名单空串放行漏洞**：`whitelist = [loginPath, "/api/auth/", ...].concat(extraPaths)` 未过滤空值，而 `isWhitelisted` 用 `pathname.startsWith(entry)` 判定——`startsWith("")` 恒为 `true`，只要 `loginPath` 为空（新支持的用法）就会让**所有路径无条件放行**；现加 `.filter(Boolean)` 剔除空串。此缺陷在 `loginPath` 只能为非空默认值的旧约束下不可达，随①的新用法一并引入风险，故同时堵上。③`loginPath` 默认值保持 `"/login.html"` 不变，gbmd/iwara 行为零变化（两者均显式或隐式使用登录页，文件照常分发）。验证：gallery 组装产物与项目逐文件一致、`--to` 组装缺失 0；设 scrypt 密码后实测——未登录 `POST /api/gallery`、`POST /api/change-password` 均 401，登录后放行，不存在的页面未登录返回 404（证明空串未污染白名单）；gbmd 清单组装缺失 0 不回归 |
 | 1.7.13 | **新增路由范式适配器 + gallery 风格层携带后端 + 启停脚本去项目耦合**：①新增 `server/framework/routes-adapter.js`（`tableFromRegister(register, deps, opts)`）——把闭包式 `register(api)` 通用件转成 `createRoute` 表式，公开路由挂在返回值 `.public`（对齐 gbmd 的 `module.exports.public` 约定），`opts.prefix` 可加路径前缀；表式项目因此能直接复用 `framework/routes-auth.js`、`framework/routes-auto-update.js`，不必再手抄同逻辑实现。gallery 的 `routes/auth.js` 89 → 44 行、`routes/auto-update.js` 89 → 37 行，两文件改为注入依赖后延迟装配（`init(deps)`）。②gallery 风格层新增后端：`server/templates/_gallery-style/` 除 `public/` 与 `config.schema.json` 外，现含 `server/app.js` + `server/lib/`（archive/auto-update/config/gif/scan/util）+ `server/routes/`（archive/auth/auto-update/browse/favorites/gallery/upload）——本仓库第一个「后端也进风格层」的风格，风格层从「只带前端素材」扩展为「可按需携带自己的业务实现」。`lib/cjs-bootstrap.cjs` 仍属框架下发文件，不在风格层。③修 `setup.sh` 的 `GEN_PATH` 路径 bug：`$TARGET` 在上方已归一为「项目根」（`--to <项目>/server` 会被剥成项目根），原先再拼 `$TARGET/..` 多退一层，报错提示里的 `cp` 目标落到 `<项目根>/../assemble.json` 幽灵位置，且若真在该处生成、`find_assemble`（只查 `$TARGET` 与 `$TARGET/..`）也找不到而陷入死循环；现统一为 `GEN_PATH="$TARGET/assemble.json"`（实测 `--to tmp/gp2/server`：修复前落 `.../工作区/tmp/assemble.json`、修复后落 `.../工作区/tmp/gp2/assemble.json`）。④`start.sh` 通用化三处：`legacy_pid_files()` 去掉写死的 `gbmd.pid` / `/tmp/gbmd.pid` / `/tmp/gbmd-macos.pid`，改为只按 `$PROJECT_NAME` 枚举（`server/app.pid`、`server/<项目名>.pid`、`/tmp/<项目名>.pid`、`/tmp/<项目名>-macos.pid`、`/tmp/start-<项目名>.pid`）；新增 `TOOL_DIR` 探测，`tools/` 与 `tool/` 两种命名都认（gallery 用 `tools/`、gbmd/iwara 用 `tool/`），`PATH` 与 `FFMPEG` 基于它，`find_node()` 候选同步覆盖两种布局；默认端口改为优先读 `server/config.schema.json` 的 `port.default`（gallery 8081，gbmd/iwara 未声明回落 8642），不再写死 8642。结果：gallery / gbmd / iwara 三项目共用同一份 `start.sh`（分发后 md5 一致），无需按项目改脚本。⑤`framework/app.js` 启动日志补局域网地址：`server.listen(port)` 不传 host 时监听 `::`/`0.0.0.0`（局域网可访问），原日志只打 `http://localhost:<port>` 易被误读成只能本机访问，现输出 `服务启动: http://localhost:<port>  (局域网: http://<本机IP>:<port>)` |
 | 1.7.12 | **`--check` 支持「整目录条目 + 单文件条目写同一目标」**：清单可既用整目录取件、又对个别文件逐条显式列出（便于看清谁覆盖谁），但 `--check` 原先只认目录型条目的源，把逐文件列出的件判成「无任何源提供」、或与目录源比不中而误报（实测 iwara 拆出 8 条后误报 8 项）。现 `_checkDirEntry` 把「写该目标的单文件条目源」一并算作提供者，正向比对与反向孤儿判定都纳入。验证：iwara 拆分为 8 条具体条目后 `--check` 由 8 项不一致回到 0；负向测试人为改坏`row-thumb.css`（双源件）报 2 项、改坏 `scripts.html`（单文件条目件）准确报 1 项并指出条目，重新组装后归零；gbmd 回归仍 0 项不一致 |
 | 1.7.11 | **风格列表改为目录自动发现，不再硬编码**：`setup.sh` 原写死 `STYLES="gbmd iwara"`，新增风格必须改脚本本身。现改为遍历 `server/templates/` 下一层，把 `_<名>-style/` 目录识别为风格（风格名取中间段），新增风格只需建目录、`--list` 立即列出，脚本零改动。不合规目录名（`.trash-*`、备份、临时目录）自动跳过；列表去重排序，`--list` 与「未知风格」提示输出稳定可复现。同步清理写死风格的两处文案：`setup.sh` 用法/示例与 `blueprint/app.js` 的报错提示改为「`<风格>`，见 `--list`」；README 补「风格自动发现」说明。验证：新建 `_teststyle-style/` 自动出现、`_dash-style` 识别为 `dash`、`.trash-*`/`_backup`/`regular-dir`正确跳过、连跑 3 次输出一致；gbmd/iwara 端到端组装各 48 文件、framework 20 模块、无幽灵目录，gbmd `--check` 0 项不一致 |

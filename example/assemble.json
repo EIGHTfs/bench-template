@@ -9,7 +9,7 @@
   ],
   "files": {
     "server/framework/": "server/framework/",
-    "server/framework/core/cjs-bootstrap.cjs": "server/lib/cjs-bootstrap.cjs",
+    "server/lib/cjs-bootstrap.cjs": "server/lib/cjs-bootstrap.cjs",
     "server/project/blueprint/login.html": "server/public/login.html",
     "server/project/blueprint/login.js": "server/public/login.js",
     "server/project/blueprint/setup.html": "server/public/setup.html",

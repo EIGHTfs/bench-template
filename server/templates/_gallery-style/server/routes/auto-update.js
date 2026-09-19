@@ -12,9 +12,9 @@
 // ============================================================
 "use strict";
 
-const { sendJson, readBody } = require("../framework");
-const { tableFromRegister } = require("../framework/routes-adapter");
-const routesAutoUpdate = require("../framework/routes-auto-update");
+const { sendJson, readBody } = require("../core/index.js");
+const { tableFromRegister } = require("../route/routes-adapter.js");
+const routesAutoUpdate = require("../route/routes-auto-update.js");
 // 项目实例：lib/auto-update.js（引框架工厂 + 传 gallery 参数）
 const autoUpdate = require("../lib/auto-update");
 
