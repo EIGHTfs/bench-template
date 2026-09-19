@@ -69,8 +69,8 @@ async function main() {
   html.includes("下载 Mod")
     ? ok("混搭生效：download 面板为 gbmd 版")
     : bad("download 面板不是 gbmd 版（混搭失效）");
-  html.includes('src="app.js"')
-    ? ok("业务前端 app.js 已被引用")
+  html.includes('src="app.js') || html.includes('src=\'app.js')
+    ? ok("业务前端 app.js 已被引用（带版本参数）")
     : bad("app.js 未被引用");
 
   // --- style.css（片段装配完整性） ---
@@ -112,18 +112,26 @@ async function main() {
         doc.getElementById("panel-search").classList.contains("active") &&
         doc.getElementById("panel-search").style.display !== "none";
       clickOk ? ok("交互级：点击 search 标签 → 面板切换生效") : bad("交互级：tab 切换未生效");
-      const rows = doc.querySelectorAll(".example-items-table tr").length;
-      rows >= 3 ? ok("交互级：假数据表格渲染（" + rows + " 行）") : bad("交互级：假数据表格未渲染");
-      const prHtml = doc.getElementById("panel-progress").innerHTML;
-      const prHasItems = prHtml.includes("星辉长枪") && prHtml.includes("示例下载项");
+      const rows = doc.querySelectorAll("#taskList .item").length;
+      rows >= 3 ? ok("交互级：假数据列表渲染（" + rows + " 个 item 行）") : bad("交互级：假数据列表未渲染");
+      const list = doc.getElementById("taskList");
+      const modGroups = list.querySelectorAll(".mod-group").length;
+      const hasTemplate = list.querySelectorAll(".mod-group-head .mg-arrow").length >= 2 &&
+        list.querySelectorAll(".row-bar").length >= 3;
+      const prHasItems = list.innerHTML.includes("星辉长枪") && list.innerHTML.includes("示例下载项");
       const dlHtml = doc.getElementById("panel-download").innerHTML;
       const dlIsGbmd = dlHtml.includes("下载 Mod");
-      const dlClean = !dlHtml.includes("example-items-table");
-      const searchClean = !doc.getElementById("panel-search").innerHTML.includes("example-items-table");
-      prHasItems ? ok("交互级：假数据表格在「下载进度」面板（与真实任务列表同区）") : bad("交互级：假数据表格不在进度面板");
+      const dlClean = !dlHtml.includes("mod-group");
+      const searchClean = !doc.getElementById("panel-search").innerHTML.includes("mod-group");
+      prHasItems ? ok("交互级：假数据在「下载进度」面板 #taskList（真实任务列表容器）") : bad("交互级：假数据不在 taskList");
+      modGroups >= 2 ? ok("交互级：按风格分成 " + modGroups + " 组（mod-group 模板结构）") : bad("交互级：未按 mod-group 分组");
+      hasTemplate ? ok("交互级：列表为 gbmd 模板结构（折叠头 + 进度条行）") : bad("交互级：未走 gbmd 列表模板");
       dlIsGbmd ? ok("交互级：下载面板为 gbmd 版（混搭胜出）") : bad("交互级：gbmd 混搭失效");
-      dlClean ? ok("交互级：「下载」面板无假数据表格（未塞进输入面板）") : bad("交互级：表格误入下载输入面板");
-      searchClean ? ok("交互级：搜索面板无假数据表格（未放错面板）") : bad("交互级：表格放错面板");
+      dlClean ? ok("交互级：「下载」面板无任务列表（未塞进输入面板）") : bad("交互级：列表误入下载输入面板");
+      searchClean ? ok("交互级：搜索面板无任务列表（未放错面板）") : bad("交互级：列表放错面板");
+      list.querySelector(".mod-group-head").click();
+      const collapsedOk = list.querySelector(".mod-group").classList.contains("collapsed");
+      collapsedOk ? ok("交互级：点击组头折叠生效") : bad("交互级：分组折叠未生效");
     } catch (e) {
       bad("交互级：jsdom 执行异常 " + e.message);
     }

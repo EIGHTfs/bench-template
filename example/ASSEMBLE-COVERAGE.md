@@ -220,3 +220,16 @@ bash example/self-test.sh             # example 一键自检（组装→自研�
    「正常但点不动」）。example 的自研版实现：① `data-tab` → `.tab-panel` 切换
    ② 调 `/api/items`（自研后端）渲染 `json/items.json` 假数据——前端/后端/数据
    三件套全自研，演示「项目业务代码长在项目里，不碰模板」。
+   **假数据列表要用模板的下载列表组件，不自造表格**：iwara/gbmd 的下载项/任务
+   列表都在「下载进度」面板 `#taskList`（`下载` 面板只有输入区+流程说明）。
+   example 按 gbmd 模板结构渲染：`.mod-group` 按 style 分组 + `.item` 行
+   （`.icon`/`.item-name`/`.row-bar` 进度条/`.status-text`）+ 组头折叠，
+   复用已下发的 `mod-group.css`/`task-list.css`。
+10. **前端资源不带版本参数 = 改了也白改（浏览器缓存）**：静态资源响应头
+    `Cache-Control: public, max-age=3600`，`<script src="app.js">` 不带版本参数时，
+    浏览器缓存旧脚本、前端改动不生效——实测表现：代码/API/测试全绿，用户页面
+    还是旧版（改完没升版本参数、或手工 `?v=` 忘了同步两个风格模板）。
+    已在 `fragment-assembler.js` 加 `versionizeScripts`：装配 HTML 时按脚本内容
+    md5 自动加 `?v=<hash8>`，内容一变 URL 自动变、浏览器强制取新版；脚本文件
+    纳入 mtime 缓存检测（改动即重拼）；模板与项目都不用手写版本参数
+    （iwara/gbmd 两风格 scripts.html 的手写 `?v=` 已清理）。

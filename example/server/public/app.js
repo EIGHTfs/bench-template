@@ -11,6 +11,8 @@
 //   1. 标签页映射：data-tab → 对应 .tab-panel 的切换
 //   2. 自研闭环：GET /api/items（自研后端路由 routes/items.js）
 //      → 渲染假数据（json/items.json），前端/后端/数据三件套闭环
+// 自动版本化：改本文件任何内容后，fragment-assembler 按内容 hash 自动升 ?v=
+//（见 fragment-assembler.js versionizeScripts），浏览器强制拉取新版本。
 // ============================================================
 (function () {
   // ---------- ① 标签页切换（data-tab → 面板 id=panel-<name>） ----------
@@ -42,36 +44,62 @@
       .replace(/"/g, "&quot;");
   }
 
-  // ---------- ② 示例假数据列表（自研闭环演示） ----------
-  // 前端调自研 API → 后端读假数据 → 追加到「下载进度」面板末尾。
-  // 位置依据：对比 iwara/gbmd 两风格模板，下载项/任务列表都在「下载进度」
-  // 面板（#panel-progress，gbmd 的 #taskList 同区），「下载」面板只有
-  // 输入区+流程说明、没有下载项列表——故示例下载项跟随模板放在进度面板。
+  // ---------- ② 示例假数据列表（自研闭环演示，复用 gbmd 下载列表模板） ----------
+  // 前端调自研 API → 后端读假数据 → 按 gbmd 模板结构渲染进 #taskList：
+  //   分组 = .mod-group（折叠头 .mod-group-head + 组体 .mod-group-body）
+  //   行   = .item（.icon + .item-name + .row-bar 进度条 + .status-text）
+  // 分组/行结构与 gbmd renderTask/groupHtml/rowHtml 一致，样式复用已下发的
+  // mod-group.css / task-list.css——走模板的下载列表组件，不是硬造表格。
   fetch("/api/items")
     .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
     .then(function (data) {
-      var items = (data && data.items) || [];
-      var panel = document.getElementById("panel-progress");
-      if (!panel || !items.length) return;
+      var items = ((data && data.items) || []).slice();
+      var list = document.getElementById("taskList");
+      if (!list || !items.length || list.dataset.exampleBound) return;
+      list.dataset.exampleBound = "1";
 
-      var style = document.createElement("style");
-      style.textContent =
-        ".example-items-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}" +
-        ".example-items-table th,.example-items-table td{border:1px solid #ddd;padding:5px 8px;text-align:left}" +
-        ".example-items-table caption{text-align:left;padding-bottom:6px;color:#777}";
+      // 按风格分组（gbmd：同组同 mod；示例：同 style 同组）
+      var groups = [];
+      var byStyle = {};
+      items.forEach(function (it) {
+        var key = it.style || "其他";
+        if (!byStyle[key]) { byStyle[key] = { key: key, items: [] }; groups.push(byStyle[key]); }
+        byStyle[key].items.push(it);
+      });
 
-      var table = document.createElement("table");
-      table.className = "example-items-table";
-      table.innerHTML =
-        "<caption>示例下载项（假数据：json/items.json → /api/items → 本表，与真实任务列表同区）</caption>" +
-        "<tr><th>标题</th><th>作者</th><th>来源风格</th><th>状态</th><th>大小</th></tr>" +
-        items.map(function (it) {
-          return "<tr><td>" + esc(it.title) + "</td><td>" + esc(it.author) + "</td><td>" +
-            esc(it.style) + "</td><td>" + esc(it.status) + "</td><td>" + esc(it.size) + "</td></tr>";
+      var html = groups.map(function (g, gi) {
+        var rows = g.items.map(function (it) {
+          var done = it.status === "done";
+          var ic = done ? "✓" : "⬇";
+          var rc = done ? "row-bar-ok" : "row-bar-pending";
+          var st = esc((done ? "已完成" : "等待中") + " · " + (it.size || ""));
+          return '<div class="item ' + (done ? "ok" : "pending") + '">' +
+            '<span class="icon">' + ic + "</span>" +
+            '<span class="item-name">' + esc(it.title) +
+            '<span class="row-bar ' + rc + '"><span class="row-bar-fill" style="width:100%"></span></span></span>' +
+            '<span class="status-text">' + st + "</span></div>";
         }).join("");
+        return '<div class="mod-group">' +
+          '<div class="mod-group-head" data-group="' + esc(g.key) + '">' +
+          '<span><span class="mg-arrow">▼</span><span class="group-num">' + (gi + 1) + ".</span><span>" + esc(g.key) + "</span></span>" +
+          '<span class="mod-group-dir">📁 示例下载项 · ' + g.items.length + " 条假数据</span></div>" +
+          '<div class="mod-group-body">' + rows + "</div></div>";
+      }).join("");
 
-      panel.appendChild(style);
-      panel.appendChild(table);
+      var cap = document.createElement("div");
+      cap.className = "hint";
+      cap.style.margin = "4px 0 8px";
+      cap.textContent = "示例下载项（假数据：json/items.json → /api/items → 本列表，按 gbmd 列表模板渲染）";
+
+      list.insertBefore(cap, list.firstChild);
+      list.insertAdjacentHTML("beforeend", html);
+
+      // 分组折叠（同 gbmd bindTaskListCollapse 交互：点组头切换 .collapsed）
+      list.addEventListener("click", function (e) {
+        var head = e.target.closest && e.target.closest(".mod-group-head");
+        if (!head) return;
+        head.closest(".mod-group").classList.toggle("collapsed");
+      });
     })
     .catch(function (err) { console.log("[example] /api/items 加载失败:", err); });
 })();
