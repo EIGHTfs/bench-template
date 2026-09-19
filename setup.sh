@@ -3,7 +3,10 @@
 # 模板组装脚本：把前端部件组装到目标 server/ 目录
 #
 # 用法：
-#   ./setup.sh <gbmd|iwara> [--to <项目根|项目根/server>] [--with <组件,...>] [--check]
+#   ./setup.sh <风格> [--to <项目根|项目根/server>] [--with <组件,...>] [--check]
+#
+# 风格（<风格>）：由 server/templates/_<名>-style/ 目录自动发现，新增风格只需建目录。
+#   现有：gbmd / iwara（详见 ./setup.sh --list）
 #
 # 目标说明（--to）——一律基于「项目根」，两种写法等价：
 #   - 省略 --to：组装到模板仓库自身 server/project/（测试/参考用）
@@ -98,8 +101,25 @@ ok()   { printf '%s%s%s\n' "$C_GREEN" "$*" "$C_RESET"; }
 warn() { printf '%s%s%s\n' "$C_YELLOW" "$*" "$C_RESET"; }
 err()  { printf '%s%s%s\n' "$C_RED" "$*" "$C_RESET"; }
 
-# 可用风格
-STYLES="gbmd iwara"
+# 可用风格 —— 遍历 server/templates/_<名>-style/ 目录自动发现，不硬编码列表。
+# 【设计意图】风格列表由目录结构决定：新增/删除风格只动 server/templates/，脚本无需跟着改。
+# 【思路】新增风格只需新建 _<名>-style/ 目录，setup.sh 无需改动；
+#   排序固定（sort）保证 --list 与错误提示的输出稳定可复现。
+#   目录名不符合 _*-style 规律的一律跳过（如备份目录 .trash-*、临时目录），
+#   避免把无关目录当成风格。
+_detect_styles() {
+  local dir name out=""
+  for dir in "$TEMPLATES_DIR"/*/; do
+    [ -d "$dir" ] || continue
+    name="$(basename "$dir")"
+    case "$name" in
+      _*-style) out="$out ${name#_}"; out="${out%-style}" ;;
+    esac
+  done
+  # 去重 + 排序后输出（词间以空格分隔，与旧 STYLES 变量格式一致）
+  echo "$out" | tr ' ' '\n' | sed '/^$/d' | sort -u | tr '\n' ' ' | sed 's/ $//'
+}
+STYLES="$(_detect_styles)"
 
 # 组件定义：每个组件 = 来源风格 + 前端文件列表
 declare -A COMPONENTS
@@ -111,8 +131,8 @@ COMPONENTS[search]="iwara|search-date-range.js"
 
 usage() {
   echo "用法:"
-  echo "  ./setup.sh <gbmd|iwara> [--to <目标server目录>] [--with <组件,...>]"
-  echo "  ./setup.sh --list                          # 查看风格与组件"
+  echo "  ./setup.sh <风格> [--to <项目根>] [--with <组件,...>]"
+  echo "  ./setup.sh --list                          # 查看可用风格与组件（风格=扫 server/templates/_*-style/ 自动发现）"
   echo ""
   echo "示例:"
   echo "  ./setup.sh gbmd                            # 组装到 server/project/（缺省）"

@@ -16,7 +16,7 @@ mkdir my-downloader && cd my-downloader
 <模板仓库>/scripts/sync-to-project.sh "$PWD/server"
 # 例如：/path/to/dl-server-template/scripts/sync-to-project.sh "$PWD/server"
 
-# 3. 组装前端（选一个风格：gbmd 或 iwara）
+# 3. 组装前端（风格见 ./setup.sh --list —— 扫 server/templates/_*-style/ 自动发现）
 cd server
 ./setup.sh gbmd --to .        # 生成 server/public/（13 个前端文件）+ 蓝图初始化 app.js
 
@@ -52,6 +52,14 @@ cd .. && ./start.sh start
 | **framework** | `server/framework/` | 通用后端 JS（HTTP 服务/鉴权/配置/路由工厂/备份/自动更新）。两个风格共用，改它两个项目同时受益 |
 | **templates** | `server/templates/` | 前端素材：`_gbmd-style/`（gbmd 风格）+ `_iwara-style/`（iwara 风格），每个风格含 `public/`（非分片部件）+ `fragments/`（特有分片） |
 | **blueprint** | `server/project/blueprint/` | 组装蓝图：共用框架/分片/静态资源 + `app.js`（入口骨架）+ `config.schema.json`。两风格共用文件（login、theme-init、search-date-range）在这里；组装时目标没有就从这里复制 |
+
+**风格是自动发现的，不写死在脚本里**：`setup.sh` 遍历 `server/templates/` 下一层目录，
+把名为 `_<名>-style/` 的目录识别为一个风格，风格名取中间的 `<名>`。
+
+- **新增风格**：建目录 `server/templates/_<名>-style/`（内含 `public/`、`fragments/`）即可，
+  `setup.sh` 无需改动，`./setup.sh --list` 会立刻列出它。
+- **不适用的目录自动跳过**：不符合 `_*-style` 命名的目录（`.trash-*`、备份、临时目录）不会被当成风格。
+- **输出稳定**：风格列表去重后排序，`--list` 与「未知风格」错误提示的内容可复现。
 | **组装产物** | `server/public/`、`server/app.js`、`server/config.schema.json` | 由 setup.sh 生成，**不入库**，可反复重装 |
 
 后端业务代码（`server/routes/`、`server/lib/`）由项目自己实现，**不在模板仓库**。
@@ -678,6 +686,7 @@ dl-server-template/
 
 | 版本 | 内容 |
 |---|---|
+| 1.7.11 | **风格列表改为目录自动发现，不再硬编码**：`setup.sh` 原写死 `STYLES="gbmd iwara"`，新增风格必须改脚本本身。现改为遍历 `server/templates/` 下一层，把 `_<名>-style/` 目录识别为风格（风格名取中间段），新增风格只需建目录、`--list` 立即列出，脚本零改动。不合规目录名（`.trash-*`、备份、临时目录）自动跳过；列表去重排序，`--list` 与「未知风格」提示输出稳定可复现。同步清理写死风格的两处文案：`setup.sh` 用法/示例与 `blueprint/app.js` 的报错提示改为「`<风格>`，见 `--list`」；README 补「风格自动发现」说明。验证：新建 `_teststyle-style/` 自动出现、`_dash-style` 识别为 `dash`、`.trash-*`/`_backup`/`regular-dir`正确跳过、连跑 3 次输出一致；gbmd/iwara 端到端组装各 48 文件、framework 20 模块、无幽灵目录，gbmd `--check` 0 项不一致 |
 | 1.7.10 | **sync 复用 setup.sh 的复制实现 + `--check` 或逻辑修正**：①`sync-to-project.sh` 重写，不再自带一套「按素材根整目录搬」的逻辑，改为 `SETUP_LIB_ONLY=1` 加载 `setup.sh` 并调用它的 `_setup_copy_manifest`——两套复制实现对同一份清单的解读不一致，是长期漏搬的根源，现只有一套实现。落点差异由 `COPY_LAYOUT` 一个变量区分：`out`（组装，缺省）按清单 dst 写产出，`tree`（同步）按 src 落素材树。②`setup.sh` 加只加载守卫（被 source 时只定义函数、不跑主流程），函数定义集中到主流程之前。③修 `--check` 的或逻辑 bug：候选路径漏拼文件名，拿目录算 md5 恒为 null，导致「多源写同一目标目录」（blueprint 底座 + 风格层覆盖，如 iwara 的 `row-thumb.css`）全部误报不一致——iwara 实测 58 项误报清零。④清单不再写 `_comment` 段（字段含义统一在本 README），`setup.sh` 生成的清单同步精简，顶层只留 `files` / `brand` / `init` |
 | 1.7.9 | **`setup.sh --check` 清单一致性检查 + `framework/` 异步 IO 归位 + iwara 专属缩略图样式**：①新增 `--check`：按清单两端（模板源 → 项目目标）逐文件 md5 比对，报「不一致 / 缺失 / 清单外文件」三类，退出码可用于 CI；这是发现「公共能力改错地方」的主要手段——改在项目侧的 `framework/` 会被报成不一致。②三个 `framework/` 文件此前被改在项目侧且未回流模板（`app.js` 静态服务异步、`auth.js` 会话写入失败留痕、`data-backup.js` 备份导出异步），本次归位模板，模板与两项目逐字同源，同步不再吞掉改动。③iwara 下载列表不需要点击放大预览图，故其风格层新增 `fragments/styles/row-thumb.css`（无灯箱版）覆盖 blueprint 的共用版——gbmd 仍用 blueprint 的灯箱版。④修三个真实 bug：`setup.sh` 目录复制用 `cp -rf` 不能确定性覆盖同名文件（导致风格层覆盖 blueprint 失效），改为逐文件强制覆盖；`validate` 把「多源写同一目标目录」当 problem 返回 1，使组装中断在自检之后（现降级为提示 ℹ️，它本就是设计允许的覆盖机制）；`check` 比对未考虑后写覆盖语义会误报风格层的有意覆盖 |
 | 1.7.8 | **`start.sh` 自包含，成为项目通用启停脚本**：此前它 `source scripts/lib-node.sh`，但 `start.sh` 是「直接拷进项目根」的独立脚本，项目里没有 `scripts/`，换环境即报 lib-node.sh 不存在。现内联 Node 定位逻辑（候选顺序与 `lib-node.sh` 保持一致）。同一份 `start.sh` 现已实测可直接用于 gbmd（port 8642）与 iwara（port 28463）两个项目，端口由各自 `server/config.json` 决定、`DEFAULT_PORT` 仅作回落，故无需按项目改脚本 |

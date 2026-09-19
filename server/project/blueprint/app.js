@@ -33,7 +33,7 @@ appLog.install();
 
 const SCHEMA_FILE = path.join(__dirname, "config.schema.json");
 if (!fs.existsSync(SCHEMA_FILE)) {
-  console.error("❌ 未找到 config.schema.json —— 请先运行 ./setup.sh <gbmd|iwara> 组装项目层");
+  console.error("❌ 未找到 config.schema.json —— 请先运行 ./setup.sh <风格> 组装项目层（风格见 ./setup.sh --list）");
   process.exit(1);
 }
 
