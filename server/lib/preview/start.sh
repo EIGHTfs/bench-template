@@ -1,19 +1,22 @@
 #!/usr/bin/env bash
 # ============================================================
-# dsh-theme-mediascape 预览服务器启停脚本（参考 bench-template/server/lib/start.sh 裁剪）
+# 通用预览服务器启停脚本（bench-template 模板：server/lib/preview/start.sh）
+# 配套 start-preview.mjs（反代服务器，接 DSH 真实后端）。复制到项目改 SERVER_DIR/HEALTH_PATH 即可。
 # 用法：
 #   ./start.sh start [--port PORT]
 #   ./start.sh restart [--port PORT]   # 默认命令
 #   ./start.sh stop
 #   ./start.sh status
 #   ./start.sh --port PORT             # 兼容旧用法（等价 restart）
-# PID：项目根 / dsh-theme-mediascape.pid（见 pid-file-at-project-root）
+# PID：项目根 / <项目名>.pid（见 pid-file-at-project-root）
 # ============================================================
 set -uo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# 项目根 = 脚本所在目录上溯一级（脚本放在 preview/ 或 assets/ 等子目录）
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJECT_NAME="$(basename "$ROOT")"
-SERVER_DIR="$ROOT/preview"
+# 服务工作目录 = 脚本所在目录（start-preview.mjs 与之同目录；项目按需改，如 "$ROOT/preview" 或 "$ROOT/assets"）
+SERVER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PID_FILE="$ROOT/${PROJECT_NAME}.pid"
 LOG_FILE="$SERVER_DIR/preview-server.log"
 DEFAULT_PORT="${DEFAULT_PORT:-30999}"
@@ -235,7 +238,7 @@ start_server() {
 
   for i in $(seq 1 8); do
     sleep 1
-    if curl -sf -m 3 "http://127.0.0.1:$port/theme-mediascape-assets/ping" > /dev/null 2>&1; then
+    if curl -sf -m 3 "http://127.0.0.1:$port/preview-ping" > /dev/null 2>&1; then
       okflag=1
       break
     fi
@@ -331,14 +334,14 @@ status_server() {
   fi
 
   local curlout code time
-  curlout="$(curl -sS -m 5 -o /tmp/${PROJECT_NAME}-status.body -w '%{http_code} %{time_total}' "http://127.0.0.1:$port/theme-mediascape-assets/ping" 2>/dev/null || echo "000 0")"
+  curlout="$(curl -sS -m 5 -o /tmp/${PROJECT_NAME}-status.body -w '%{http_code} %{time_total}' "http://127.0.0.1:$port/preview-ping" 2>/dev/null || echo "000 0")"
   code="${curlout%% *}"
   time="${curlout#* }"
   if [ "$code" = "200" ]; then
-    ok "HTTP:   ✓ GET /theme-mediascape-assets/ping  $code  ${time}s"
+    ok "HTTP:   ✓ GET /preview-ping  $code  ${time}s"
     head -c 80 "/tmp/${PROJECT_NAME}-status.body" 2>/dev/null; echo
   else
-    err "HTTP:   ✗ GET /theme-mediascape-assets/ping  HTTP $code"
+    err "HTTP:   ✗ GET /preview-ping  HTTP $code"
   fi
   rm -f "/tmp/${PROJECT_NAME}-status.body"
 
