@@ -165,7 +165,7 @@ grep -c '"port".*8090' example/server/config.schema.json  # → 1，配置保留
 模板改了项目侧不会自动更新，要重跑（组装幂等，可反复跑）：
 
 ```bash
-cd dl-server-template
+cd bench-template
 ./setup.sh --to example/assemble.json          # 示例项目
 ./setup.sh --to ../iwara-downloader/assemble.json
 ./setup.sh --to ../gamebanana-mods-downloader/assemble.json

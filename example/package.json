@@ -1,5 +1,5 @@
 {
-  "name": "dl-server-template",
+  "name": "bench-template",
   "version": "1.7.19",
   "private": true,
   "type": "commonjs",

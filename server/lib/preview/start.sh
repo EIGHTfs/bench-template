@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-# dsh-theme-mediascape 预览服务器启停脚本（参考 dl-server-template/server/lib/start.sh 裁剪）
+# dsh-theme-mediascape 预览服务器启停脚本（参考 bench-template/server/lib/start.sh 裁剪）
 # 用法：
 #   ./start.sh start [--port PORT]
 #   ./start.sh restart [--port PORT]   # 默认命令

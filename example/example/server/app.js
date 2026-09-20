@@ -86,7 +86,7 @@ const dataRoutes = createRoute({
   "GET /info": async (req, res, ctx) => {
     sendJson(res, {
       ok: true,
-      name: "dl-server-template",
+      name: "bench-template",
       version: "0.1.0",
       downloadDir: ctx.cfg.get("downloadDir"),
     });

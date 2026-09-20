@@ -1,7 +1,7 @@
 ---
 name: setup-assemble
-description: dl-server-template 模板化组装：setup.sh 命令用法 + assemble.json 清单 JSON 完整规范（组装/检查/扫描/迁移/回流五个动作、文件键规则、brand/init 段、素材 vs 产出、漏发体检对照法）。处理「跑 setup.sh 组装」「assemble.json 怎么写」「清单漏发检查」「模板怎么同步到项目」「setup 参数用哪个」类场景时加载。
-whenToUse: 组装/检查/扫描/迁移/回流 dl-server-template 系项目（gallery/gbmd/iwara/example）时、编写或修改其 assemble.json 时、排查「清单声明了但项目缺文件/多处实现」类问题时。
+description: bench-template 模板化组装：setup.sh 命令用法 + assemble.json 清单 JSON 完整规范（组装/检查/扫描/迁移/回流五个动作、文件键规则、brand/init 段、素材 vs 产出、漏发体检对照法）。处理「跑 setup.sh 组装」「assemble.json 怎么写」「清单漏发检查」「模板怎么同步到项目」「setup 参数用哪个」类场景时加载。
+whenToUse: 组装/检查/扫描/迁移/回流 bench-template 系项目（gallery/gbmd/iwara/example）时、编写或修改其 assemble.json 时、排查「清单声明了但项目缺文件/多处实现」类问题时。
 generatedBy: deepseek-v4-flash
 ---
 

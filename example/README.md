@@ -1,4 +1,4 @@
-# dl-server-template
+# bench-template
 
 零依赖 Node.js 下载器服务的模板仓库：**通用后端框架（framework）+ 前端部件素材（templates）+ 组装脚本（setup.sh）**。
 
@@ -14,7 +14,7 @@ mkdir my-downloader && cd my-downloader
 
 # 2. 组装（从模板仓库执行；--to 指向本项目的 assemble.json）
 <模板仓库>/setup.sh --to "$PWD/assemble.json"
-# 例如：/path/to/dl-server-template/setup.sh --to "$PWD/assemble.json"
+# 例如：/path/to/bench-template/setup.sh --to "$PWD/assemble.json"
 
 # 3. 之后想同步模板最新素材 → 重跑第 2 步即可（风格由清单声明，无需在命令行指定；
 #     ./setup.sh --list 可列出模板自带的所有素材目录）
@@ -882,7 +882,7 @@ require("./app.js");
 ## 目录结构
 
 ```
-dl-server-template/
+bench-template/
 ├── setup.sh                         # 组装脚本（--to 指定项目清单）
 ├── example/                         # 完整演示项目（整体入库）：通用件+风格混搭+自研代码+假数据
 │   ├── assemble.json                #   清单：演示风格混搭（iwara 骨架 + gbmd 下载面板）
