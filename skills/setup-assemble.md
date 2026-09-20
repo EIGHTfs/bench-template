@@ -33,7 +33,7 @@ generatedBy: deepseek-v4-flash
 参数要点（实测行为）：
 - `--to` 必须指向 `assemble.json`（文件名校验，否则报错）；清单不存在/文件名为其他一律报错退出。
 - 未知参数、多余位置参数**直接报错退出**（不再静默吞掉、不再兜底组装内置清单）。
-- `--check` 输出「清单外文件 / 两端 md5 不一致 / 缺失」；`--untracked` 回答「目录里还有什么没进清单」——两者分工不同。
+- `--check` 只比对清单两端（报不一致 / 缺失），**不扫清单外文件**（实测输出会提示「查清单外请用 --untracked」）；`--untracked` 扫整棵树回答「目录里还有什么没进清单」（按 .gitignore 排除）——两者分工不同。
 - `--migrate` 按落点**文件名配对**搬文件（结构重排只改目录层级），搬后自动改写被搬文件的相对引用；缺省即真迁移，`--dry-run` 才预演。
 - `--pull` 只处理素材条目（src==dst）；产出条目（src!=dst）不参与双向同步，产物由组装生成。
 - `DRY_VERBOSE=1` 配合组装预演可展开目录条目下的逐个文件；`SETUP_SKIP_PRECHECK=1` 跳过分发前预检（CI 批量组装用）。
@@ -135,7 +135,7 @@ server/lib/                ← cjs-bootstrap.cjs、start.sh（模板源）
 - `brand.json` 已存在会被保留（组装不覆盖运行期可变配置）。
 - 改模板源（framework/ 或 templates/）后，三项目要各自 `--to` 重组装同步才会生效——模板源不是自动下发。
 - 漏发体检的候选集合必须是「清单实际引用的源 + 通用件」，否则会把模板仓库自身运行件/其它项目风格误报为漏发。
-- 模块化常识：`assemble-manifest.js` 是清单解析唯一实现（list/check/untracked/migrate/pull/validate/init-flag/brand/resolve-base/generate 子命令）；setup.sh 只做「按行复制 + 计数 + 报缺失」，不再自行解析 JSON。
+- 模块化常识：`assemble-manifest.js` 是清单解析唯一实现（list/check/untracked/migrate/pull/validate/init-flag/brand/resolve-base/asset-roots/generate 子命令）；setup.sh 只做「按行复制 + 计数 + 报缺失」，不再自行解析 JSON。
 
 # 修改记录
 

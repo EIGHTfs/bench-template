@@ -153,7 +153,9 @@ read_pid_file() {
 }
 
 collect_live_pids() {
-  local f p seen=" "
+  # 2026-09-20 修：端口必须随调用方实际端口走（--port 覆盖时查 DEFAULT_PORT 会抓错
+  #   别的项目同端口进程 → 误报「已在运行」）。缺省仍用 DEFAULT_PORT 兼容旧调用。
+  local f p seen=" " port="${1:-$DEFAULT_PORT}"
   for f in "$PID_FILE" $(legacy_pid_files); do
     p="$(read_pid_file "$f" 2>/dev/null || true)"
     if pid_alive "$p"; then
@@ -163,7 +165,7 @@ collect_live_pids() {
       esac
     fi
   done
-  local port="$DEFAULT_PORT" lp
+  local lp
   lp="$(port_pids "$port")"
   for p in $lp; do
     case "$seen" in
@@ -189,6 +191,8 @@ rotate_log() {
 }
 
 start_server() {
+  # --port 覆盖时全局 PORT 已在 main 入口解析（stop/restart/status 同端口语义），
+  #   这里保留原内联解析兜底（兼容直接调用函数），但统一用全局 PORT。
   local port_opt=""
   while [ $# -gt 0 ]; do
     case "$1" in
@@ -196,9 +200,9 @@ start_server() {
       *) shift ;;
     esac
   done
-  local port="${port_opt:-$DEFAULT_PORT}"
+  local port="${PORT:-${port_opt:-$DEFAULT_PORT}}"
   local live
-  live="$(collect_live_pids | head -n 1 || true)"
+  live="$(collect_live_pids "$port" | head -n 1 || true)"
   if [ -n "$live" ]; then
     warn "⚠️  已在运行 (PID $live, 端口 $port)。如需重启: ./start.sh restart"
     return 1
@@ -275,7 +279,7 @@ stop_one() {
 
 stop_server() {
   local pids
-  pids="$(collect_live_pids || true)"
+  pids="$(collect_live_pids "$PORT" || true)"
   if [ -z "$pids" ]; then
     warn "⚠️  未运行（无有效 PID）"
     rm -f "$PID_FILE"
@@ -299,7 +303,7 @@ stop_server() {
 }
 
 status_server() {
-  local port="$DEFAULT_PORT"
+  local port="${PORT:-$DEFAULT_PORT}"
   echo "======== $PROJECT_NAME 预览服务器 ========"
   echo "根目录: $ROOT"
   echo "PID文件: $PID_FILE$([ -f "$PID_FILE" ] && echo " (存在)" || echo " (无)")"
@@ -357,6 +361,18 @@ elif [ "$CMD" = "start" ] || [ "$CMD" = "stop" ] || [ "$CMD" = "restart" ] || [ 
   shift
 else
   CMD="restart"
+fi
+
+# 全局端口解析（2026-09-20 修）：start/restart 带 --port 时，stop/status 必须按同一端口
+#   收集存活进程——否则 restart --port X 会先按默认端口停掉**别的项目**的同端口服务（SIGTERM→SIGKILL 误杀）。
+PORT="${DEFAULT_PORT:-30999}"
+if [ $# -ge 2 ]; then
+  for ((i = 1; i <= $#; i++)); do
+    if [ "${!i}" = "--port" ] && [ $((i + 1)) -le $# ]; then
+      PORT="${@:$((i + 1)):1}"
+      break
+    fi
+  done
 fi
 
 case "$CMD" in

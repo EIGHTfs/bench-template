@@ -32,3 +32,6 @@ setup.sh.bak*
 __pycache__/
 *.pyc
 node_modules.orig/
+
+# 编辑工具自动备份
+*.bak
