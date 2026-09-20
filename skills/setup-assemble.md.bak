@@ -68,25 +68,12 @@ generatedBy: deepseek-v4-flash
 
 ## 键（files 的 key）——模板（源）内相对路径
 
-- **键** = 模板仓库内的相对路径（模板里有什么）
-- **值** = 项目内的相对路径（放到哪里；以 `/` 结尾 = 整目录拷贝）
-- `"init": false` = 跳过蓝图骨架初始化（`app.js` / `config.schema.json`），项目自带后端时用
-- `"brand": {...}` = 品牌配置，组装时写入 `server/public/brand.json`（详见下节）
+- 统一写成 `server/...` 形式（如 `server/framework/route/routes-auth.js`）。
+- 源基准（resolve-base）自动判定两种布局，同一份清单两边通用：
+  - 模板仓库布局：素材在 `<模板根>/server/` → 基准 = 模板根
+  - synced 布局：素材在 `<项目>/server/` → 基准 = 项目根
+- 键存在但源文件/目录缺失：组装时 `⚠️ 文件不存在/目录不存在（跳过）`，缺失只警告不阻断；若清单素材**全部**未找到会提示「请确认清单键与源基准」。
 
-**整目录取件 vs 逐文件显式列出**（两种写法可混用）：
-
-```json
-"server/templates/_iwara-style/fragments/": "server/public/fragments/",              // 整目录
-"server/templates/_iwara-style/fragments/styles/row-thumb.css":
-    "server/public/fragments/styles/row-thumb.css"                                   // 单个文件
-```
-
-- **整目录**：适合「这个目录里的件都要」，新增文件自动带上，清单短。
-- **逐文件**：适合**风格层覆盖**场景——想看清单就知道哪个文件覆盖了 blueprint 的哪个同名件，
-  一望即知，不必展开目录去比对。代价是新增片段要记得补条目。
-- 两者可写同一目标目录：组装按清单顺序复制，**靠后的源覆盖靠前的同名文件**。
-  逐文件条目通常写在整目录条目之后，以明确其覆盖意图。
-- `--check` 两种写法都认：逐文件列出的件不会被判成「无任何源提供」。
 ## 值（files 的 value）——本项目（落点）相对路径
 
 - 相对项目根（`dirname(清单)`）；以 `/` 结尾 = 整目录拷贝（含子目录与点文件）。
