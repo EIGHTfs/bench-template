@@ -12,6 +12,30 @@ let taskPollTimer = null;
 let searchPollTimer = null;
 const lastBytes = new Map(); // id -> { t, bytes } 用于算速度
 
+// 本地点赞/关注状态（/api/liked-state）：搜索列表「❤️ 已赞 / 已关注」badge 以搜索 json 的
+// liked/following 字段为唯一渲染数据源（服务端 mergeLikedState 已补真实值），
+// likedMeta 仅保留给播放页/下载勾选等其余场景兜底 + mtime 变化检测（驱动搜索行局部刷新）。
+let likedMeta = { liked: new Set(), followed: new Set() };
+let likedMetaLoaded = false;
+let lastLikedMtime = 0; // liked_state.json 的 mtime；变了 → 只局部刷 badge，不整表重建
+async function refreshLikedMeta() {
+  const prevMtime = lastLikedMtime;
+  try {
+    const r = await api("/api/liked-state");
+    if (!r || !r.ok) return { changed: false };
+    likedMeta = {
+      liked: new Set(Array.isArray(r.liked) ? r.liked : []),
+      followed: new Set((r.followed || []).map((u) => u && u.userId).filter(Boolean))
+    };
+    likedMetaLoaded = true;
+    if (typeof r.mtime === "number" && r.mtime > 0) lastLikedMtime = r.mtime;
+    return { changed: lastLikedMtime !== prevMtime, mtime: lastLikedMtime };
+  } catch (_) { return { changed: false }; }
+}
+async function ensureLikedMeta() {
+  if (!likedMetaLoaded) await refreshLikedMeta();
+}
+
 async function api(path, method = "GET", body) {
   const opts = { method, headers: {}, credentials: "same-origin" };
   if (body !== undefined) {
@@ -156,103 +180,76 @@ function bindBatch() {
   });
 }
 
-function bindProgress() {
-  // 暂停后无法继续/终止，按钮状态未及时切换
-  // 【原代码】pause/resume/stop 只 POST，等 1.5s 轮询才改按钮。
-  // 【改为】点完立刻拉 /api/task 重绘，对照 gbmd refreshTask。
-  async function refreshTask() {
-    try {
-      const t = await api("/api/task");
-      renderTask(t.task);
-    } catch (_) {}
-  }
-  $("#pauseBtn").addEventListener("click", async () => {
-    $("#pauseBtn").disabled = true;
-    await api("/api/task/pause", "POST", {});
-    await refreshTask();
-  });
-  $("#resumeBtn").addEventListener("click", async () => {
-    $("#resumeBtn").disabled = true;
-    await api("/api/task/resume", "POST", {});
-    await refreshTask();
-  });
-  $("#stopBtn").addEventListener("click", async () => {
-    $("#stopBtn").disabled = true;
-    await api("/api/task/stop", "POST", {});
-    await refreshTask();
-  });
-  $("#retryBtn").addEventListener("click", async () => {
-    const r = await api("/api/task/retry", "POST", {});
-    if (r && r.ok) showFeedback("已重试失败项", "ok");
-    else showFeedback((r && r.error) || "重试失败", "err");
-  });
-  const clearFailBtn = $("#clearFailBtn");
-  if (clearFailBtn) {
-    clearFailBtn.addEventListener("click", async () => {
-      const r = await api("/api/task/clear-failed", "POST", {});
-      if (r && r.ok) showFeedback("已清除失败 " + (r.removed || 0) + " 项（文件仍在）", "ok");
-      else showFeedback((r && r.error) || "清除失败", "err");
+// 点完立刻拉 /api/task 重绘，不等 1.5s 轮询（对照 gbmd refreshTask）
+async function refreshTask() {
+  try {
+    const t = await api("/api/task");
+    renderTask(t.task);
+  } catch (_) {}
+}
+
+// 行内按钮 → 接口/反馈文案 的映射；单条操作走同一套分发
+const ROW_ACTIONS = {
+  "mm-retry-btn": { path: "/api/task/retry", ok: "已重试", err: "重试失败", refresh: true },
+  "mm-pause-btn": { path: "/api/task/pause", refresh: true },
+  "mm-resume-btn": { path: "/api/task/resume", refresh: true },
+  "mm-stop-btn": { path: "/api/task/stop", refresh: true },
+  // 2026-09-04：下载完单项从列表拿掉，文案叫「移除」不是「跳过」；接口仍是 remove-item，不删文件
+  "mm-skip-btn": { path: "/api/task/remove-item", ok: "已移除（文件仍在）", err: "移除失败" },
+};
+
+// 顶部整任务按钮：暂停/继续/终止需禁用防连点，重试/清除只回反馈
+function bindTaskButtons() {
+  const manual = [
+    ["#pauseBtn", "/api/task/pause"], ["#resumeBtn", "/api/task/resume"], ["#stopBtn", "/api/task/stop"],
+  ];
+  for (const [sel, path] of manual) {
+    const el = $(sel);
+    if (!el) continue;
+    el.addEventListener("click", async () => {
+      el.disabled = true;
+      await api(path, "POST", {});
+      await refreshTask();
     });
   }
-  const clearDoneBtn = $("#clearDoneBtn");
-  if (clearDoneBtn) {
-    clearDoneBtn.addEventListener("click", async () => {
-      const r = await api("/api/task/remove-completed", "POST", {});
-      if (r && r.ok) showFeedback("已清除完成 " + (r.removed || 0) + " 项（文件仍在）", "ok");
-      else showFeedback((r && r.error) || "清除失败", "err");
+  const simple = [
+    ["#retryBtn", "/api/task/retry", (r) => "已重试失败项", "重试失败"],
+    ["#clearFailBtn", "/api/task/clear-failed", (r) => "已清除失败 " + (r.removed || 0) + " 项（文件仍在）", "清除失败"],
+    ["#clearDoneBtn", "/api/task/remove-completed", (r) => "已清除完成 " + (r.removed || 0) + " 项（文件仍在）", "清除失败"],
+  ];
+  for (const [sel, path, okMsg, errMsg] of simple) {
+    const el = $(sel);
+    if (!el) continue;
+    el.addEventListener("click", async () => {
+      const r = await api(path, "POST", {});
+      if (r && r.ok) showFeedback(okMsg(r), "ok");
+      else showFeedback((r && r.error) || errMsg, "err");
     });
   }
+}
+
+// 下载列表行内按钮：事件委托（行是动态重绘的，逐个绑定会随重绘失效）
+function bindRowActions() {
   const list = $("#taskList");
-  if (list && !list._rmBound) {
-    list._rmBound = true;
-    list.addEventListener("click", async (ev) => {
-      const retryBtn = ev.target && ev.target.closest && ev.target.closest("button.mm-retry-btn");
-      if (retryBtn) {
-        const id = retryBtn.getAttribute("data-id");
-        if (!id) return;
-        const r = await api("/api/task/retry", "POST", { id });
-        if (r && r.ok) showFeedback("已重试", "ok");
-        else showFeedback((r && r.error) || "重试失败", "err");
-        try { const t = await api("/api/task"); renderTask(t.task); } catch (_) {}
-        return;
-      }
-      const pauseOne = ev.target && ev.target.closest && ev.target.closest("button.mm-pause-btn");
-      if (pauseOne) {
-        const id = pauseOne.getAttribute("data-id");
-        if (!id) return;
-        await api("/api/task/pause", "POST", { id });
-        try { const t = await api("/api/task"); renderTask(t.task); } catch (_) {}
-        return;
-      }
-      const resumeOne = ev.target && ev.target.closest && ev.target.closest("button.mm-resume-btn");
-      if (resumeOne) {
-        const id = resumeOne.getAttribute("data-id");
-        if (!id) return;
-        await api("/api/task/resume", "POST", { id });
-        try { const t = await api("/api/task"); renderTask(t.task); } catch (_) {}
-        return;
-      }
-      const stopOne = ev.target && ev.target.closest && ev.target.closest("button.mm-stop-btn");
-      if (stopOne) {
-        const id = stopOne.getAttribute("data-id");
-        if (!id) return;
-        await api("/api/task/stop", "POST", { id });
-        try { const t = await api("/api/task"); renderTask(t.task); } catch (_) {}
-        return;
-      }
-      const skipBtn = ev.target && ev.target.closest && ev.target.closest("button.mm-skip-btn");
-      if (!skipBtn) return;
-      const id = skipBtn.getAttribute("data-id");
-      if (!id) return;
-      const r = await api("/api/task/remove-item", "POST", { id });
-      // 2026-09-04：下载完单项从列表拿掉，文案叫「移除」不是「跳过」。
-      // 【原代码】showFeedback("已跳过（文件仍在）") / "跳过失败"
-      // 【改为】完成项移除描述错误：原「跳过」改为「移除」
-      // 【思路】接口仍是 /api/task/remove-item，不删文件；只改按钮和反馈文案。
-      if (r && r.ok) showFeedback("已移除（文件仍在）", "ok");
-      else showFeedback((r && r.error) || "移除失败", "err");
-    });
-  }
+  if (!list || list._rmBound) return;
+  list._rmBound = true;
+  list.addEventListener("click", async (ev) => {
+    const target = ev.target;
+    if (!target || !target.closest) return;
+    const hit = Object.keys(ROW_ACTIONS).find((cls) => target.closest("button." + cls));
+    if (!hit) return;
+    const id = target.closest("button." + hit).getAttribute("data-id");
+    if (!id) return;
+    const act = ROW_ACTIONS[hit];
+    const r = await api(act.path, "POST", { id });
+    if (act.ok) showFeedback(r && r.ok ? act.ok : ((r && r.error) || act.err), r && r.ok ? "ok" : "err");
+    if (act.refresh) await refreshTask();
+  });
+}
+
+function bindProgress() {
+  bindTaskButtons();
+  bindRowActions();
   startTaskPoll();
 }
 
@@ -265,6 +262,11 @@ function startTaskPoll() {
     try {
       const r = await api("/api/task");
       renderTask(r.task);
+      // 下载完成自动收藏后，liked_state mtime 变化 → 搜索列表已赞 badge 局部刷新（不整表重建）
+      if (searchResults.length) {
+        const meta = await refreshLikedMeta();
+        if (meta && meta.changed) updateLikedBadges();
+      }
     } catch (_) {}
     finally { inFlight = false; }
   };
@@ -786,11 +788,18 @@ function startSearchPoll() {
     if (inFlight) return;
     inFlight = true;
     try {
+      // 1) 拉 liked-state 拿 mtime（含最新 liked/followed 集合供播放页等场景）
+      const metaP = refreshLikedMeta();
       const r = await api("/api/search-status");
       const t = r.task;
-      if (!t) return;
-      searchResults = t.results || [];
-      renderSearchResults();
+      const meta = await metaP;
+      // 2) 结构变化（条数/分页加载）→ 整表渲染；仅 liked/following 状态变化（mtime 变）→ 局部刷 badge
+      const newResults = t.results || [];
+      const structChanged = newResults.length !== searchResults.length
+        || newResults.some((v, i) => videoId(v) !== videoId(searchResults[i]));
+      searchResults = newResults;
+      if (structChanged) renderSearchResults();
+      else if (meta && meta.changed) updateLikedBadges();
       setStatus($("#searchStatus"), t.message || t.status || "");
       if (t.status !== "running") {
         $("#stopSearchBtn").style.display = "none";
@@ -905,7 +914,8 @@ function resultItemHtml(v) {
   if (v && v._kind === "user") {
     const username = v.username || v.id;
     const href = "https://www.iwara.tv/profile/" + encodeURIComponent(username);
-    const follow = v.following ? '<span class="badge liked">已关注</span>' : "";
+    // 本地已关注作者集合兜底：官方接口 following 恒 false
+    const follow = (v.following || likedMeta.followed.has(v.id)) ? '<span class="badge liked">已关注</span>' : "";
     return `<div class="result-item">
       <div class="row-thumb" style="background:var(--card2)"></div>
       <div class="name"><b><a href="${esc(href)}" target="_blank" rel="noopener">${esc(v.name || username)}</a></b> ${follow}
@@ -917,14 +927,17 @@ function resultItemHtml(v) {
   const author = videoAuthor(v);
   const when = v.createdAt ? new Date(v.createdAt).toLocaleString("zh-CN", { hour12: false }) : "";
   const tag = videoNsfw(v) ? '<span class="badge nsfw">R18</span>' : '<span class="badge normal">普通</span>';
-  const liked = (settings && settings.showLikedInSearch !== false && v.liked) ? '<span class="badge liked">❤️ 已赞</span>' : "";
   const id = videoId(v);
+  // 已赞 badge 只读搜索 json 的 liked 字段（服务端 mergeLikedState 已补真实值）——单一数据源。
+  // 播放页点赞/取消后由轮询 mtime 变化触发 updateLikedBadges 局部更新，不整表重建。
+  const liked = (settings && settings.showLikedInSearch !== false && v.liked)
+    ? '<span class="badge liked" data-liked-badge>❤️ 已赞</span>' : "";
   const href = "https://www.iwara.tv/video/" + encodeURIComponent(id);
   const src = thumbSrc(v);
   const img = src
     ? `<img class="row-thumb" src="${esc(src)}" alt="" loading="lazy" data-base="${esc(src)}">`
     : `<div class="row-thumb" style="background:var(--card2)"></div>`;
-  return `<div class="result-item">
+  return `<div class="result-item" data-vid="${esc(id)}">
     <input type="checkbox" data-id="${esc(id)}" onclick="event.stopPropagation()">
     <a href="${esc(href)}" target="_blank" rel="noopener">${img}</a>
     <div class="name"><b><a href="${esc(href)}" target="_blank" rel="noopener">${esc(v.title || v.name || id)}</a></b> ${tag} ${liked}
@@ -974,6 +987,41 @@ function renderSearchResults() {
     onKwTypeChange();
     runUserVideos(username);
   });
+}
+
+// 局部刷新已赞 badge（liked_state.json mtime 变化时调用）：只更新变化行的「❤️ 已赞」span，
+// 不重建整表——搜索列表图片不闪、滚动位置不跳。每格 data-vid 定位，badge 用 data-liked-badge 标记。
+function updateLikedBadges() {
+  const box = $("#searchResultList");
+  if (!box || !Array.isArray(searchResults)) return;
+  if (!searchResults.length) return;
+  const show = !(settings && settings.showLikedInSearch === false);
+  const byId = new Map();
+  for (const v of searchResults) {
+    if (!v) continue;
+    const id = videoId(v);
+    if (id) byId.set(id, !!v.liked);
+  }
+  const rows = box.querySelectorAll('.result-item[data-vid]');
+  for (const row of rows) {
+    const id = row.getAttribute("data-vid");
+    if (!id) continue;
+    const want = !!(show && byId.get(id));
+    const badge = row.querySelector(".badge.liked[data-liked-badge]");
+    const has = !!badge;
+    if (want && !has) {
+      const nameEl = row.querySelector(".name");
+      if (nameEl) {
+        const span = document.createElement("span");
+        span.className = "badge liked";
+        span.setAttribute("data-liked-badge", "");
+        span.textContent = "❤️ 已赞";
+        nameEl.appendChild(span);
+      }
+    } else if (!want && has) {
+      badge.parentNode && badge.parentNode.removeChild(badge);
+    }
+  }
 }
 
 let followingUsers = [];
@@ -1098,7 +1146,6 @@ function fillSettings(s) {
   settings = s || {};
   $("#set-downloadPath").value = settings.downloadPath || "";
   $("#set-fileNameTemplate").value = (settings.fileNameTemplate || "Iwara_-_{TITLE}_[{ID}]_[{QUALITY}]").replace(/\.(mp4|webm|mov)$/i, "");
-  $("#set-useAuthorSubdir").value = settings.useAuthorSubdir ? "true" : "false";
   if ($("#set-showLikedInSearch")) $("#set-showLikedInSearch").checked = settings.showLikedInSearch !== false;
   if ($("#set-autoLike")) $("#set-autoLike").checked = !!settings.autoLike;
   if ($("#set-autoFollow")) $("#set-autoFollow").checked = !!settings.autoFollow;
@@ -1196,52 +1243,63 @@ function bindSettingsFields() {
 }
 
 // 保存设置按钮（设置页面板内；原先挂在右下角悬浮按钮上，非设置页误触风险大）
+// 读设置表单 → 提交 body；模板缺 {ID} 时返回 null（调用方负责报错）
+function readSettingsForm() {
+  const tpl = $("#set-fileNameTemplate").value.trim().replace(/\.(mp4|webm|mov|mkv|m4v)$/i, "");
+  if (tpl.indexOf("{ID}") < 0) return null;
+  const body = {
+    downloadPath: $("#set-downloadPath").value.trim(),
+    fileNameTemplate: tpl,
+    showLikedInSearch: $("#set-showLikedInSearch") ? $("#set-showLikedInSearch").checked : true,
+    autoLike: $("#set-autoLike") ? $("#set-autoLike").checked : false,
+    autoFollow: $("#set-autoFollow") ? $("#set-autoFollow").checked : false,
+    playPublic: $("#set-playPublic") ? $("#set-playPublic").checked : true,
+    downloadBackend: $("#set-downloadBackend").value,
+    concurrency: parseInt($("#set-concurrency").value, 10) || 3,
+    downloadToggles: {
+      video: $("#set-dlVideo") ? $("#set-dlVideo").checked : true,
+      json: $("#set-dlJson") ? $("#set-dlJson").checked : true
+    },
+    aria2Path: $("#set-aria2Path").value.trim(),
+    aria2Token: $("#set-aria2Token").value,
+    iwaraCfgIp: $("#set-iwaraCfgIp").value.trim(),
+    aria2Dns: $("#set-aria2Dns").value.trim()
+  };
+  const credText = $("#set-iwaraCookie").value;
+  if (credText && credText.trim()) body.iwaraCookie = credText;   // 留空 = 不覆盖已存凭证
+  return body;
+}
+
+// 保存成功后的收尾：清空凭证输入框（改提示语）、回填、状态与刷新
+function afterSettingsSaved(r) {
+  const cookieEl = $("#set-iwaraCookie");
+  if (cookieEl) {
+    cookieEl.value = "";
+    cookieEl.placeholder = "已保存（再贴新凭证才会覆盖；留空不改）";
+    cookieEl.dataset.filled = "1";
+  }
+  fillSettings(r.settings);
+  setStatus($("#settingsStatus"), "已保存凭证与设置", "ok");
+  // 2026-09-01 保存反馈改悬浮窗
+  showToast("✅ 已保存设置", "ok");
+  if (kwType() === "users") loadFollowingUsers();
+  refreshIwaraBadge();
+}
+
 function bindSettingsSave() {
   const saveBtn = $("#saveSettingsBtn");
   if (!saveBtn) return;
   saveBtn.addEventListener("click", async () => {
     try {
-      const tpl = $("#set-fileNameTemplate").value.trim().replace(/\.(mp4|webm|mov|mkv|m4v)$/i, "");
-      if (tpl.indexOf("{ID}") < 0) {
+      const body = readSettingsForm();
+      if (!body) {
         showToast("文件名模板必须含 {ID}", "err");
         setStatus($("#settingsStatus"), "文件名模板必须含 {ID}，封面和 json 靠这个 id 对视频", "err");
         return;
       }
-      const body = {
-        downloadPath: $("#set-downloadPath").value.trim(),
-        fileNameTemplate: tpl,
-        useAuthorSubdir: $("#set-useAuthorSubdir").value === "true",
-        showLikedInSearch: $("#set-showLikedInSearch") ? $("#set-showLikedInSearch").checked : true,
-        autoLike: $("#set-autoLike") ? $("#set-autoLike").checked : false,
-        autoFollow: $("#set-autoFollow") ? $("#set-autoFollow").checked : false,
-        playPublic: $("#set-playPublic") ? $("#set-playPublic").checked : true,
-        downloadBackend: $("#set-downloadBackend").value,
-        concurrency: parseInt($("#set-concurrency").value, 10) || 3,
-        downloadToggles: {
-          video: $("#set-dlVideo") ? $("#set-dlVideo").checked : true,
-          json: $("#set-dlJson") ? $("#set-dlJson").checked : true
-        },
-        aria2Path: $("#set-aria2Path").value.trim(),
-        aria2Token: $("#set-aria2Token").value,
-        iwaraCfgIp: $("#set-iwaraCfgIp").value.trim(),
-        aria2Dns: $("#set-aria2Dns").value.trim()
-      };
-      const credText = $("#set-iwaraCookie").value;
-      if (credText && credText.trim()) body.iwaraCookie = credText;
       const r = await api("/api/settings", "POST", body);
       if (!r.ok) throw new Error(r.error || "保存失败");
-      const cookieEl = $("#set-iwaraCookie");
-      if (cookieEl) {
-        cookieEl.value = "";
-        cookieEl.placeholder = "已保存（再贴新凭证才会覆盖；留空不改）";
-        cookieEl.dataset.filled = "1";
-      }
-      fillSettings(r.settings);
-      setStatus($("#settingsStatus"), "已保存凭证与设置", "ok");
-      // 2026-09-01 保存反馈改悬浮窗
-      showToast("✅ 已保存设置", "ok");
-      if (kwType() === "users") loadFollowingUsers();
-      refreshIwaraBadge();
+      afterSettingsSaved(r);
     } catch (e) {
       setStatus($("#settingsStatus"), e.message, "err");
       showToast("❌ 保存失败：" + e.message, "err");
@@ -1562,6 +1620,7 @@ async function init() {
     const s = await api("/api/settings");
     if (s.ok) fillSettings(s.settings);
   } catch (_) {}
+  ensureLikedMeta(); // 初始拉取本地点赞/关注状态（搜索 badge 兜底）
   if (kwType() === "users") loadFollowingUsers();
   refreshIwaraBadge();
   try {
