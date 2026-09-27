@@ -1,8 +1,8 @@
 # .auditignore — 审计豁免（语法同 .gitignore）
 # 照常 git 跟踪/提交，仅审计扫描跳过；与 .gitignore 叠加生效（各管各的）。
 #
-# 豁免原则：只豁免「非产品代码」——即不参与运行、不随组装产物交付的东西。
-#   产品代码（framework/、templates/、setup.sh、start.sh）
+# 豁免原则：只豁免「规则误报/非产品代码」——即规则套错对象，或与质量无关。
+#   前端产品代码（templates/_*/js|html|styles 等浏览器运行件）
 #   一律照常审计，不因为「报错多」而豁免。
 #
 # 注意：`vendor/` 这种「忽略整个目录」写法下，`!某文件` 无法恢复
@@ -10,8 +10,18 @@
 #       因此下面 scripts/ 用 `scripts/*` 逐项豁免，再 `!` 恢复要审计的那一个。
 #
 # ---------------------------------------------------------------------------
+# 后端 Node 代码：client-node-builtin-require 等规则对服务端是误报
+# （require('fs'/'path'/'child_process') 是 Node 正常用法，不是浏览器 client）。
+#   templates/js/            ← framework 整树（core/route/http/store/update/auth/config/assemble/tool）
+#   templates/_*/server/     ← 各系后端（gallery/iwara/gbmd 携带的 server/app.js + lib/ + routes/）
+templates/js/
+templates/_downloader/_iwara/server/
+templates/_downloader/_gamebanana-mods/server/
+templates/_gallery/server/
+
+# ---------------------------------------------------------------------------
 # 第三方压缩库：混淆产物，函数长度/变量名/圈复杂度等规则必然误报。
-server/templates/_iwara-style/public/vendor/
+templates/_downloader/_iwara/js/vendor/
 
 # ---------------------------------------------------------------------------
 # 模板维护者自用工具（scripts/ 共 9 个文件里的 8 个）
@@ -19,13 +29,11 @@ server/templates/_iwara-style/public/vendor/
 #       旧路由转换、裸露 JS 修复。不参与任何项目运行，也不进组装产物，
 #       却被当成产品代码套用「变量名长度/圈复杂度/函数长度/魔数/同步 I/O」
 #       等面向长期维护代码的规则，产生大量与真实质量无关的条目。
-# 实测：scripts/ 共 93 条 findings（占全仓 738 条的 12.6%），其中
-#       bench-html-assembly.js 33 条、func-index.js 21 条。
 scripts/*
 
 # ---------------------------------------------------------------------------
 # example/server/** 组装产物快照 + 项目示例代码（整体入库，仅作演示/测试基准）
-# 性质：真源在模板 server/framework/、server/project/blueprint/（那里照常审计），
+# 性质：真源在模板 templates/（那里按前端/后端规则分别审计），
 #       此处是下发副本 + example 的项目侧代码（routes/items.js 自研演示）。
 # 为何豁免：client-node-builtin-require 等规则对后端 Node 代码属误报
 #       （require('fs'/'path') 是服务端正常用法，不是浏览器 client）；

@@ -10,7 +10,7 @@ generatedBy: deepseek-v4-flash
 - 清单（assemble.json）是「要哪些素材」的**唯一真相**；脚本没有风格参数，用哪套风格完全由清单条目决定（混搭 = 把想要的条目写进同一份清单）。
 - 清单所在文件夹 = 项目根：所有相对路径以它解析，**只需传一个 `--to <清单路径>` 参数**，不需要也不能另传项目根。
 - 目录条目（dst 以 `/` 结尾）= 整目录拷贝（含子目录与点文件）。
-- **src==dst 是素材**（templates/ 风格层、framework/ 框架、project/blueprint/ 蓝图）参与回流；**src!=dst 是组装产出**（→ server/public/ 等）不参与回流。
+- **src==dst 是素材**（templates/ 素材树、lib/ 支撑件）参与回流；**src!=dst 是组装产出**（→ server/public/ 等）不参与回流。
 - 组装是**覆盖式写盘**：先 `--dry-run` 预演，覆盖项最值得留意；正式组装前自动跑「分发前预检」亮出将被覆盖的项目改动与将补下发的缺失（只看不阻断）。
 - 坑：素材在项目侧被项目自己改过 → 重装会被模板覆盖；`_` 开头键是注释（跳过校验与复制）；缺失只警告不阻断（全部缺失时提醒查源基准）。
 - 全文以 `setup.sh` 与 `scripts/assemble-manifest.js` 实际代码为准（md 可能滞后）。
@@ -37,7 +37,7 @@ generatedBy: deepseek-v4-flash
 - `--migrate` 按落点**文件名配对**搬文件（结构重排只改目录层级），搬后自动改写被搬文件的相对引用；缺省即真迁移，`--dry-run` 才预演。
 - `--pull` 只处理素材条目（src==dst）；产出条目（src!=dst）不参与双向同步，产物由组装生成。
 - `DRY_VERBOSE=1` 配合组装预演可展开目录条目下的逐个文件；`SETUP_SKIP_PRECHECK=1` 跳过分发前预检（CI 批量组装用）。
-- 无 `--to` 时不静默组装，报错并提示（交互式可回答 y 生成空白清单骨架；非交互 `cp server/project/blueprint/assemble.json <项目根>/assemble.json`）。
+- 无 `--to` 时不静默组装，报错并提示（交互式可回答 y 生成空白清单骨架；非交互 `cp example/assemble.json <项目根>/assemble.json`）。
 - `SETUP_LIB_ONLY=1` 时脚本只加载函数不做主流程（供 sync-to-project.sh 复用组装逻辑）。
 
 组装流程顺序（理解输出日志）：
@@ -56,10 +56,10 @@ generatedBy: deepseek-v4-flash
 {
   "_comment": "JSON 不支持注释，_ 开头的键是注释说明，必须跳过（不校验不复制不计数）",
   "files": {
-    "server/framework/auth/auth.js": "server/auth/auth.js",
-    "server/templates/_gbmd-style/public/logo.png": "server/public/logo.png",
-    "server/project/blueprint/fragments/": "server/public/fragments/",
-    "server/templates/_downloader-style/public/": "server/public/"
+    "templates/js/auth/auth.js": "server/auth/auth.js",
+    "templates/_downloader/_gamebanana-mods/assets/logo.png": "server/public/logo.png",
+    "templates/_downloader/html/": "server/public/fragments/",
+    "templates/_downloader/styles/": "server/public/"
   },
   "brand": { "name": "拾光集", "title": "拾光集", "displayTitle": "拾光集", "icon": "logo.png", "logo": "logo.png" },
   "init": true
@@ -76,8 +76,8 @@ generatedBy: deepseek-v4-flash
 **整目录取件 vs 逐文件显式列出**（两种写法可混用）：
 
 ```json
-"server/templates/_iwara-style/fragments/": "server/public/fragments/",              // 整目录
-"server/templates/_iwara-style/fragments/styles/row-thumb.css":
+"templates/_downloader/_iwara/html/": "server/public/fragments/",                  // 整目录
+"templates/_downloader/_iwara/styles/row-thumb.css":
     "server/public/fragments/styles/row-thumb.css"                                   // 单个文件
 ```
 
@@ -94,37 +94,37 @@ generatedBy: deepseek-v4-flash
 
 ## 素材 vs 产出（判断条目是否参与回流）
 
-- `src==dst`：素材条目（templates/ 风格层、framework/ 框架、project/blueprint/ 蓝图）→ 双向同步（`--pull` 回流、`--check` 比对）
+- `src==dst`：素材条目（templates/ 素材树、lib/ 支撑件）→ 双向同步（`--pull` 回流、`--check` 比对）
 - `src!=dst`：产出条目（如 → `server/public/`）→ 由组装生成，不参与回流
 
 ## 顶层其它段
 
 - `brand`: 可选。导出为 `server/public/brand.json`（运行期由 fragment-assembler 的 `@brand:key` 注释指令取值替换页面标题/logo/icon）。**仅在 brand.json 不存在时生成**——它是运行期可变配置，项目改过就不该被组装覆盖（重置需先删文件）。
 - `init`: 可选，缺省 true。`false` 时跳过蓝图骨架初始化（app.js/config.schema.json 不补、假设项目自带）。
-- boot.cjs 与 cjs-bootstrap.cjs 改由清单下发（写死在项目清单里：`server/project/blueprint/boot.cjs` → `server/boot.cjs`、`server/lib/cjs-bootstrap.cjs` → `server/lib/cjs-bootstrap.cjs`），路径对不上时 `--check` 直接报「缺失」，不再悄悄跳过。
+- boot.cjs 与 cjs-bootstrap.cjs 改由清单下发（写死在项目清单里：`templates/js/boot.cjs` → `server/boot.cjs`、`lib/cjs-bootstrap.cjs` → `server/lib/cjs-bootstrap.cjs`），路径对不上时 `--check` 直接报「缺失」，不再悄悄跳过。
 
 # 三、素材源布局（模板仓库内）
 
 ```
-server/framework/          ← 通用 JS（HTTP/鉴权/路由工厂/配置/备份/自动更新/update 三件套）
-server/templates/          ← 风格素材（只读）：_<名>-style/，新增风格 = 建目录，脚本自动发现
-server/project/blueprint/  ← 组装蓝图（共用分片/静态资源 + app.js 骨架 + config.schema.json，入库）
-server/project/            ← 缺省组装目标（生成物，不入库）
-server/lib/                ← cjs-bootstrap.cjs、start.sh（模板源）
+templates/styles|html|js|json|assets ← 最通用层（所有项目共用，可为空）
+templates/_downloader/     ← 下载器系（_iwara/ _gamebanana-mods/ 为项目独有层）
+templates/_gallery/        ← 画廊系（含 server/ 后端）
+templates/js/              ← 通用 JS（framework 整树：core/route/http/store/update/auth/assemble/tool/config）
+lib/                       ← cjs-bootstrap.cjs、start.sh、preview/（通用支撑件）
 ```
 
 - 后端业务 JS 不在模板：通用件在 framework/，业务实现由各项目自己维护。
-- `_gallery-style` 例外：它连同 `server/app.js` + `lib/` + `routes/` 一起带（gallery 全量后端为模板下发件）。
+- `_gallery` 例外：它连同 `server/app.js` + `lib/` + `routes/` 一起带（gallery 全量后端为模板下发件，见 `templates/_gallery/server/`）。
 - `example/` 是模板自带示例项目（组装效果参考 + test/ 测试对象），组装方式与普通项目一致。
 
 # 四、漏发体检（A 类：模板有源、清单漏声明）
 
 模板每个源目录下所有文件都应有清单条目覆盖（或所属目录条目覆盖）。对照法（通用件 + 本项目实际使用的风格）：
 
-1. 通用件候选 = `server/framework/**` + `server/project/blueprint/**`（除去 blueprint 自身元件 `README.md`/`app.js`/`assemble.json`/`config.schema.json`）+ `server/lib/` 的 `cjs-bootstrap.cjs`/`start.sh`。
-2. 风格候选 = 清单实际声明的 `server/templates/<风格>/` 目录下全部文件（只对照本项目用到的风格；gallery 用 `_gallery-style`，gbmd 混用 `_downloader-style`+`_gbmd-style`，iwara 混用 `_downloader-style`+`_iwara-style`）。
+1. 通用件候选 = `templates/js/**`（framework 整树）+ `templates/` 根级类型目录 + `lib/` 的 `cjs-bootstrap.cjs`/`start.sh`/`preview/**`。
+2. 系级候选 = 清单实际声明的 `templates/<系>/` 目录下全部文件（只对照本项目用到的系；gallery 用 `_gallery`，gbmd 用 `_downloader/_gamebanana-mods`，iwara 用 `_downloader/_iwara`）。
 3. 漏发 = 候选 − 清单声明（目录条目按前缀展开覆盖）。
-4. ✗ 误报要排除：模板仓库自身运行件（`server/public/`、`server/app.js`、`server.log`、`sessions.json` 等非模板源）、其它项目风格文件、自研件（清单无源但项目有文件，如 iwara 的 `public/app.js`）、旧源未切（如 gbmd/iwara 的 style.css 仍从 `_downloader-style` 下发而 `_gbmd-style`/`_iwara-style` 的新 style.css 未接入——接入项需用户定夺，勿擅自切）。
+4. ✗ 误报要排除：模板仓库自身运行件（项目侧 `server/log`、`sessions.json` 等非模板源）、其它项目素材文件、自研件（清单无源但项目有文件，如 iwara 的 `public/app.js`）、旧源未切（接入项需用户定夺，勿擅自切）。
 
 历史 A 类实例（2026-09-20）：gallery/iwara/gbmd 的 `server/update/` 缺 `tree-copy.js`、`apply-staged-update.cjs`（清单只声明了 `auto-update.js`）→ 部署机 requireUp 找不到 `tree-copy.js` 启动即崩（本地测试被工作区模板仓库兜底掩盖，本地能跑≠部署能跑）；后补清单条目对齐。`config.schema.json` 同理（`_gbmd-style`/`_iwara-style` 有源但清单漏声明 → 项目侧缺失，start.sh 默认端口读取与 schema 驱动配置加载不对齐）。
 

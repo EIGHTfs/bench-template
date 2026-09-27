@@ -56,6 +56,54 @@ run_setup() {
   OUT="$(cd "$TMP/tpl" && timeout 30 ./setup.sh "$@" 2>&1)"; RC=$?
 }
 
+# ── 从清单 JSON 读路径（结构变动时测试不失效）──────────────────
+# 从清单 files 中找「src 或 dst 以某文件名结尾」的条目，输出其 src 或 dst。
+# $1=清单文件  $2=文件名（basename）  $3=取哪个字段（src|dst）
+manifest_lookup() {
+  python3 - "$1" "$2" "$3" <<'PYEOF'
+import json, sys, os
+mani, name, field = sys.argv[1], sys.argv[2], sys.argv[3]
+m = json.load(open(mani, encoding="utf-8"))
+for k, v in m.get("files", {}).items():
+    if k.startswith("_"): continue
+    src, dst = k, v
+    pick = src if field == "src" else dst
+    if os.path.basename(pick.rstrip("/")) == name:
+        print(pick); sys.exit(0)
+sys.exit(1)
+PYEOF
+}
+
+# 从清单 files 里按「src 子串」过滤（同名文件多个源时用，如 panel-download 的 iwara/gbmd 两版）
+# $1=清单文件  $2=src 必须含的子串  $3=取哪个字段（src|dst）
+manifest_lookup_src() {
+  python3 - "$1" "$2" "$3" <<'PYEOF'
+import json, sys
+mani, needle, field = sys.argv[1], sys.argv[2], sys.argv[3]
+m = json.load(open(mani, encoding="utf-8"))
+for k, v in m.get("files", {}).items():
+    if k.startswith("_"): continue
+    if needle in k:
+        print(v if field == "dst" else k); sys.exit(0)
+sys.exit(1)
+PYEOF
+}
+
+# 从清单 files 里按「src 子串 + 文件名」过滤（同名文件多个源时用，如 panel-download 的 iwara/gbmd 两版）
+# $1=清单文件  $2=src 必须含的子串  $3=文件名（basename）  $4=取哪个字段（src|dst）
+manifest_find() {
+  python3 - "$1" "$2" "$3" "$4" <<'PYEOF'
+import json, sys, os
+mani, needle, name, field = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+m = json.load(open(mani, encoding="utf-8"))
+for k, v in m.get("files", {}).items():
+    if k.startswith("_"): continue
+    if needle in k and os.path.basename(k.rstrip("/")) == name:
+        print(v if field == "dst" else k); sys.exit(0)
+sys.exit(1)
+PYEOF
+}
+
 # 打印汇总；有失败则退出码 1
 finish() {
   echo

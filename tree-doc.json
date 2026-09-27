@@ -1,0 +1,1136 @@
+{
+  "docs": "开发文档（指南/总览/迁移计划）",
+  "example/server/public": "example 组装产物前端（入库作测试基准）",
+  "example/server": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example": "完整演示项目（组装清单+产物+自研+假数据，入库）",
+  "scripts": "模板维护工具（组装/迁移/扫描/清洗）",
+  "example/docs": "example 内嵌文档副本",
+  "example/example": "历史嵌套残留（旧快照，待清理）",
+  "example/example/json": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/assemble": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/auth": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/config": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/core": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/http": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/lib": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/styles": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/tab-panel": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/topbar": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/route": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/routes": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/search": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/store": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/update": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/json": "example 假数据目录",
+  "example/scripts": "example 内嵌工具脚本副本",
+  "example/server/assemble": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/auth": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/config": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/core": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/http": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/lib": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/styles": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/topbar": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/index.html/downloader": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/index.html": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/public/fragments": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/styles": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/styles/themes": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/tab-panel": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/topbar": "example 组装产物前端（入库作测试基准）",
+  "example/server/route": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/routes": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/search": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/store": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/update": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/test": "example 内嵌测试副本",
+  "lib": "通用运行支撑件（CJS 引导/启停/预览反代）",
+  "lib/preview": "通用运行支撑件",
+  "skills": "技能（setup-assemble：组装规范）",
+  "templates": "素材树（按通用程度分层）",
+  "templates/_downloader/_gamebanana-mods/assets": "gbmd 项目独有层",
+  "templates/_downloader/_gamebanana-mods": "下载器系通用层",
+  "templates/_downloader": "素材树（按通用程度分层）",
+  "templates/_downloader/_gamebanana-mods/html": "gbmd 项目独有层",
+  "templates/_downloader/_gamebanana-mods/html/tab-panel": "gbmd 项目独有层",
+  "templates/_downloader/_gamebanana-mods/html/topbar": "gbmd 项目独有层",
+  "templates/_downloader/_gamebanana-mods/js": "gbmd 项目独有层",
+  "templates/_downloader/_gamebanana-mods/json": "gbmd 项目独有层",
+  "templates/_downloader/_gamebanana-mods/server/lib": "gbmd 项目独有层",
+  "templates/_downloader/_gamebanana-mods/server": "gbmd 项目独有层",
+  "templates/_downloader/_gamebanana-mods/styles": "gbmd 项目独有层",
+  "templates/_downloader/_iwara/assets": "iwara 项目独有层",
+  "templates/_downloader/_iwara": "下载器系通用层",
+  "templates/_downloader/_iwara/html": "iwara 项目独有层",
+  "templates/_downloader/_iwara/html/tab-panel": "iwara 项目独有层",
+  "templates/_downloader/_iwara/html/topbar": "iwara 项目独有层",
+  "templates/_downloader/_iwara/js": "iwara 项目独有层",
+  "templates/_downloader/_iwara/js/vendor": "iwara 项目独有层",
+  "templates/_downloader/_iwara/json": "iwara 项目独有层",
+  "templates/_downloader/_iwara/server/lib": "iwara 后端（lib/ + routes/）",
+  "templates/_downloader/_iwara/server": "iwara 项目独有层",
+  "templates/_downloader/_iwara/server/routes": "iwara 后端（lib/ + routes/）",
+  "templates/_downloader/_iwara/styles": "iwara 项目独有层",
+  "templates/_downloader/_iwara/test": "iwara 项目独有层",
+  "templates/_downloader/html": "下载器系通用层",
+  "templates/_downloader/html/topbar": "下载器系通用层",
+  "templates/_downloader/js": "下载器系通用层",
+  "templates/_downloader/styles": "下载器系通用层",
+  "templates/_downloader/styles/themes": "下载器系通用层",
+  "templates/_downloader/test/helpers": "下载器系通用层",
+  "templates/_downloader/test": "下载器系通用层",
+  "templates/_gallery/assets": "画廊系（前后端都随素材分发）",
+  "templates/_gallery": "素材树（按通用程度分层）",
+  "templates/_gallery/html": "画廊系（前后端都随素材分发）",
+  "templates/_gallery/js": "画廊系（前后端都随素材分发）",
+  "templates/_gallery/json": "画廊系（前后端都随素材分发）",
+  "templates/_gallery/json/locales": "画廊系（前后端都随素材分发）",
+  "templates/_gallery/server": "画廊系（前后端都随素材分发）",
+  "templates/_gallery/server/lib": "gallery 后端（app.js + lib/ + routes/）",
+  "templates/_gallery/server/routes": "gallery 后端（app.js + lib/ + routes/）",
+  "templates/_gallery/styles": "画廊系（前后端都随素材分发）",
+  "templates/_gallery/styles/themes": "画廊系（前后端都随素材分发）",
+  "templates/js": "素材树（按通用程度分层）",
+  "templates/js/assemble": "最通用 JS 层（framework + 蓝图骨架）",
+  "templates/js/auth": "最通用 JS 层（framework + 蓝图骨架）",
+  "templates/js/config": "最通用 JS 层（framework + 蓝图骨架）",
+  "templates/js/core": "最通用 JS 层（framework + 蓝图骨架）",
+  "templates/js/http": "最通用 JS 层（framework + 蓝图骨架）",
+  "templates/js/route": "最通用 JS 层（framework + 蓝图骨架）",
+  "templates/js/server": "最通用 JS 层（framework + 蓝图骨架）",
+  "templates/js/store": "最通用 JS 层（framework + 蓝图骨架）",
+  "templates/js/tool": "最通用 JS 层（framework + 蓝图骨架）",
+  "templates/js/update": "最通用 JS 层（framework + 蓝图骨架）",
+  "templates/json": "素材树（按通用程度分层）",
+  "test": "测试（setup.sh/清单/example 自检链路）",
+  "docs/迁移计划-templates通用层级重构.md": "templates 重构迁移计划（本批次）",
+  "example/server/public/partial-refresh.js": "example 组装产物前端（入库作测试基准）",
+  "scripts/doc-tree.mjs": "README 目录树维护（gen/check/apply/sync）",
+  "scripts/gitignore-runtime.cjs": "运行态文件 .gitignore 自动维护",
+  ".auditignore": "审计豁免清单",
+  ".gitignore": "忽略规则（产物/运行态/回收站）",
+  "README.md": "仓库 README（功能/用法/版本记录）",
+  "docs/前端片段化改造指南.md": "整份 HTML 拆片段实测",
+  "docs/命令参数总览.md": "setup.sh 与清单工具全部参数",
+  "docs/旧项目模板化改造指南.md": "扁平架构改模板架构实操",
+  "docs/清单驱动重构.md": "多项目重复代码与清单驱动解法",
+  "example/.auditignore": "example 审计豁免",
+  "example/.gitignore": "example 忽略规则",
+  "example/.test": "example 自检标记文件",
+  "example/ASSEMBLE-COVERAGE.md": "组装覆盖面速查（通用规则 + example 实例）",
+  "example/README.md": "example 说明（= 根 README 副本）",
+  "example/assemble.json": "example 清单（混搭示例：iwara 骨架 + gbmd 面板）",
+  "example/docs/前端片段化改造指南.md": "example 内嵌的模板文档副本",
+  "example/docs/命令参数总览.md": "example 内嵌的模板文档副本",
+  "example/docs/旧项目模板化改造指南.md": "example 内嵌的模板文档副本",
+  "example/docs/清单驱动重构.md": "example 内嵌的模板文档副本",
+  "example/docs/组装反思-nexus-20260926.md": "example 内嵌的模板文档副本",
+  "example/example/.test": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/ASSEMBLE-COVERAGE.md": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/assemble.json": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/json/items.json": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/self-test.sh": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/app.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/assemble/fragment-assembler.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/auth/auth.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/boot.cjs": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/config.schema.json": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/config/config-loader.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/core/app-log.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/core/app.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/core/index.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/http/fs-async.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/http/html-utils.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/http/http-utils.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/http/path-safe.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/http/require-sibling.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/lib/cjs-bootstrap.cjs": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/app.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/auto-update-card.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/brand.json": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/auto-update-card.html": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/browse-mask.html": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/global-hud.html": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/head-extra.html": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/no-pwd-warn.html": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/scripts.html": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/styles/auth.css": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/styles/base.css": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/styles/combo.css": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/styles/components.css": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/styles/diff.css": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/styles/grid-map.css": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/styles/hud.css": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/styles/login-detect.css": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/styles/mobile.css": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/styles/mod-group.css": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/styles/modal.css": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/styles/progress.css": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/styles/result-list.css": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/styles/row-thumb.css": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/styles/task-list.css": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/styles/toast.css": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/styles/topbar-badge.css": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/styles/topbar.css": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/styles/variables.css": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/tab-panel/panel-download.html": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/tab-panel/panel-progress.html": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/tab-panel/panel-search.html": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/tab-panel/panel-settings.html": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/tabs.html": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/topbar.html": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/topbar/badge.html": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/topbar/brand.html": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/topbar/time.html": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/fragments/topbar/userscript.html": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/index.html": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/iwara-logo.png": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/login.html": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/login.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/search-date-range.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/setup-init.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/setup.html": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/style.css": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/public/theme-init.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/route/route-core.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/route/route-factory.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/route/route-registry.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/route/routes-adapter.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/route/routes-auth.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/route/routes-auto-update.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/routes/items.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/search/search-date-range.cjs": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/store/data-backup.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/store/json-dir.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/store/marker-manifest.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/update/apply-staged-update.cjs": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/update/auto-update.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/server/update/tree-copy.js": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/example/start.sh": "历史嵌套残留（旧版 example 快照，待清理）",
+  "example/json/items.json": "example 假数据（items.json，不受组装影响）",
+  "example/package.json": "example 的 CJS 声明",
+  "example/scripts/assemble-manifest.js": "example 内嵌的工具脚本副本",
+  "example/scripts/bench-html-assembly.js": "example 内嵌的工具脚本副本",
+  "example/scripts/check-auth.cjs": "example 内嵌的工具脚本副本",
+  "example/scripts/clean-stray-dirs.sh": "example 内嵌的工具脚本副本",
+  "example/scripts/convert-routes-template.py": "example 内嵌的工具脚本副本",
+  "example/scripts/fix-bare-js-html.py": "example 内嵌的工具脚本副本",
+  "example/scripts/func-index.js": "example 内嵌的工具脚本副本",
+  "example/scripts/join-html-fragments.py": "example 内嵌的工具脚本副本",
+  "example/scripts/lib-node.sh": "example 内嵌的工具脚本副本",
+  "example/scripts/rewrite-refs.js": "example 内嵌的工具脚本副本",
+  "example/scripts/scan-bare-js-html.js": "example 内嵌的工具脚本副本",
+  "example/scripts/scan-dead-files.js": "example 内嵌的工具脚本副本",
+  "example/scripts/scan-framework-refs.js": "example 内嵌的工具脚本副本",
+  "example/scripts/scan-sh-commands.js": "example 内嵌的工具脚本副本",
+  "example/scripts/split-html-fragments.py": "example 内嵌的工具脚本副本",
+  "example/scripts/verify-example-page.js": "example 内嵌的工具脚本副本",
+  "example/self-test.sh": "example 自检：组装→自研→启动→API 探测",
+  "example/server/app.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/assemble/fragment-assembler.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/auth/auth.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/boot.cjs": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/config.schema.json": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/config/config-loader.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/core/app-log.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/core/app.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/core/index.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/http/fs-async.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/http/html-utils.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/http/http-utils.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/http/path-safe.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/http/require-sibling.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/lib/cjs-bootstrap.cjs": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/lib/start.sh": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/README.md": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/app.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/assemble.json": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/auto-update-card.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/boot.cjs": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/config.schema.json": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/auto-update-card.html": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/browse-mask.html": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/global-hud.html": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/head-extra.html": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/no-pwd-warn.html": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/styles/auth.css": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/styles/base.css": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/styles/combo.css": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/styles/components.css": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/styles/diff.css": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/styles/hud.css": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/styles/login-detect.css": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/styles/mobile.css": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/styles/modal.css": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/styles/progress.css": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/styles/result-list.css": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/styles/row-thumb.css": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/styles/task-list.css": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/styles/toast.css": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/styles/topbar-badge.css": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/styles/topbar.css": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/styles/variables.css": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/tabs.html": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/topbar.html": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/topbar/brand.html": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/fragments/topbar/time.html": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/index.html/downloader/index.html": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/login.html": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/login.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/search-date-range.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/setup-init.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/setup.html": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/style.css": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/project/blueprint/theme-init.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/public/app.js": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/auto-update-card.js": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/brand.json": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/auto-update-card.html": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/browse-mask.html": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/global-hud.html": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/head-extra.html": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/no-pwd-warn.html": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/scripts.html": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/styles/auth.css": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/styles/base.css": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/styles/combo.css": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/styles/components.css": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/styles/diff.css": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/styles/grid-map.css": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/styles/hud.css": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/styles/login-detect.css": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/styles/mobile.css": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/styles/mod-group.css": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/styles/modal.css": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/styles/progress.css": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/styles/result-list.css": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/styles/row-thumb.css": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/styles/task-list.css": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/styles/themes/day.css": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/styles/themes/night.css": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/styles/toast.css": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/styles/topbar-badge.css": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/styles/topbar.css": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/styles/variables.css": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/tab-panel/panel-download.html": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/tab-panel/panel-progress.html": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/tab-panel/panel-search.html": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/tab-panel/panel-settings.html": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/tabs.html": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/topbar.html": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/topbar/badge.html": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/topbar/brand.html": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/topbar/time.html": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/fragments/topbar/userscript.html": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/index.html": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/iwara-logo.png": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/login.html": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/login.js": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/search-date-range.js": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/setup-init.js": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/setup.html": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/style.css": "example 组装产物前端（入库作测试基准）",
+  "example/server/public/theme-init.js": "example 组装产物前端（入库作测试基准）",
+  "example/server/route/route-core.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/route/route-factory.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/route/route-registry.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/route/routes-adapter.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/route/routes-auth.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/route/routes-auto-update.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/routes/items.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/search/search-date-range.cjs": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/sessions.json": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/store/data-backup.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/store/json-dir.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/store/marker-manifest.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/update/apply-staged-update.cjs": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/update/auto-update.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/server/update/tree-copy.js": "example 组装产物（框架下发+自研，入库作测试基准）",
+  "example/setup.sh": "example 自用组装脚本（复制自根）",
+  "example/start.sh": "example 启停脚本（组装下发）",
+  "example/test/args.test.sh": "example 内嵌的测试副本",
+  "example/test/assemble.test.sh": "example 内嵌的测试副本",
+  "example/test/check-doc-commands.test.sh": "example 内嵌的测试副本",
+  "example/test/example.test.sh": "example 内嵌的测试副本",
+  "example/test/lib-test.sh": "example 内嵌的测试副本",
+  "example/test/manifest-comments.test.sh": "example 内嵌的测试副本",
+  "example/test/manifest-invalid.test.sh": "example 内嵌的测试副本",
+  "example/test/mix.test.sh": "example 内嵌的测试副本",
+  "example/test/run-all.sh": "example 内嵌的测试副本",
+  "example/test/scan-sh-commands.test.sh": "example 内嵌的测试副本",
+  "lib/cjs-bootstrap.cjs": "CJS 强制引导",
+  "lib/preview/start-preview.mjs": "独立预览反代（真实后端垫片）",
+  "lib/preview/start.sh": "独立预览反代（真实后端垫片）",
+  "lib/start.sh": "通用启停脚本",
+  "package.json": "零依赖声明（仅 type=commonjs 与 test 入口）",
+  "scripts/assemble-manifest.js": "清单解析唯一实现（list/check/migrate/pull 等）",
+  "scripts/bench-html-assembly.js": "HTML 组装基准评测",
+  "scripts/check-auth.cjs": "鉴权自检",
+  "scripts/clean-stray-dirs.sh": "散落目录清理",
+  "scripts/convert-routes-template.py": "旧路由转换",
+  "scripts/fix-bare-js-html.py": "裸 JS 残留修复",
+  "scripts/func-index.js": "函数索引（定向读取大文件）",
+  "scripts/join-html-fragments.py": "HTML 片段合并",
+  "scripts/lib-node.sh": "Node 定位唯一实现（setup/start/测试共用）",
+  "scripts/rewrite-refs.js": "按清单映射改写相对引用",
+  "scripts/scan-bare-js-html.js": "裸 JS 残留扫描",
+  "scripts/scan-dead-files.js": "死文件扫描",
+  "scripts/scan-framework-refs.js": "框架引用/循环依赖扫描",
+  "scripts/scan-sh-commands.js": "sh 脚本命令清单扫描",
+  "scripts/split-html-fragments.py": "HTML 片段拆分",
+  "scripts/verify-example-page.js": "example 页面渲染验证",
+  "setup.sh": "组装/检查/回流总入口（--to 指定项目清单）",
+  "skills/setup-assemble.md": "技能：setup.sh 组装 + assemble.json 规范",
+  "templates/README.md": "素材树（按通用程度分层）",
+  "templates/_downloader/_gamebanana-mods/assets/favicon.ico": "gbmd 项目独有层",
+  "templates/_downloader/_gamebanana-mods/assets/favicon.png": "gbmd 项目独有层",
+  "templates/_downloader/_gamebanana-mods/assets/logo.png": "gbmd 项目独有层",
+  "templates/_downloader/_gamebanana-mods/html/scripts.html": "gbmd 项目独有层",
+  "templates/_downloader/_gamebanana-mods/html/tab-panel/panel-download.html": "gbmd 项目独有层",
+  "templates/_downloader/_gamebanana-mods/html/tab-panel/panel-progress.html": "gbmd 项目独有层",
+  "templates/_downloader/_gamebanana-mods/html/tab-panel/panel-search.html": "gbmd 项目独有层",
+  "templates/_downloader/_gamebanana-mods/html/tab-panel/panel-settings.html": "gbmd 项目独有层",
+  "templates/_downloader/_gamebanana-mods/html/topbar/badge.html": "gbmd 项目独有层",
+  "templates/_downloader/_gamebanana-mods/html/topbar/userscript.html": "gbmd 项目独有层",
+  "templates/_downloader/_gamebanana-mods/js/app.js": "gbmd 项目独有层",
+  "templates/_downloader/_gamebanana-mods/js/path-picker.js": "gbmd 项目独有层",
+  "templates/_downloader/_gamebanana-mods/json/config.schema.json": "gbmd 项目独有层",
+  "templates/_downloader/_gamebanana-mods/json/manifest.json": "gbmd 项目独有层",
+  "templates/_downloader/_gamebanana-mods/server/lib/auto-update.js": "gbmd 项目独有层",
+  "templates/_downloader/_gamebanana-mods/styles/grid-map.css": "gbmd 项目独有层",
+  "templates/_downloader/_gamebanana-mods/styles/mod-group.css": "gbmd 项目独有层",
+  "templates/_downloader/_gamebanana-mods/styles/style.css": "gbmd 项目独有层",
+  "templates/_downloader/_iwara/assets/favicon.ico": "iwara 项目独有层",
+  "templates/_downloader/_iwara/assets/favicon.png": "iwara 项目独有层",
+  "templates/_downloader/_iwara/assets/iwara-logo.png": "iwara 项目独有层",
+  "templates/_downloader/_iwara/html/play.html": "iwara 项目独有层",
+  "templates/_downloader/_iwara/html/scripts.html": "iwara 项目独有层",
+  "templates/_downloader/_iwara/html/tab-panel/panel-download.html": "iwara 项目独有层",
+  "templates/_downloader/_iwara/html/tab-panel/panel-progress.html": "iwara 项目独有层",
+  "templates/_downloader/_iwara/html/tab-panel/panel-search.html": "iwara 项目独有层",
+  "templates/_downloader/_iwara/html/tab-panel/panel-settings.html": "iwara 项目独有层",
+  "templates/_downloader/_iwara/html/topbar/badge.html": "iwara 项目独有层",
+  "templates/_downloader/_iwara/html/topbar/userscript.html": "iwara 项目独有层",
+  "templates/_downloader/_iwara/js/app.js": "iwara 项目独有层",
+  "templates/_downloader/_iwara/js/play-app.js": "iwara 项目独有层",
+  "templates/_downloader/_iwara/js/play-enhance.js": "iwara 项目独有层",
+  "templates/_downloader/_iwara/js/play-list.js": "iwara 项目独有层",
+  "templates/_downloader/_iwara/js/vendor/NOTICE.md": "iwara 第三方库（artplayer 等）",
+  "templates/_downloader/_iwara/js/vendor/artplayer-plugin-vtt-thumbnail.js": "iwara 第三方库（artplayer 等）",
+  "templates/_downloader/_iwara/js/vendor/artplayer.js": "iwara 第三方库（artplayer 等）",
+  "templates/_downloader/_iwara/json/config.schema.json": "iwara 项目独有层",
+  "templates/_downloader/_iwara/server/lib/auto-update.js": "iwara 后端（lib/ + routes/）",
+  "templates/_downloader/_iwara/server/lib/iwara-api.js": "iwara 后端（lib/ + routes/）",
+  "templates/_downloader/_iwara/server/lib/like-state.js": "iwara 后端（lib/ + routes/）",
+  "templates/_downloader/_iwara/server/routes/like.js": "iwara 后端（lib/ + routes/）",
+  "templates/_downloader/_iwara/styles/row-thumb.css": "iwara 项目独有层",
+  "templates/_downloader/_iwara/styles/style.css": "iwara 项目独有层",
+  "templates/_downloader/_iwara/test/.test": "iwara 项目独有层",
+  "templates/_downloader/_iwara/test/play-record.cjs": "iwara 项目独有层",
+  "templates/_downloader/_iwara/test/play-test.cjs": "iwara 项目独有层",
+  "templates/_downloader/_iwara/test/test-author-avatar.cjs": "iwara 项目独有层",
+  "templates/_downloader/html/auto-update-card.html": "下载器系通用层",
+  "templates/_downloader/html/browse-mask.html": "下载器系通用层",
+  "templates/_downloader/html/global-hud.html": "下载器系通用层",
+  "templates/_downloader/html/head-extra.html": "下载器系通用层",
+  "templates/_downloader/html/index.html": "下载器系通用层",
+  "templates/_downloader/html/login.html": "下载器系通用层",
+  "templates/_downloader/html/no-pwd-warn.html": "下载器系通用层",
+  "templates/_downloader/html/setup.html": "下载器系通用层",
+  "templates/_downloader/html/tabs.html": "下载器系通用层",
+  "templates/_downloader/html/topbar.html": "下载器系通用层",
+  "templates/_downloader/html/topbar/brand.html": "下载器系通用层",
+  "templates/_downloader/html/topbar/time.html": "下载器系通用层",
+  "templates/_downloader/js/login.js": "下载器系通用层",
+  "templates/_downloader/js/search-date-range.cjs": "下载器系通用层",
+  "templates/_downloader/js/search-date-range.js": "下载器系通用层",
+  "templates/_downloader/js/setup-init.js": "下载器系通用层",
+  "templates/_downloader/styles/auth.css": "下载器系通用层",
+  "templates/_downloader/styles/base.css": "下载器系通用层",
+  "templates/_downloader/styles/combo.css": "下载器系通用层",
+  "templates/_downloader/styles/components.css": "下载器系通用层",
+  "templates/_downloader/styles/diff.css": "下载器系通用层",
+  "templates/_downloader/styles/hud.css": "下载器系通用层",
+  "templates/_downloader/styles/login-detect.css": "下载器系通用层",
+  "templates/_downloader/styles/mobile.css": "下载器系通用层",
+  "templates/_downloader/styles/modal.css": "下载器系通用层",
+  "templates/_downloader/styles/progress.css": "下载器系通用层",
+  "templates/_downloader/styles/result-list.css": "下载器系通用层",
+  "templates/_downloader/styles/row-thumb.css": "下载器系通用层",
+  "templates/_downloader/styles/style.css": "下载器系通用层",
+  "templates/_downloader/styles/task-list.css": "下载器系通用层",
+  "templates/_downloader/styles/themes/day.css": "下载器系通用层",
+  "templates/_downloader/styles/themes/night.css": "下载器系通用层",
+  "templates/_downloader/styles/toast.css": "下载器系通用层",
+  "templates/_downloader/styles/topbar-badge.css": "下载器系通用层",
+  "templates/_downloader/styles/topbar.css": "下载器系通用层",
+  "templates/_downloader/test/helpers/routes-collect.cjs": "下载器系通用层",
+  "templates/_downloader/test/helpers/test-log.cjs": "下载器系通用层",
+  "templates/_downloader/test/p0-smoke.test.cjs": "下载器系通用层",
+  "templates/_gallery/assets/favicon.png": "画廊系（前后端都随素材分发）",
+  "templates/_gallery/assets/favicon.svg": "画廊系（前后端都随素材分发）",
+  "templates/_gallery/html/index.html": "画廊系（前后端都随素材分发）",
+  "templates/_gallery/js/api-client.js": "画廊系（前后端都随素材分发）",
+  "templates/_gallery/js/app.js": "画廊系（前后端都随素材分发）",
+  "templates/_gallery/json/config.schema.json": "画廊系（前后端都随素材分发）",
+  "templates/_gallery/json/locales/en.json": "画廊系（前后端都随素材分发）",
+  "templates/_gallery/json/locales/zh-CN.json": "画廊系（前后端都随素材分发）",
+  "templates/_gallery/server/app.js": "gallery 后端（app.js + lib/ + routes/）",
+  "templates/_gallery/server/lib/archive.js": "gallery 后端（app.js + lib/ + routes/）",
+  "templates/_gallery/server/lib/auto-update.js": "gallery 后端（app.js + lib/ + routes/）",
+  "templates/_gallery/server/lib/config.js": "gallery 后端（app.js + lib/ + routes/）",
+  "templates/_gallery/server/lib/gif.js": "gallery 后端（app.js + lib/ + routes/）",
+  "templates/_gallery/server/lib/scan.js": "gallery 后端（app.js + lib/ + routes/）",
+  "templates/_gallery/server/lib/util.js": "gallery 后端（app.js + lib/ + routes/）",
+  "templates/_gallery/server/routes/archive.js": "gallery 后端（app.js + lib/ + routes/）",
+  "templates/_gallery/server/routes/auth.js": "gallery 后端（app.js + lib/ + routes/）",
+  "templates/_gallery/server/routes/auto-update.js": "gallery 后端（app.js + lib/ + routes/）",
+  "templates/_gallery/server/routes/browse.js": "gallery 后端（app.js + lib/ + routes/）",
+  "templates/_gallery/server/routes/favorites.js": "gallery 后端（app.js + lib/ + routes/）",
+  "templates/_gallery/server/routes/gallery.js": "gallery 后端（app.js + lib/ + routes/）",
+  "templates/_gallery/server/routes/upload.js": "gallery 后端（app.js + lib/ + routes/）",
+  "templates/_gallery/styles/base.css": "画廊系（前后端都随素材分发）",
+  "templates/_gallery/styles/gallery.css": "画廊系（前后端都随素材分发）",
+  "templates/_gallery/styles/lightbox.css": "画廊系（前后端都随素材分发）",
+  "templates/_gallery/styles/settings.css": "画廊系（前后端都随素材分发）",
+  "templates/_gallery/styles/sidebar.css": "画廊系（前后端都随素材分发）",
+  "templates/_gallery/styles/style.css": "画廊系（前后端都随素材分发）",
+  "templates/_gallery/styles/themes/dark.css": "画廊系（前后端都随素材分发）",
+  "templates/_gallery/styles/toast.css": "画廊系（前后端都随素材分发）",
+  "templates/_gallery/styles/topbar.css": "画廊系（前后端都随素材分发）",
+  "templates/_gallery/styles/upload.css": "画廊系（前后端都随素材分发）",
+  "templates/js/app.js": "最通用 JS 层（framework + 蓝图骨架）",
+  "templates/js/assemble/fragment-assembler.js": "页面片段装配（fragment-assembler）",
+  "templates/js/auth/auth.js": "会话与密码校验",
+  "templates/js/auto-update-card.js": "最通用 JS 层（framework + 蓝图骨架）",
+  "templates/js/boot.cjs": "最通用 JS 层（framework + 蓝图骨架）",
+  "templates/js/config/config-loader.js": "配置装载",
+  "templates/js/core/app-log.js": "服务主体与聚合出口",
+  "templates/js/core/app.js": "服务主体与聚合出口",
+  "templates/js/core/index.js": "服务主体与聚合出口",
+  "templates/js/http/fs-async.js": "底层通用件（http/html utils、fs-async、path-safe）",
+  "templates/js/http/html-utils.js": "底层通用件（http/html utils、fs-async、path-safe）",
+  "templates/js/http/http-utils.js": "底层通用件（http/html utils、fs-async、path-safe）",
+  "templates/js/http/path-safe.js": "底层通用件（http/html utils、fs-async、path-safe）",
+  "templates/js/http/require-sibling.js": "底层通用件（http/html utils、fs-async、path-safe）",
+  "templates/js/partial-refresh.js": "最通用 JS 层（framework + 蓝图骨架）",
+  "templates/js/route/route-core.js": "路由核心（匹配/工厂/注册表/适配）",
+  "templates/js/route/route-factory.js": "路由核心（匹配/工厂/注册表/适配）",
+  "templates/js/route/route-registry.js": "路由核心（匹配/工厂/注册表/适配）",
+  "templates/js/route/routes-adapter.js": "路由核心（匹配/工厂/注册表/适配）",
+  "templates/js/route/routes-auth.js": "路由核心（匹配/工厂/注册表/适配）",
+  "templates/js/route/routes-auto-update.js": "路由核心（匹配/工厂/注册表/适配）",
+  "templates/js/server/app.js": "后端服务示例入口（app.js + boot.cjs）",
+  "templates/js/server/boot.cjs": "后端服务示例入口（app.js + boot.cjs）",
+  "templates/js/store/data-backup.js": "数据存取（json-dir/data-backup/marker-manifest）",
+  "templates/js/store/json-dir.js": "数据存取（json-dir/data-backup/marker-manifest）",
+  "templates/js/store/marker-manifest.js": "数据存取（json-dir/data-backup/marker-manifest）",
+  "templates/js/theme-init.js": "最通用 JS 层（framework + 蓝图骨架）",
+  "templates/js/tool/tool-detect.js": "通用工具探测（tool-detect）",
+  "templates/js/update/apply-staged-update.cjs": "自动更新（auto-update/tree-copy）",
+  "templates/js/update/auto-update.js": "自动更新（auto-update/tree-copy）",
+  "templates/js/update/tree-copy.js": "自动更新（auto-update/tree-copy）",
+  "templates/json/config.schema.json": "最通用 json 层（config.schema 等）",
+  "test/args.test.sh": "参数契约测试",
+  "test/assemble.test.sh": "组装行为测试",
+  "test/check-doc-commands.test.sh": "文档命令一致性测试",
+  "test/example.test.sh": "example 自检接入",
+  "test/lib-test.sh": "测试共享库（断言/临时模板/组装）",
+  "test/manifest-comments.test.sh": "清单注释键测试",
+  "test/manifest-invalid.test.sh": "清单错误结构测试",
+  "test/mix.test.sh": "风格混搭覆盖顺序测试",
+  "test/run-all.sh": "测试总入口（npm test）",
+  "test/scan-sh-commands.test.sh": "sh 命令扫描测试",
+  "_meta": {
+    "worktree": {
+      "README.md": {
+        "status": "M",
+        "mtime": "2026-09-27T16:59:17.529Z",
+        "note": "注释可能需更新"
+      },
+      "example/assemble.json": {
+        "status": "M",
+        "mtime": "2026-09-27T16:39:47.016Z",
+        "note": "注释可能需更新"
+      },
+      "example/server/assemble/fragment-assembler.js": {
+        "status": "M",
+        "mtime": "2026-09-27T16:36:45.124Z",
+        "note": "注释可能需更新"
+      },
+      "example/server/public/fragments/scripts.html": {
+        "status": "M",
+        "mtime": "2026-09-27T16:36:45.412Z",
+        "note": "注释可能需更新"
+      },
+      "example/server/store/data-backup.js": {
+        "status": "M",
+        "mtime": "2026-09-27T16:36:45.294Z",
+        "note": "注释可能需更新"
+      },
+      "example/server/templates/_gallery-style/public/style.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/templates/_gallery-style/server/lib/archive.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/templates/_gallery-style/server/lib/gif.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/templates/_iwara-style/config.schema.json": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/templates/_iwara-style/fragments/scripts.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/templates/_iwara-style/public/app.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/templates/_iwara-style/public/play-app.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/templates/_iwara-style/public/play-enhance.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/templates/_iwara-style/public/play.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/templates/_iwara-style/public/vendor/NOTICE.md": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "scripts/assemble-manifest.js": {
+        "status": "M",
+        "mtime": "2026-09-27T16:35:18.076Z",
+        "note": "注释可能需更新"
+      },
+      "server/project/blueprint/assemble.json": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/project/blueprint/config.schema.json": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/public/auto-update-card.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/public/fragments/styles/topbar.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/public/fragments/styles/variables.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/public/style.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/public/theme-init.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/sessions.json": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/fragments/auto-update-card.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/fragments/browse-mask.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/fragments/global-hud.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/fragments/head-extra.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/fragments/no-pwd-warn.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/fragments/styles/auth.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/fragments/styles/base.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/fragments/styles/combo.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/fragments/styles/components.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/fragments/styles/diff.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/fragments/styles/hud.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/fragments/styles/login-detect.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/fragments/styles/mobile.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/fragments/styles/modal.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/fragments/styles/progress.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/fragments/styles/result-list.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/fragments/styles/row-thumb.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/fragments/styles/task-list.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/fragments/styles/toast.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/fragments/styles/topbar-badge.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/fragments/tabs.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/fragments/topbar.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/fragments/topbar/brand.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/fragments/topbar/time.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/public/index.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/public/login.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/public/login.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/public/search-date-range.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/public/setup-init.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_downloader-style/public/setup.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gallery-style/config.schema.json": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gallery-style/public/api-client.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gallery-style/public/app.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gallery-style/public/favicon.png": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gallery-style/public/favicon.svg": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gallery-style/public/index.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gallery-style/public/locales/en.json": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gallery-style/public/locales/zh-CN.json": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gallery-style/server/app.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gallery-style/server/lib/auto-update.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gallery-style/server/lib/config.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gallery-style/server/lib/scan.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gallery-style/server/lib/util.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gallery-style/server/routes/archive.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gallery-style/server/routes/auth.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gallery-style/server/routes/auto-update.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gallery-style/server/routes/browse.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gallery-style/server/routes/favorites.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gallery-style/server/routes/gallery.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gallery-style/server/routes/upload.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gbmd-style/config.schema.json": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gbmd-style/fragments/manifest.json": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gbmd-style/fragments/scripts.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gbmd-style/fragments/styles/grid-map.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gbmd-style/fragments/styles/mod-group.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gbmd-style/fragments/tab-panel/panel-download.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gbmd-style/fragments/tab-panel/panel-progress.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gbmd-style/fragments/tab-panel/panel-search.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gbmd-style/fragments/tab-panel/panel-settings.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gbmd-style/fragments/topbar/badge.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gbmd-style/fragments/topbar/userscript.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gbmd-style/public/app.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gbmd-style/public/favicon.ico": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gbmd-style/public/favicon.png": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gbmd-style/public/logo.png": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gbmd-style/public/path-picker.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gbmd-style/public/style.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_gbmd-style/server/lib/auto-update.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_iwara-style/fragments/styles/row-thumb.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_iwara-style/fragments/tab-panel/panel-download.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_iwara-style/fragments/tab-panel/panel-progress.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_iwara-style/fragments/tab-panel/panel-search.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_iwara-style/fragments/tab-panel/panel-settings.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_iwara-style/fragments/topbar/badge.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_iwara-style/fragments/topbar/userscript.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_iwara-style/public/favicon.ico": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_iwara-style/public/favicon.png": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_iwara-style/public/iwara-logo.png": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_iwara-style/public/style.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_iwara-style/public/vendor/artplayer.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "server/templates/_iwara-style/server/lib/auto-update.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "setup.sh": {
+        "status": "M",
+        "mtime": "2026-09-27T16:33:09.888Z",
+        "note": "注释可能需更新"
+      },
+      "skills/setup-assemble.md": {
+        "status": "M",
+        "mtime": "2026-09-27T17:00:35.777Z",
+        "note": "注释可能需更新"
+      },
+      "test/assemble.test.sh": {
+        "status": "M",
+        "mtime": "2026-09-27T17:10:04.087Z",
+        "note": "注释可能需更新"
+      },
+      "test/lib-test.sh": {
+        "status": "M",
+        "mtime": "2026-09-27T17:11:11.878Z",
+        "note": "注释可能需更新"
+      },
+      "test/manifest-comments.test.sh": {
+        "status": "M",
+        "mtime": "2026-09-27T17:10:37.574Z",
+        "note": "注释可能需更新"
+      },
+      "test/mix.test.sh": {
+        "status": "M",
+        "mtime": "2026-09-27T17:11:31.105Z",
+        "note": "注释可能需更新"
+      },
+      "docs/文件树.md": {
+        "status": "A",
+        "mtime": "2026-09-27T16:54:31.715Z",
+        "note": "注释可能需更新"
+      },
+      "docs/迁移计划-templates通用层级重构.md": {
+        "status": "A",
+        "mtime": "2026-09-27T16:05:55.639Z",
+        "note": "注释可能需更新"
+      },
+      "example/server/public/partial-refresh.js": {
+        "status": "A",
+        "mtime": "2026-09-27T16:36:45.406Z",
+        "note": "注释可能需更新"
+      },
+      "scripts/doc-tree.mjs": {
+        "status": "A",
+        "mtime": "2026-09-27T16:52:56.427Z",
+        "note": "注释可能需更新"
+      },
+      "scripts/gitignore-runtime.cjs": {
+        "status": "A",
+        "mtime": "2026-09-25T19:30:52.764Z",
+        "note": "注释可能需更新"
+      }
+    }
+  },
+  "docs/文件树.md": "完整目录结构（doc-tree.mjs 自动维护，README 引用）",
+  "tree-doc.json": "目录树注释映射（doc-tree 索引：路径→一句话介绍）"
+}

@@ -19,17 +19,19 @@ run_setup --to example/assemble.json
 if [ $RC -eq 0 ] && grep -q "缺失 0" <<<"$OUT"; then ok "example：--to 组装正常、无缺失"; else bad "example：组装失败或有缺失"; fi
 if [ -f "$TMP/tpl/example/server/app.js" ]; then ok "example：骨架 app.js 已初始化（server/ 不存在时也能建）"; else bad "example：app.js 未生成（server/ 未 mkdir 的老问题）"; fi
 
-# --- 落点按 dst：素材 src 在 templates/，产出必须落 public/ ---
-if [ -f "$TMP/tpl/example/server/public/login.html" ]; then
-  ok "落点按 dst：blueprint 素材产出到 public/"
+# --- 落点按 dst：素材 src 在 templates/，产出必须落清单声明的 dst ---
+LOGIN_DST="$(manifest_lookup "$TMP/tpl/example/assemble.json" login.html dst)"
+if [ -n "$LOGIN_DST" ] && [ -f "$TMP/tpl/example/$LOGIN_DST" ]; then
+  ok "落点按 dst：素材产出到清单声明的 $LOGIN_DST"
 else
-  bad "落点按 dst：public/ 未拿到产出"
+  bad "落点按 dst：清单声明 $LOGIN_DST 但产物未落位"
 fi
 
 # --- 组装不得凭空创建 server/templates/（废除 tree 模式的核心回归）---
 # 清单里 templates/ 只作 src 出现、从不出现在 dst，所以组装后项目里
 # 不该有 templates/。若这里失败，说明 tree 落点逻辑又回来了。
-if [ ! -d "$TMP/tpl/example/server/templates" ]; then
+# （从清单 dst 集合验证：任何 dst 都不以 server/templates/ 开头）
+if ! manifest_lookup "$TMP/tpl/example/assemble.json" templates dst >/dev/null 2>&1 && [ ! -d "$TMP/tpl/example/server/templates" ]; then
   ok "组装不创建 server/templates/（tree 落点未复活）"
 else
   bad "组装凭空创建了 server/templates/（tree 落点复活了）"

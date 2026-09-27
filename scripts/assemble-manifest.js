@@ -128,14 +128,13 @@ function loadManifest(manifestPath) {
 function resolveBase(probeDir) {
   const p = path.resolve(probeDir);
 
-  // 判定素材存在性的三类标志位（任一命中即认为该目录是「server/」层）
+  // 判定素材存在性的标志位（任一命中即认为该目录是素材根）
   const hasMaterial = (dir) =>
     isDir(path.join(dir, "templates")) ||
-    isDir(path.join(dir, "project", "blueprint")) ||
-    isDir(path.join(dir, "framework"));
+    isDir(path.join(dir, "lib"));
 
-  // 1) probe 就是基准：probe/server/ 下有素材
-  if (hasMaterial(path.join(p, "server"))) return p;
+  // 1) probe 就是基准：probe/templates/ 下有素材
+  if (hasMaterial(path.join(p, "server")) || hasMaterial(p)) return p;
 
   // 2) probe 本身是 server/ 层：其父级即为基准
   if (hasMaterial(p)) return path.dirname(p);
@@ -155,11 +154,16 @@ function resolveBase(probeDir) {
  */
 function assetRootOf(key) {
   const parts = key.replace(/\/+$/, "").split("/");
-  if (parts.length >= 3 && parts[0] === "server" &&
-      (parts[1] === "templates" || parts[1] === "project")) {
-    return parts.slice(0, 3).join("/");     // 精确到风格目录 / blueprint
+  // 系级/项目级素材：templates/_downloader/_iwara/... → templates/_downloader/_iwara
+  // 最通用层：templates/js/...、templates/styles/... → templates/js 等（到类型目录）
+  if (parts[0] === "templates" && parts.length >= 3 && parts[1].startsWith("_")) {
+    return parts.slice(0, 3).join("/");     // 精确到系级/项目级目录
   }
-  return parts.slice(0, 2).join("/");       // server/framework 等
+  if (parts[0] === "templates") {
+    return parts.slice(0, 2).join("/");     // templates/styles、templates/js 等
+  }
+  if (parts[0] === "lib") return parts.slice(0, 2).join("/"); // lib/
+  return parts.slice(0, 2).join("/");       // 其它素材
 }
 
 function assetRoots(manifestPath) {
@@ -522,7 +526,7 @@ function cmdPull(manifestPath, projectRoot, base, write = false) {
   const isAsset = (s, d) => {
     if (s.endsWith("/") !== d.endsWith("/")) return false;
     if (s.replace(/\/+$/, "") !== d.replace(/\/+$/, "")) return false;
-    return /^(server\/)?(templates|framework|project)\//.test(s.replace(/^\.\//, ""));
+    return /^(templates|lib)\//.test(s.replace(/^\.\//, ""));
   };
 
   const diffs = [];   // { rel, srcAbs, changed }  项目侧与模板不同的素材

@@ -4,7 +4,7 @@
 #
 # ★ 核心：清单（assemble.json）是「要哪些素材」的唯一真相
 #   清单每条写明 来源 → 落点，如：
-#     "server/templates/_gbmd-style/public/app.js": "server/public/app.js"
+#     "templates/_downloader/_gamebanana-mods/html/tab-panel/panel-download.html": "server/public/fragments/tab-panel/panel-download.html"
 #   所以本脚本**没有风格参数** —— 用哪套素材完全由清单决定。
 #   混搭（跨风格取素材）同样由清单决定：把想要的条目都写进同一份清单即可。
 #
@@ -40,27 +40,30 @@
 #   只处理素材条目（src==dst，位于 templates/ framework/ project/）；
 #   产出条目（src!=dst，如 → server/public/）不参与双向同步 —— 产物由组装生成。
 #
-# ── 素材布局 ───────────────────────────────────────────
-#   server/framework/          ← 通用 JS（HTTP/鉴权/路由工厂/配置/备份/自动更新）
-#   server/templates/          ← 风格素材（只读）：_<名>-style/，新增风格=建目录
-#   server/project/blueprint/  ← 组装蓝图（共用分片/静态资源 + app.js 骨架，入库）
-#   server/project/            ← 缺省组装目标（生成物，不入库）
+# ── 素材布局（2026-09-27 重构：templates 上提到根，按通用程度分目录）──
+#   templates/styles|html|js|json|assets ← 最通用层（所有项目共用，可为空）
+#   templates/_downloader/        ← 下载器系（_iwara/ _gamebanana-mods/ 为项目独有层）
+#   templates/_gallery/           ← 画廊系
+#   每层内部按类型子目录（styles/html/js/json/assets），js/css/html 保留内部层级
+#   lib/                          ← 通用支撑件（cjs-bootstrap.cjs / start.sh / preview/）
 #
-# 后端业务 JS 不在模板：通用件在 framework/，业务实现由各项目自己维护
-#   （_gallery-style 例外：它连同 server/app.js + lib/ + routes/ 一起带）。
+# 后端业务 JS 不在模板：通用件在 templates/js/（core/route/http/...），
+# 业务实现由各项目自己维护（_gallery 例外：连同 server/ 一起带，见 templates/_gallery/server/）。
 # ============================================================
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # 素材路径自动探测（两种布局都能跑）：
-#   - 模板仓库：<root>/server/templates + <root>/server/project/blueprint
-#   - 已同步素材的项目（scripts/sync-to-project.sh）：<root>/templates + <root>/project/blueprint
+#   - 模板仓库：<root>/templates + <root>/lib
+#   - 已同步素材的项目（scripts/sync-to-project.sh）：<root>/templates + <root>/lib
 detect_dir() {
   if [ -d "$1" ]; then echo "$1"; elif [ -d "$2" ]; then echo "$2"; else echo "$1"; fi
 }
-TEMPLATES_DIR="$(detect_dir "$ROOT/server/templates" "$ROOT/templates")"
-BLUEPRINT_DIR="$(detect_dir "$ROOT/server/project/blueprint" "$ROOT/project/blueprint")"
+TEMPLATES_DIR="$(detect_dir "$ROOT/templates" "$ROOT/server/templates")"
+# 蓝图骨架（app.js / config.schema.json）已并入 templates/（js/ 与 json/ 类型目录）
+BLUEPRINT_APP="$(detect_dir "$ROOT/templates/js/app.js" "$ROOT/server/project/blueprint/app.js")"
+BLUEPRINT_CONFIG="$(detect_dir "$ROOT/templates/json/config.schema.json" "$ROOT/server/project/blueprint/config.schema.json")"
 
 # 清单解析唯一实现（scripts/assemble-manifest.js）——
 # 此前 files 展开 / brand 导出 / init 判定各自内嵌一份 python，口径易漂移。
@@ -89,7 +92,7 @@ NODE_BIN=""
 
 # 清单「键」的源基准（键统一写成 server/... 形式）：
 #   模板仓库布局：素材在 <模板根>/server/  → 源基准 = 模板根
-#   synced 布局  ：素材在 <项目>/server/   → 源基准 = 项目根（即 $ROOT 的上一级）
+#   synced 布局  ：素材在 <项目>/templates/ → 源基准 = 项目根（即 $ROOT 的上一级）
 # 两种布局下「基准 + 键」都指向同一批素材，因此同一份 assemble.json 两边通用。
 # 判定统一交给 scripts/assemble-manifest.js（resolve-base），与 sync-to-project.sh
 # 共用同一实现——此前这里是第三份「基准怎么算」的独立实现，正是幽灵目录的根因。
@@ -97,10 +100,10 @@ if find_node "$ROOT/tool/node/bin/node"; then
   SRC_BASE="$("$NODE_BIN" "$MANIFEST_TOOL" resolve-base "$ROOT")"
 else
   # 没有 node 时回落旧判定（保持可用，不让组装整体失败）
-  if [ -d "$ROOT/server/templates" ] || [ -d "$ROOT/server/project/blueprint" ]; then
+  if [ -d "$ROOT/templates" ] || [ -d "$ROOT/lib" ]; then
     SRC_BASE="$ROOT"
-  elif [ -d "$ROOT/templates" ] || [ -d "$ROOT/project/blueprint" ]; then
-    SRC_BASE="$(cd "$ROOT/.." && pwd)"
+  elif [ -d "$ROOT/server/templates" ]; then
+    SRC_BASE="$ROOT"
   else
     SRC_BASE="$ROOT"
   fi
@@ -119,19 +122,19 @@ ok()   { printf '%s%s%s\n' "$C_GREEN" "$*" "$C_RESET"; }
 warn() { printf '%s%s%s\n' "$C_YELLOW" "$*" "$C_RESET"; }
 err()  { printf '%s%s%s\n' "$C_RED" "$*" "$C_RESET"; }
 
-# 可用风格 —— 遍历 server/templates/_<名>-style/ 目录自动发现，不硬编码列表。
-# 【设计意图】风格列表由目录结构决定：新增/删除风格只动 server/templates/，脚本无需跟着改。
-# 【思路】新增风格只需新建 _<名>-style/ 目录，setup.sh 无需改动；
+# 可用风格 —— 遍历 templates/ 下的 `_<名>/` 目录自动发现（系级），
+# 系级目录下的 `_<名>/` 是项目独有层（如 _downloader/_iwara）。不硬编码列表。
+# 【设计意图】风格列表由目录结构决定：新增/删除风格只动 templates/，脚本无需跟着改。
+# 【思路】新增系级只需新建 _<名>/ 目录（内含 styles/html/js 等类型子目录）；
 #   排序固定（sort）保证 --list 与错误提示的输出稳定可复现。
-#   目录名不符合 _*-style 规律的一律跳过（如备份目录 .trash-*、临时目录），
-#   避免把无关目录当成风格。
+#   目录名不符合 _* 规律的一律跳过（如 styles/html/js/json/assets 等类型目录、备份目录）。
 _detect_styles() {
-  local dir name out=""
+  local dir name sub out=""
   for dir in "$TEMPLATES_DIR"/*/; do
     [ -d "$dir" ] || continue
     name="$(basename "$dir")"
     case "$name" in
-      _*-style) out="$out ${name#_}"; out="${out%-style}" ;;
+      _*) out="$out ${name#_}" ;;
     esac
   done
   # 去重 + 排序后输出（词间以空格分隔，与旧 STYLES 变量格式一致）
@@ -292,10 +295,11 @@ fi
 if [ $# -eq 0 ] || [ "$1" = "--list" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
   usage
   echo ""
-  echo "模板自带的风格素材目录（server/templates/）:"
-  for s in $STYLES; do echo "  _${s}-style/"; done
+  echo "模板自带的素材目录（templates/，按通用程度分：最通用层 / 系级 / 项目独有）:"
+  for s in $STYLES; do echo "  templates/_${s}/"; done
+  echo "  （系级下还有项目独有层，如 templates/_downloader/_iwara/、templates/_downloader/_gamebanana-mods/）"
   echo ""
-  echo "注意：风格目录只是素材的存放处——用哪套由清单声明，本脚本没有风格参数。"
+  echo "注意：素材目录只是存放处——用哪套由清单声明，本脚本没有风格参数。"
   exit 0
 fi
 
@@ -451,13 +455,13 @@ if [ -z "$ASSEMBLE_FILE" ]; then
   err "   目标项目根需要它声明：从模板取哪些文件到本项目"
   err "     键 = 模板内相对路径（以 / 结尾 = 整目录拷贝）"
   err "     值 = 本项目内相对路径（相对项目根）"
-  err "   最小示例: {\"files\":{\"server/project/blueprint/login.html\":\"server/public/login.html\"}}"
+  err "   最小示例: {\"files\":{\"templates/_downloader/html/login.html\":\"server/public/login.html\"}}"
 
   # 非交互（管道 / CI / 重定向）：不询问，打印提示后退出，避免 read 挂起
   if [ ! -t 0 ]; then
     err ""
     err "   非交互环境，跳过询问。可复制模板默认清单后按需修改："
-    err "     cp $BLUEPRINT_DIR/assemble.json $GEN_PATH"
+    err "     cp example/assemble.json $GEN_PATH"
     exit 1
   fi
 
@@ -480,14 +484,14 @@ if [ -z "$ASSEMBLE_FILE" ]; then
       exit 0
       ;;
     *)
-      err "   已跳过生成。可手工创建，或复制模板默认清单后修改："
-      err "     cp $BLUEPRINT_DIR/assemble.json $GEN_PATH"
+      err "   已跳过生成。可手工创建，或复制模板自带示例清单后修改："
+      err "     cp example/assemble.json $GEN_PATH"
       exit 1
       ;;
   esac
 fi
-if [ "$ASSEMBLE_FILE" = "$BLUEPRINT_DIR/assemble.json" ] && [ "$TO_SPECIFIED" = "0" ]; then
-  warn "  ⚠️ 模板自测：使用 blueprint/assemble.json 默认（仅公共件）"
+if [ "$ASSEMBLE_FILE" = "$ROOT/example/assemble.json" ] && [ "$TO_SPECIFIED" = "0" ]; then
+  warn "  ⚠️ 模板自测：使用 example/assemble.json（示例项目清单）"
   warn "     自定义/混搭：在目标项目根建 assemble.json（键=模板内路径，值=项目内路径，按需取用）"
 else
   ok "  ✓ 组装清单: $ASSEMBLE_FILE"
@@ -515,13 +519,15 @@ fi
 # 还不存在（全新项目首跑必现）——曾因此 cp 失败却仍打印 ✓，结果是 app.js 根本没生成、
 # 项目起不来，而日志一路「成功」（实测：example 首次组装）。谁写文件谁负责建目录。
 if [ "$INIT_FLAG" = "1" ]; then
-  for f in app.js config.schema.json; do
-    if [ ! -f "$SERVER_DIR/$f" ] && [ -f "$BLUEPRINT_DIR/$f" ]; then
+  # 蓝图骨架按类型目录定位：app.js 在 templates/js/、config.schema.json 在 templates/json/
+  for pair in "app.js:$BLUEPRINT_APP" "config.schema.json:$BLUEPRINT_CONFIG"; do
+    f="${pair%%:*}"; src="${pair#*:}"
+    if [ ! -f "$SERVER_DIR/$f" ] && [ -f "$src" ]; then
       if [ "${DRY_RUN:-0}" = "1" ]; then
         echo "  · blueprint/$f → 目标（初始化）[新增]"
       else
         mkdir -p "$SERVER_DIR"
-        if cp "$BLUEPRINT_DIR/$f" "$SERVER_DIR/$f"; then
+        if cp "$src" "$SERVER_DIR/$f"; then
           echo "  ✓ blueprint/$f → 目标（初始化）"
         else
           err "  ❌ blueprint/$f 初始化失败（目标目录不可写？）: $SERVER_DIR"
@@ -539,7 +545,7 @@ fi
 #     框架目录一改结构（如 framework/ 平铺 → 分子目录），这里的路径就静默失效，
 #     表现为新项目 boot.cjs 根本不生成、而脚本没有任何提示。
 #     现在这两条写在项目清单里：
-#       "server/project/blueprint/boot.cjs":               "server/boot.cjs"
+#       "templates/js/boot.cjs":                           "server/boot.cjs"
 #       "server/lib/cjs-bootstrap.cjs":                    "server/lib/cjs-bootstrap.cjs"
 #     路径对不上时，--check 会直接报「缺失」，而不是悄悄跳过。
 
@@ -549,9 +555,9 @@ fi
 #       值 = 相对目标项目根（如 "server/public/login.html"）；以 / 结尾 = 整目录拷贝（含子目录）。
 #     示例：
 #       { "files": {
-#           "server/project/blueprint/login.html": "server/public/login.html",
-#           "server/project/blueprint/fragments/": "server/public/fragments/",
-#           "server/templates/_gbmd-style/public/logo.png": "server/public/brand.png"
+#           "templates/_downloader/html/login.html": "server/public/login.html",
+#           "templates/_downloader/html/": "server/public/fragments/",
+#           "templates/_downloader/_gamebanana-mods/assets/logo.png": "server/public/brand.png"
 #         } }
 
 
@@ -612,6 +618,6 @@ echo "   public/ : $(find "$SERVER_DIR/public" -type f | wc -l) 个文件"
 echo ""
 warn "注意："
 echo "  1. 前端 public/ 即插即用（静态文件直接 serve）"
-echo "  2. 后端 JS 不在模板：通用 JS 在 server/framework/（createServer/createRoute 接口），"
+echo "  2. 后端 JS 不在模板：通用 JS 在 templates/js/（createServer/createRoute 接口），"
 echo "     业务后端 JS 由项目自己实现（可参照 blueprint/app.js 骨架）"
 echo "  3. ./start.sh start 启动验证"
