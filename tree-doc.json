@@ -450,39 +450,36 @@
     "worktree": {
       "docs/模板化标准手册.md": {
         "status": "M",
-        "mtime": "2026-09-27T23:26:41.950Z",
-        "note": "注释可能需更新"
-      },
-      "example/assemble.json": {
-        "status": "M",
-        "mtime": "2026-09-27T23:25:56.882Z",
+        "mtime": "2026-09-27T23:50:37.836Z",
         "note": "注释可能需更新"
       },
       "example/server/public/fragments/tab-panel/panel-settings.html": {
         "status": "M",
-        "mtime": "2026-09-27T23:25:57.468Z",
+        "mtime": "2026-09-27T23:50:04.114Z",
         "note": "注释可能需更新"
       },
       "templates/_downloader/_gamebanana-mods/html/tab-panel/panel-settings.html": {
         "status": "M",
-        "mtime": "2026-09-27T23:23:55.376Z",
+        "mtime": "2026-09-27T23:48:08.974Z",
         "note": "注释可能需更新"
       },
       "templates/_downloader/_iwara/html/tab-panel/panel-settings.html": {
         "status": "M",
-        "mtime": "2026-09-27T23:24:27.783Z",
+        "mtime": "2026-09-27T23:47:56.125Z",
         "note": "注释可能需更新"
       },
-      "example/server/public/fragments/tab-panel/panel-settings/": {
+      "example/server/public/fragments/tab-panel/panel-settings/cookie.html": {
         "status": "A",
-        "mtime": "2026-09-27T23:25:57.562Z",
+        "mtime": "2026-09-27T23:50:04.213Z",
         "note": "注释可能需更新"
       },
-      "templates/_downloader/html/tab-panel/": {
+      "templates/_downloader/html/tab-panel/panel-settings/cookie.html": {
         "status": "A",
-        "mtime": "2026-09-27T23:23:03.137Z",
+        "mtime": "2026-09-27T23:47:40.822Z",
         "note": "注释可能需更新"
       }
     }
-  }
+  },
+  "example/server/public/fragments/tab-panel/panel-settings/cookie.html": "（待注释）",
+  "templates/_downloader/html/tab-panel/panel-settings/cookie.html": "系级登录凭证卡（textarea 组合文本实现，2026-09-28 上提，统一 id cookieInput/saveCookieBtn）"
 }
