@@ -273,9 +273,9 @@ node scripts/scan-dead-files.js . || echo "有死文件，需清理"
   "brand": {
     "title": "My App",
     "logo": "brand.png",
-    "icon": "favicon.png"
+    "icon": "favicon.png",
+    "displayTitle": "My<br>App"
   },
-  "init": false,
   "files": {
     "templates/js/": "templates/js/",
     "templates/_downloader/html/login.html": "server/public/login.html",
@@ -288,8 +288,8 @@ node scripts/scan-dead-files.js . || echo "有死文件，需清理"
 
 - **键** = 模板仓库内的相对路径（模板里有什么）
 - **值** = 项目内的相对路径（放到哪里；以 `/` 结尾 = 整目录拷贝）
-- `"init": false` = 跳过蓝图骨架初始化（`app.js` / `config.schema.json`），项目自带后端时用
-- `"brand": {...}` = 品牌配置，组装时写入 `server/public/brand.json`（详见下节）
+- `app.js` / `config.schema.json` 是**清单素材**：由 `files` 条目显式声明 src 下发（旧 `init` 字段已不生效——setup 不再做蓝图骨架初始化复制）
+- `"brand": {...}` = 品牌配置，运行期从本项目根 `assemble.json` 的 `brand` 段直接读取（详见下节）
 
 **整目录取件 vs 逐文件显式列出**（两种写法可混用）：
 
@@ -308,19 +308,21 @@ node scripts/scan-dead-files.js . || echo "有死文件，需清理"
 
 **清单里不放注释**：JSON 规范（RFC 8259）不支持注释，而在清单里塞 `_comment`
 这样的自定义键会让「哪些是真实取件项」变得含糊。字段含义与用法统一记在本节，
-清单本身只保留实际生效的 `files` / `brand` / `init` 三项。
+清单本身只保留实际生效的 `files` / `brand` 两项（旧 `init` 段已废除）。
 
 > 解析器仍会忽略 `files` 段内以 `_` 开头的键（历史清单兼容用），但新写的清单
 > 不要再依赖这个机制。
 
-**脚本放在模板仓库**：`setup.sh` 及其依赖的
+**脚本放在模板仓库**：`setup.sh`（总入口，source `scripts/setup-lib.sh` 后按动作
+参数分发到 `scripts/setup-*.sh`）及其依赖的
 `assemble-manifest.js` / `lib-node.sh` 都只在模板仓库运行，**不复制进项目**。
 项目里只留素材（`templates/`、`server/project/`）与产出（`server/public/`）。
 组装都从模板仓库执行，见「命令速查」。
 
 **品牌配置（`brand` 段）**：页面里的标题、logo、icon 用 `@brand:key@` 占位符
 （HTML 属性位）或 `<!-- @brand:key -->` 注释（元素文本位）书写，运行期由
-`templates/js/assemble/fragment-assembler` 读 `server/public/brand.json` 替换。
+`templates/js/config/brand.js` 的 `readBrand(serverDir)` 从**项目根 `assemble.json`
+的 `brand` 段**直接读取替换——**不再生成独立的 `server/public/brand.json`**。
 
 ```json
 "brand": {
@@ -341,43 +343,28 @@ node scripts/scan-dead-files.js . || echo "有死文件，需清理"
 | `displayTitle` | 顶栏三行大字标题，**允许内嵌 `<br>`** | 顶栏直接显示 `@brand:displayTitle@` 字样 |
 
 **键缺失时占位符会原样留在页面上**（`fragment-assembler` 对未命中的 key
-返回原文，以便发现拼写错误），所以 `brand.json` 必须把这四个键补齐。
+返回原文，以便发现拼写错误），所以 `assemble.json` 的 `brand` 段必须把这四个键补齐。
 `displayTitle` 与 `title` 分开是因为顶栏大字常与页面标题不同（例如页面标题
 是 `iwara-downloader`，顶栏显示 `Iwara Video Downloader`）。
 
-`setup.sh` 组装时按清单的 `brand` 段生成 `server/public/brand.json`：
+品牌配置 = 清单 `brand` 段本身，运行期只读，**组装不再生成 `brand.json`**：
 
-- **仅在文件不存在时生成** —— `brand.json` 是运行期可变配置，项目改过就不该被组装覆盖；
-  想按清单重置，先删掉该文件再组装。
-- **清单没写 `brand` 段就跳过** —— 不报错，也不生成。
+- 组装产物里没有品牌配置文件——`readBrand(serverDir)` 运行时读项目根
+  `assemble.json` 的 `brand` 段（`serverDir` 传 `server/` 目录，项目根 = 上一级）；
+  段缺键或缺整段时返回空并提示，不阻断组装。
+- 四个项目（example/iwara/gbmd/gallery）清单均声明 `brand` 段，组装后项目根
+  `assemble.json` 存在，运行期即可读取；gallery 无 `@brand` 指令，不依赖品牌读取。
 - 品牌参数属于项目自身，所以**不在脚本里内置任何项目名**（风格差异由清单声明）。
 
 logo/icon 的文件本身仍要走 `files` 映射从风格模板拷进 `server/public/`，
-`brand.json` 里写的是**拷过去之后的文件名**。
+`brand` 段里写的是**拷过去之后的文件名**。
 
-> ⚠️ **改名图片时必须手工同步 `brand.json`**
+> ✅ **改名图片只需改清单一处**
 >
-> 「存在即保留」意味着 **`brand.json` 与 `assemble.json` 会各自独立地漂移**：
-> 你把清单里的 `logo` 从 `brand.png` 改成 `logo.png`、把文件也改了名，
-> 组装**不会**去更新已存在的 `brand.json` —— 它仍是旧文件名。
->
-> 后果不是报错，是**静默碎图**：`@brand:logo@` 被替换成那个已删除的旧文件名，
-> 顶栏 / 登录页 / 设置向导三处 `<img>` 一起 404。组装照旧报「0 缺失」，
-> 命令行与日志都看不出问题，只有打开页面才发现图裂了。
->
-> 实测（gbmd 项目，2026-09）：`brand.png` 改名 `logo.png` 后 `assemble.json`
-> 已同步、`brand.json` 没跟，三处 src 全部指向不存在的 `brand.png`。
->
-> **所以改图片文件名要一次改全三处**，改完按下节自检确认：
->
-> | 位置 | 要改什么 |
-> |---|---|
-> | `assemble.json` 的 `brand.logo` | 新文件名 |
-> | `brand.json` 的 `logo` | 新文件名（**不会自动跟随，必须手改**） |
-> | `files` 映射的目标路径 | 新文件名（如 `server/public/logo.png`） |
->
-> 若懒得三处对齐，另一条路是**保持 `brand.json` 与清单同名**：让清单里的
-> `brand.logo` 直接写 `brand.png`，图片就叫 `brand.png`，永不改名。
+> 品牌配置没有第二份副本：logo 改文件名时，把 `assemble.json` 的 `brand.logo`
+> 与 `files` 映射的目标路径一起改掉即可——运行期读的就是同一份清单，
+> 不存在「`brand.json` 没跟」的静默碎图问题（旧版独立 `brand.json` 的
+> 双份漂移问题已随本设计消除）。
 
 **按需取用的三条约定**：
 
@@ -393,8 +380,8 @@ logo/icon 的文件本身仍要走 `files` 映射从风格模板拷进 `server/p
 - 不传 `--to`：直接打印帮助（没有「缺省目标」这回事——用哪个项目就显式给哪份清单，
   模板自带的 `example/` 也一样：`--to example/assemble.json`）。
 
-清单内容会在初始化蓝图**之前**校验：JSON 语法错、`files` 不是对象、值不是字符串
-都会立即报错退出，不会留下「蓝图已初始化、`boot.cjs` 已生成」的半成品目录。
+清单内容会在组装**之前**校验：JSON 语法错、`files` 不是对象、值不是字符串
+都会立即报错退出，不会留下半成品产物目录。
 
 ### 路径映射与引用自动推导
 
@@ -762,7 +749,7 @@ public/
   index.html          ← 蓝图框架（含 @frag 指令，不是完整页面）
   fragments/          ← 通用分片 + 特有分片合并后的片段根
     topbar.html       ← 统一 topbar 骨架（含 topbar/* 子指令）
-    topbar/brand.html ← 品牌区（@brand:logo/alt/displayTitle 取值，各项目 brand.json 提供）
+    topbar/brand.html ← 品牌区（@brand:logo/alt/displayTitle 取值，各项目 assemble.json 的 brand 段提供）
     topbar/time.html  ← 服务器时间（serverDate/serverClock）
     tabs.html         ← 通用
     tab-panel/panel-*.html
@@ -815,9 +802,9 @@ curl -s http://127.0.0.1:<port>/style.css | grep -c '@frag:'   # 期望 0
 
 ### 接入要点：`@brand:` 引用的文件必须真实存在（易漏）
 
-组装器只负责**把 `@brand:key@` 替换成 `brand.json` 里写的字符串**，
-它**不检查那个文件是否真的存在**。所以「清单里文件名改了、`brand.json` 没跟」
-这类漂移不会报错，直接产出指向空文件的 `<img>`。
+组装器只负责**把 `@brand:key@` 替换成 `assemble.json` 的 `brand` 段里写的字符串**，
+它**不检查那个文件是否真的存在**。所以「清单 `brand.logo` 改了、`files` 映射没跟」
+这类不一致不会报错，直接产出指向空文件的 `<img>`。
 
 组装后按下面的方式自检——把三处引用 `@brand:logo@` 的模板各展开一次，
 确认 src 指向的文件真实存在：
@@ -827,7 +814,7 @@ cd <项目>/server/public
 node -e '
 const { expandFrags } = require("../assemble/fragment-assembler.js");
 const fs = require("fs");
-const brand = JSON.parse(fs.readFileSync("brand.json", "utf8"));
+const brand = JSON.parse(fs.readFileSync("../assemble.json", "utf8")).brand;
 // 三处引用 @brand:logo@ 的模板：顶栏 / 登录页 / 设置向导
 for (const f of ["fragments/topbar/brand.html", "login.html", "setup.html"]) {
   const src = (expandFrags(".", f, 0, brand).text.match(/src="([^"]+)"/) || [])[1];
@@ -836,8 +823,8 @@ for (const f of ["fragments/topbar/brand.html", "login.html", "setup.html"]) {
 '
 ```
 
-三行都要是 `OK`。出现 `文件不存在` 就是上面说的 `brand.json` 漂移，
-按 `assemble.json` 一节改齐三处。
+三行都要是 `OK`。出现 `文件不存在` 就是 `brand` 段与 `files` 映射不一致，
+按「品牌配置（`brand` 段）」一节改齐两处。
 
 > 同理适用于任何 `@brand:` 值指向文件的键（目前是 `logo` 与 `icon`；
 > `title` / `displayTitle` 是纯文本，不涉及文件）。
@@ -910,6 +897,7 @@ lib/                       # 通用运行支撑件（cjs-bootstrap / start.sh / 
 
 | 版本 | 内容 |
 |---|---|
+| 1.7.28 | **setup.sh 拆分 + brand 从清单读取 + example 副本清理（2026-09-28）**：①`setup.sh` 从 594 行单文件拆为「总入口 + `scripts/setup-*.sh`」——`setup.sh` 只做 source `scripts/setup-lib.sh` + 按动作参数 exec 分发（setup-lib=共享库、setup-list=`--list`/`-h`/`--help`/无参数、setup-check=`--check`、setup-untracked=`--untracked`、setup-migrate=`--migrate`、setup-pull=`--pull`、setup-assemble=组装含 `--dry-run`）；**命令完全不变**，usage 与 README 命令行示例全部保持原样。②**brand 从清单读取**：组装不再生成 `server/public/brand.json`，运行期由 `templates/js/config/brand.js`（`readBrand(serverDir)`）从项目根 `assemble.json` 的 `brand` 段直接读取（example/iwara/gbmd/gallery 清单均有 brand 段；gallery 无 `@brand` 指令不用 brand.js）；各项目 `server/public/brand.json` 已 git rm；logo 改名只需同步清单 brand 段一处，不再有「brand.json 没跟」的碎图问题。③**setup init 初始化复制删除**：不再有 BLUEPRINT_APP/BLUEPRINT_CONFIG、不再从 setup 复制 app.js/config.schema.json——两者是清单素材，由各项目清单显式声明 src 键下发。④**example 副本清理**：`example/setup.sh` 与 `example/scripts/`（17 个文件，含 assemble-manifest.js 副本）已 git rm——example 不需要自备工具副本（从模板仓库组装），强化「组装脚本只在模板仓库执行」约定 |
 | 1.7.27+ | **素材树通用层级重构（未升版）**：`server/templates/`、`server/framework/`、`server/project/blueprint/`、`server/public/`、`server/lib/` 全部并入仓库根——`templates/`（按通用程度分层：根级 `styles/html/js/json/assets` 最通用 → `_downloader/`、`_gallery/` 系级 → `_downloader/_iwara/`、`_downloader/_gamebanana-mods/` 项目独有，内部按类型子目录）+ `lib/`。素材内部引用按产物位置写，只改清单键 src、dst 不变；`setup.sh` 素材探测/风格发现、`assemble-manifest.js` resolveBase/assetRoot/isAsset 同步适配；example/gallery 清单改键并重组装验证（self-test 10/10、check 一致、pull 无遗漏）；`server/sessions.json` 出库、server/ 目录整体移除；README 目录树外置到 `docs/文件树.md`（由 `scripts/doc-tree.mjs` 自动维护，`tree-doc.json` 注释映射），README 只引用。**通用级别是动态的**：项目独有件被复用后拆出通用部分上提系级/根级，上提时改清单 src 并 `--check` 验证 |
 | 1.7.26+ | **_iwara-style 播放页进度条触摸滑动（未升版）**：官方 ArtPlayer 进度条拖动只在桌面绑 mouse 事件（minified 源码 `p||` 分支，移动端不绑），触摸屏滑动被 touch-action 默认滚动接管——表现为「点进度条可以、滑动没反应」。play-enhance.js 新增 `initProgressTouch(art)`：官方 `.art-progress` 设 `touch-action:none` + pointer 事件（仅 pointerType≠mouse 介入），按下即跳 + 按住滑动连续 seek + `setPointerCapture` 拖出进度条不丢尾段；桌面鼠标仍走官方 mousedown 拖动互不干扰；与画面横滑 seek（initDragSeek）/竖滑音量方向不冲突。再次组装即下发 iwara 等项目 |
 | 1.7.25+ | **框架统一工具探测模块（未升版）**：新增 `templates/js/tool/tool-detect.js`（detectTool/getTool/probeTools）——统一「环境变量 → 项目工具目录（`tool/` 与 `tools/` 都扫）→ 系统路径」查找，每级做存在/可执行/版本实测、失败自动降级、结果缓存；`_gallery-style` 的 gif.js（ffmpeg，替代原 `_pickFfmpeg`，保留自带 lib 回退）、archive.js（7zz→7z fallback，比原 exists 检查多可用性实测）、`framework/store/data-backup.js` findTool（zip/unzip，新增 `tool/` 与 `tools/` 扫描）三处接入；gallery/gbmd/iwara 三清单新增 tool-detect.js 下发条目（`server/tool/tool-detect.js`） |

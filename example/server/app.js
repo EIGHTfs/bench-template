@@ -161,11 +161,10 @@ for (const name of FRAGMENT_PAGES) {
   if (fs.existsSync(f) && fs.statSync(f).isFile()) fragmentPages[name] = f;
 }
 // 品牌配置：@brand:key 指令替换用；不存在则保留原注释（不报错）
-let brandConf = null;
-try {
-  const bf = path.join(PUBLIC_DIR, "brand.json");
-  if (fs.existsSync(bf)) brandConf = JSON.parse(fs.readFileSync(bf, "utf8"));
-} catch (_) { brandConf = null; }
+// 2026-09-28：brand 从项目根 assemble.json 的 brand 段读取（清单即唯一真相），
+// 统一实现见 ./config/brand.js。
+const { readBrand } = require("./config/brand");
+const brandConf = readBrand(__dirname);
 
 createServer({
   config,

@@ -1,6 +1,6 @@
 ---
 name: setup-assemble
-description: bench-template 模板化组装：setup.sh 命令用法 + assemble.json 清单 JSON 完整规范（组装/检查/扫描/迁移/回流五个动作、文件键规则、brand/init 段、素材 vs 产出、漏发体检对照法）。处理「跑 setup.sh 组装」「assemble.json 怎么写」「清单漏发检查」「模板怎么同步到项目」「setup 参数用哪个」类场景时加载。
+description: bench-template 模板化组装：setup.sh 命令用法 + assemble.json 清单 JSON 完整规范（组装/检查/扫描/迁移/回流五个动作、文件键规则、brand 段、素材 vs 产出、漏发体检对照法）。处理「跑 setup.sh 组装」「assemble.json 怎么写」「清单漏发检查」「模板怎么同步到项目」「setup 参数用哪个」类场景时加载。
 whenToUse: 组装/检查/扫描/迁移/回流 bench-template 系项目（gallery/gbmd/iwara/example）时、编写或修改其 assemble.json 时、排查「清单声明了但项目缺文件/多处实现」类问题时。
 generatedBy: deepseek-v4-flash
 ---
@@ -13,9 +13,9 @@ generatedBy: deepseek-v4-flash
 - **src==dst 是素材**（templates/ 素材树、lib/ 支撑件）参与回流；**src!=dst 是组装产出**（→ server/public/ 等）不参与回流。
 - 组装是**覆盖式写盘**：先 `--dry-run` 预演，覆盖项最值得留意；正式组装前自动跑「分发前预检」亮出将被覆盖的项目改动与将补下发的缺失（只看不阻断）。
 - 坑：素材在项目侧被项目自己改过 → 重装会被模板覆盖；`_` 开头键是注释（跳过校验与复制）；缺失只警告不阻断（全部缺失时提醒查源基准）。
-- 全文以 `setup.sh` 与 `scripts/assemble-manifest.js` 实际代码为准（md 可能滞后）。
+- 全文以 `setup.sh`（总入口）+ `scripts/setup-*.sh` 与 `scripts/assemble-manifest.js` 实际代码为准（md 可能滞后）。
 
-# 一、setup.sh 命令用法（四个动作一入口）
+# 一、setup.sh 命令用法（总入口，内部按动作拆分为 scripts/setup-*.sh）
 
 ```
 ./setup.sh --to <项目清单>                    组装：按清单产出（清单 = <项目根>/assemble.json）
@@ -38,15 +38,14 @@ generatedBy: deepseek-v4-flash
 - `--pull` 只处理素材条目（src==dst）；产出条目（src!=dst）不参与双向同步，产物由组装生成。
 - `DRY_VERBOSE=1` 配合组装预演可展开目录条目下的逐个文件；`SETUP_SKIP_PRECHECK=1` 跳过分发前预检（CI 批量组装用）。
 - 无 `--to` 时不静默组装，报错并提示（交互式可回答 y 生成空白清单骨架；非交互 `cp example/assemble.json <项目根>/assemble.json`）。
-- `SETUP_LIB_ONLY=1` 时脚本只加载函数不做主流程（供 sync-to-project.sh 复用组装逻辑）。
+- `SETUP_LIB_ONLY=1` 时只加载函数不做主流程（`setup-lib.sh` 供其它脚本复用组装逻辑）。
 
 组装流程顺序（理解输出日志）：
 1. 定位清单（`--to` 唯一入口）→ 校验可解析（JSON 语法/结构，提前失败防半成品目录）
-2. 目标初始化：蓝图骨架（`app.js`、`config.schema.json` 不存在才复制；清单 `init:false` 跳过）
-3. 分发前预检（`--check` 同款比对，亮出将被覆盖的项目改动与将补下发的缺失）
-4. 按清单复制（`_setup_copy_manifest`：逐文件 `cp -f`，目录条目逐个 mkdir+cp——保证「后写必覆盖」，多源写同一目标目录时靠后源覆盖靠前源是**设计意图**）
-5. 品牌导出：brand 段 → `server/public/brand.json`（仅文件不存在时生成；rc=3 = 未声明 brand 段，非错误）
-6. 收尾输出目标与 public/ 文件数
+2. 分发前预检（`--check` 同款比对，亮出将被覆盖的项目改动与将补下发的缺失）
+3. 按清单复制（`setup-assemble.sh` 的 `_setup_copy_manifest`：逐文件 `cp -f`，目录条目逐个 mkdir+cp——保证「后写必覆盖」，多源写同一目标目录时靠后源覆盖靠前源是**设计意图**）
+4. 品牌不导出（无 `brand.json`）：运行期由 `templates/js/config/brand.js` 的 `readBrand(serverDir)` 从项目根 `assemble.json` 的 `brand` 段读取
+5. 收尾输出目标与 public/ 文件数
 
 # 二、assemble.json 清单 JSON 规范
 
@@ -61,8 +60,7 @@ generatedBy: deepseek-v4-flash
     "templates/_downloader/html/": "server/public/fragments/",
     "templates/_downloader/styles/": "server/public/"
   },
-  "brand": { "name": "拾光集", "title": "拾光集", "displayTitle": "拾光集", "icon": "logo.png", "logo": "logo.png" },
-  "init": true
+  "brand": { "name": "拾光集", "title": "拾光集", "displayTitle": "拾光集", "icon": "logo.png", "logo": "logo.png" }
 }
 ```
 
@@ -70,8 +68,8 @@ generatedBy: deepseek-v4-flash
 
 - **键** = 模板仓库内的相对路径（模板里有什么）
 - **值** = 项目内的相对路径（放到哪里；以 `/` 结尾 = 整目录拷贝）
-- `"init": false` = 跳过蓝图骨架初始化（`app.js` / `config.schema.json`），项目自带后端时用
-- `"brand": {...}` = 品牌配置，组装时写入 `server/public/brand.json`（详见下节）
+- `app.js` / `config.schema.json` 是**清单素材**：由 `files` 条目显式声明 src 下发（旧 `init` 字段已不生效——setup 不再做蓝图骨架初始化复制）
+- `"brand": {...}` = 品牌配置，运行期从本项目根 `assemble.json` 的 `brand` 段直接读取（详见下节）
 
 **整目录取件 vs 逐文件显式列出**（两种写法可混用）：
 
@@ -99,8 +97,8 @@ generatedBy: deepseek-v4-flash
 
 ## 顶层其它段
 
-- `brand`: 可选。导出为 `server/public/brand.json`（运行期由 fragment-assembler 的 `@brand:key` 注释指令取值替换页面标题/logo/icon）。**仅在 brand.json 不存在时生成**——它是运行期可变配置，项目改过就不该被组装覆盖（重置需先删文件）。
-- `init`: 可选，缺省 true。`false` 时跳过蓝图骨架初始化（app.js/config.schema.json 不补、假设项目自带）。
+- `brand`: 可选（建议写全四键）。**不导出任何文件**——运行期由 `templates/js/config/brand.js` 的 `readBrand(serverDir)` 从项目根 `assemble.json` 的 `brand` 段读取，替换页面里 fragment-assembler 的 `@brand:key` 占位符（标题/logo/icon）。缺键或缺整段时返回空并提示，不阻断组装。
+- `init`: 已废除（不再生效）。`app.js` / `config.schema.json` 是清单素材，由 `files` 条目显式声明 src 下发，setup 不再做蓝图骨架初始化复制。
 - boot.cjs 与 cjs-bootstrap.cjs 改由清单下发（写死在项目清单里：`templates/js/boot.cjs` → `server/boot.cjs`、`lib/cjs-bootstrap.cjs` → `server/lib/cjs-bootstrap.cjs`），路径对不上时 `--check` 直接报「缺失」，不再悄悄跳过。
 
 # 三、素材源布局（模板仓库内）
@@ -132,11 +130,12 @@ lib/                       ← cjs-bootstrap.cjs、start.sh、preview/（通用�
 
 - 组装是覆盖式写盘：项目侧对下发件做过定制（端口/脚本）会被重装覆盖。正式跑前先 `--dry-run` + 看 `--check` 预检输出。
 - 「多个源写入同一目标目录」（blueprint 共用底座 + 风格层专属）靠后源覆盖靠前源，是设计意图不是 bug（如 iwara 风格层覆盖 blueprint 的 row-thumb.css）；改清单顺序会改变覆盖结果。
-- `brand.json` 已存在会被保留（组装不覆盖运行期可变配置）。
+- 品牌配置没有独立文件：组装不生成 `brand.json`，运行期从项目根 `assemble.json` 的 `brand` 段读取——改品牌只改清单一处，不存在双份漂移。
 - 改模板源（framework/ 或 templates/）后，三项目要各自 `--to` 重组装同步才会生效——模板源不是自动下发。
 - 漏发体检的候选集合必须是「清单实际引用的源 + 通用件」，否则会把模板仓库自身运行件/其它项目风格误报为漏发。
-- 模块化常识：`assemble-manifest.js` 是清单解析唯一实现（list/check/untracked/migrate/pull/validate/init-flag/brand/resolve-base/asset-roots/generate 子命令）；setup.sh 只做「按行复制 + 计数 + 报缺失」，不再自行解析 JSON。
+- 模块化常识：`assemble-manifest.js` 是清单解析唯一实现（list/check/untracked/migrate/pull/validate/init-flag/brand/resolve-base/asset-roots/generate 子命令）；`setup.sh` 是总入口（source `scripts/setup-lib.sh` + 按动作参数 exec 分发到 `scripts/setup-*.sh`），组装逻辑在 `setup-assemble.sh`（按行复制 + 计数 + 报缺失），不再自行解析 JSON。
 
 # 修改记录
 
+- 2026-09-28：同步三项代码重构——①setup.sh 拆分为总入口 + `scripts/setup-*.sh`（setup-lib/list/check/untracked/migrate/pull/assemble，命令完全不变）；②brand 从清单读取：不再生成 `server/public/brand.json`，运行期由 `templates/js/config/brand.js` 的 `readBrand(serverDir)` 从项目根 `assemble.json` 的 `brand` 段读取；③setup init 初始化复制删除（app.js/config.schema.json 由清单 src 显式下发，init 字段已废除）；另清理 example/setup.sh 与 example/scripts/ 副本（17 个文件 git rm，example 从模板仓库组装）。
 - 2026-09-20：初版固化（基于 setup.sh 616 行 + assemble-manifest.js + 三项目漏发体检实战）。

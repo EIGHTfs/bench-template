@@ -25,7 +25,6 @@
   "example/example/server/store": "历史嵌套残留（旧版 example 快照，待清理）",
   "example/example/server/update": "历史嵌套残留（旧版 example 快照，待清理）",
   "example/json": "example 假数据目录",
-  "example/scripts": "example 内嵌工具脚本副本",
   "example/server/assemble": "example 组装产物（框架下发+自研，入库作测试基准）",
   "example/server/auth": "example 组装产物（框架下发+自研，入库作测试基准）",
   "example/server/config": "example 组装产物（框架下发+自研，入库作测试基准）",
@@ -62,8 +61,6 @@
   "templates/_downloader/_gamebanana-mods/html/topbar": "gbmd 项目独有层",
   "templates/_downloader/_gamebanana-mods/js": "gbmd 项目独有层",
   "templates/_downloader/_gamebanana-mods/json": "gbmd 项目独有层",
-  "templates/_downloader/_gamebanana-mods/server/lib": "gbmd 项目独有层",
-  "templates/_downloader/_gamebanana-mods/server": "gbmd 项目独有层",
   "templates/_downloader/_gamebanana-mods/styles": "gbmd 项目独有层",
   "templates/_downloader/_iwara/assets": "iwara 项目独有层",
   "templates/_downloader/_iwara": "下载器系通用层",
@@ -215,22 +212,6 @@
   "example/example/start.sh": "历史嵌套残留（旧版 example 快照，待清理）",
   "example/json/items.json": "example 假数据（items.json，不受组装影响）",
   "example/package.json": "example 的 CJS 声明",
-  "example/scripts/assemble-manifest.js": "example 内嵌的工具脚本副本",
-  "example/scripts/bench-html-assembly.js": "example 内嵌的工具脚本副本",
-  "example/scripts/check-auth.cjs": "example 内嵌的工具脚本副本",
-  "example/scripts/clean-stray-dirs.sh": "example 内嵌的工具脚本副本",
-  "example/scripts/convert-routes-template.py": "example 内嵌的工具脚本副本",
-  "example/scripts/fix-bare-js-html.py": "example 内嵌的工具脚本副本",
-  "example/scripts/func-index.js": "example 内嵌的工具脚本副本",
-  "example/scripts/join-html-fragments.py": "example 内嵌的工具脚本副本",
-  "example/scripts/lib-node.sh": "example 内嵌的工具脚本副本",
-  "example/scripts/rewrite-refs.js": "example 内嵌的工具脚本副本",
-  "example/scripts/scan-bare-js-html.js": "example 内嵌的工具脚本副本",
-  "example/scripts/scan-dead-files.js": "example 内嵌的工具脚本副本",
-  "example/scripts/scan-framework-refs.js": "example 内嵌的工具脚本副本",
-  "example/scripts/scan-sh-commands.js": "example 内嵌的工具脚本副本",
-  "example/scripts/split-html-fragments.py": "example 内嵌的工具脚本副本",
-  "example/scripts/verify-example-page.js": "example 内嵌的工具脚本副本",
   "example/self-test.sh": "example 自检：组装→自研→启动→API 探测",
   "example/server/app.js": "example 组装产物（框架下发+自研，入库作测试基准）",
   "example/server/assemble/fragment-assembler.js": "example 组装产物（框架下发+自研，入库作测试基准）",
@@ -290,7 +271,6 @@
   "example/server/project/blueprint/theme-init.js": "example 组装产物（框架下发+自研，入库作测试基准）",
   "example/server/public/app.js": "example 组装产物前端（入库作测试基准）",
   "example/server/public/auto-update-card.js": "example 组装产物前端（入库作测试基准）",
-  "example/server/public/brand.json": "example 组装产物前端（入库作测试基准）",
   "example/server/public/fragments/auto-update-card.html": "example 组装产物前端（入库作测试基准）",
   "example/server/public/fragments/browse-mask.html": "example 组装产物前端（入库作测试基准）",
   "example/server/public/fragments/global-hud.html": "example 组装产物前端（入库作测试基准）",
@@ -352,7 +332,6 @@
   "example/server/update/apply-staged-update.cjs": "example 组装产物（框架下发+自研，入库作测试基准）",
   "example/server/update/auto-update.js": "example 组装产物（框架下发+自研，入库作测试基准）",
   "example/server/update/tree-copy.js": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/setup.sh": "example 自用组装脚本（复制自根）",
   "example/start.sh": "example 启停脚本（组装下发）",
   "example/test/args.test.sh": "example 内嵌的测试副本",
   "example/test/assemble.test.sh": "example 内嵌的测试副本",
@@ -391,18 +370,15 @@
   "templates/_downloader/_gamebanana-mods/assets/favicon.ico": "gbmd 项目独有层",
   "templates/_downloader/_gamebanana-mods/assets/favicon.png": "gbmd 项目独有层",
   "templates/_downloader/_gamebanana-mods/assets/logo.png": "gbmd 项目独有层",
-  "templates/_downloader/_gamebanana-mods/html/scripts.html": "gbmd 项目独有层",
   "templates/_downloader/_gamebanana-mods/html/tab-panel/panel-download.html": "gbmd 项目独有层",
   "templates/_downloader/_gamebanana-mods/html/tab-panel/panel-progress.html": "gbmd 项目独有层",
   "templates/_downloader/_gamebanana-mods/html/tab-panel/panel-search.html": "gbmd 项目独有层",
   "templates/_downloader/_gamebanana-mods/html/tab-panel/panel-settings.html": "gbmd 项目独有层",
-  "templates/_downloader/_gamebanana-mods/html/topbar/badge.html": "gbmd 项目独有层",
   "templates/_downloader/_gamebanana-mods/html/topbar/userscript.html": "gbmd 项目独有层",
   "templates/_downloader/_gamebanana-mods/js/app.js": "gbmd 项目独有层",
   "templates/_downloader/_gamebanana-mods/js/path-picker.js": "gbmd 项目独有层",
   "templates/_downloader/_gamebanana-mods/json/config.schema.json": "gbmd 项目独有层",
   "templates/_downloader/_gamebanana-mods/json/manifest.json": "gbmd 项目独有层",
-  "templates/_downloader/_gamebanana-mods/server/lib/auto-update.js": "gbmd 项目独有层",
   "templates/_downloader/_gamebanana-mods/styles/grid-map.css": "gbmd 项目独有层",
   "templates/_downloader/_gamebanana-mods/styles/mod-group.css": "gbmd 项目独有层",
   "templates/_downloader/_gamebanana-mods/styles/style.css": "gbmd 项目独有层",
@@ -410,12 +386,10 @@
   "templates/_downloader/_iwara/assets/favicon.png": "iwara 项目独有层",
   "templates/_downloader/_iwara/assets/iwara-logo.png": "iwara 项目独有层",
   "templates/_downloader/_iwara/html/play.html": "iwara 项目独有层",
-  "templates/_downloader/_iwara/html/scripts.html": "iwara 项目独有层",
   "templates/_downloader/_iwara/html/tab-panel/panel-download.html": "iwara 项目独有层",
   "templates/_downloader/_iwara/html/tab-panel/panel-progress.html": "iwara 项目独有层",
   "templates/_downloader/_iwara/html/tab-panel/panel-search.html": "iwara 项目独有层",
   "templates/_downloader/_iwara/html/tab-panel/panel-settings.html": "iwara 项目独有层",
-  "templates/_downloader/_iwara/html/topbar/badge.html": "iwara 项目独有层",
   "templates/_downloader/_iwara/html/topbar/userscript.html": "iwara 项目独有层",
   "templates/_downloader/_iwara/js/app.js": "iwara 项目独有层",
   "templates/_downloader/_iwara/js/play-app.js": "iwara 项目独有层",
@@ -425,7 +399,6 @@
   "templates/_downloader/_iwara/js/vendor/artplayer-plugin-vtt-thumbnail.js": "iwara 第三方库（artplayer 等）",
   "templates/_downloader/_iwara/js/vendor/artplayer.js": "iwara 第三方库（artplayer 等）",
   "templates/_downloader/_iwara/json/config.schema.json": "iwara 项目独有层",
-  "templates/_downloader/_iwara/server/lib/auto-update.js": "iwara 后端（lib/ + routes/）",
   "templates/_downloader/_iwara/server/lib/iwara-api.js": "iwara 后端（lib/ + routes/）",
   "templates/_downloader/_iwara/server/lib/like-state.js": "iwara 后端（lib/ + routes/）",
   "templates/_downloader/_iwara/server/routes/like.js": "iwara 后端（lib/ + routes/）",
@@ -483,7 +456,6 @@
   "templates/_gallery/json/locales/zh-CN.json": "画廊系（前后端都随素材分发）",
   "templates/_gallery/server/app.js": "gallery 后端（app.js + lib/ + routes/）",
   "templates/_gallery/server/lib/archive.js": "gallery 后端（app.js + lib/ + routes/）",
-  "templates/_gallery/server/lib/auto-update.js": "gallery 后端（app.js + lib/ + routes/）",
   "templates/_gallery/server/lib/config.js": "gallery 后端（app.js + lib/ + routes/）",
   "templates/_gallery/server/lib/gif.js": "gallery 后端（app.js + lib/ + routes/）",
   "templates/_gallery/server/lib/scan.js": "gallery 后端（app.js + lib/ + routes/）",
@@ -547,590 +519,25 @@
   "test/mix.test.sh": "风格混搭覆盖顺序测试",
   "test/run-all.sh": "测试总入口（npm test）",
   "test/scan-sh-commands.test.sh": "sh 命令扫描测试",
-  "_meta": {
-    "worktree": {
-      "README.md": {
-        "status": "M",
-        "mtime": "2026-09-27T16:59:17.529Z",
-        "note": "注释可能需更新"
-      },
-      "example/assemble.json": {
-        "status": "M",
-        "mtime": "2026-09-27T16:39:47.016Z",
-        "note": "注释可能需更新"
-      },
-      "example/server/assemble/fragment-assembler.js": {
-        "status": "M",
-        "mtime": "2026-09-27T16:36:45.124Z",
-        "note": "注释可能需更新"
-      },
-      "example/server/public/fragments/scripts.html": {
-        "status": "M",
-        "mtime": "2026-09-27T16:36:45.412Z",
-        "note": "注释可能需更新"
-      },
-      "example/server/store/data-backup.js": {
-        "status": "M",
-        "mtime": "2026-09-27T16:36:45.294Z",
-        "note": "注释可能需更新"
-      },
-      "example/server/templates/_gallery-style/public/style.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/templates/_gallery-style/server/lib/archive.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/templates/_gallery-style/server/lib/gif.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/templates/_iwara-style/config.schema.json": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/templates/_iwara-style/fragments/scripts.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/templates/_iwara-style/public/app.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/templates/_iwara-style/public/play-app.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/templates/_iwara-style/public/play-enhance.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/templates/_iwara-style/public/play.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/templates/_iwara-style/public/vendor/NOTICE.md": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "scripts/assemble-manifest.js": {
-        "status": "M",
-        "mtime": "2026-09-27T16:35:18.076Z",
-        "note": "注释可能需更新"
-      },
-      "server/project/blueprint/assemble.json": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/project/blueprint/config.schema.json": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/public/auto-update-card.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/public/fragments/styles/topbar.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/public/fragments/styles/variables.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/public/style.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/public/theme-init.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/sessions.json": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/fragments/auto-update-card.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/fragments/browse-mask.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/fragments/global-hud.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/fragments/head-extra.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/fragments/no-pwd-warn.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/fragments/styles/auth.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/fragments/styles/base.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/fragments/styles/combo.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/fragments/styles/components.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/fragments/styles/diff.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/fragments/styles/hud.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/fragments/styles/login-detect.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/fragments/styles/mobile.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/fragments/styles/modal.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/fragments/styles/progress.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/fragments/styles/result-list.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/fragments/styles/row-thumb.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/fragments/styles/task-list.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/fragments/styles/toast.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/fragments/styles/topbar-badge.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/fragments/tabs.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/fragments/topbar.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/fragments/topbar/brand.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/fragments/topbar/time.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/public/index.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/public/login.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/public/login.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/public/search-date-range.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/public/setup-init.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_downloader-style/public/setup.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gallery-style/config.schema.json": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gallery-style/public/api-client.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gallery-style/public/app.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gallery-style/public/favicon.png": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gallery-style/public/favicon.svg": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gallery-style/public/index.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gallery-style/public/locales/en.json": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gallery-style/public/locales/zh-CN.json": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gallery-style/server/app.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gallery-style/server/lib/auto-update.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gallery-style/server/lib/config.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gallery-style/server/lib/scan.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gallery-style/server/lib/util.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gallery-style/server/routes/archive.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gallery-style/server/routes/auth.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gallery-style/server/routes/auto-update.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gallery-style/server/routes/browse.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gallery-style/server/routes/favorites.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gallery-style/server/routes/gallery.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gallery-style/server/routes/upload.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gbmd-style/config.schema.json": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gbmd-style/fragments/manifest.json": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gbmd-style/fragments/scripts.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gbmd-style/fragments/styles/grid-map.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gbmd-style/fragments/styles/mod-group.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gbmd-style/fragments/tab-panel/panel-download.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gbmd-style/fragments/tab-panel/panel-progress.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gbmd-style/fragments/tab-panel/panel-search.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gbmd-style/fragments/tab-panel/panel-settings.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gbmd-style/fragments/topbar/badge.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gbmd-style/fragments/topbar/userscript.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gbmd-style/public/app.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gbmd-style/public/favicon.ico": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gbmd-style/public/favicon.png": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gbmd-style/public/logo.png": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gbmd-style/public/path-picker.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gbmd-style/public/style.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_gbmd-style/server/lib/auto-update.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_iwara-style/fragments/styles/row-thumb.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_iwara-style/fragments/tab-panel/panel-download.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_iwara-style/fragments/tab-panel/panel-progress.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_iwara-style/fragments/tab-panel/panel-search.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_iwara-style/fragments/tab-panel/panel-settings.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_iwara-style/fragments/topbar/badge.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_iwara-style/fragments/topbar/userscript.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_iwara-style/public/favicon.ico": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_iwara-style/public/favicon.png": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_iwara-style/public/iwara-logo.png": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_iwara-style/public/style.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_iwara-style/public/vendor/artplayer.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "server/templates/_iwara-style/server/lib/auto-update.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "setup.sh": {
-        "status": "M",
-        "mtime": "2026-09-27T16:33:09.888Z",
-        "note": "注释可能需更新"
-      },
-      "skills/setup-assemble.md": {
-        "status": "M",
-        "mtime": "2026-09-27T17:00:35.777Z",
-        "note": "注释可能需更新"
-      },
-      "test/assemble.test.sh": {
-        "status": "M",
-        "mtime": "2026-09-27T17:10:04.087Z",
-        "note": "注释可能需更新"
-      },
-      "test/lib-test.sh": {
-        "status": "M",
-        "mtime": "2026-09-27T17:11:11.878Z",
-        "note": "注释可能需更新"
-      },
-      "test/manifest-comments.test.sh": {
-        "status": "M",
-        "mtime": "2026-09-27T17:10:37.574Z",
-        "note": "注释可能需更新"
-      },
-      "test/mix.test.sh": {
-        "status": "M",
-        "mtime": "2026-09-27T17:11:31.105Z",
-        "note": "注释可能需更新"
-      },
-      "docs/文件树.md": {
-        "status": "A",
-        "mtime": "2026-09-27T16:54:31.715Z",
-        "note": "注释可能需更新"
-      },
-      "docs/迁移计划-templates通用层级重构.md": {
-        "status": "A",
-        "mtime": "2026-09-27T16:05:55.639Z",
-        "note": "注释可能需更新"
-      },
-      "example/server/public/partial-refresh.js": {
-        "status": "A",
-        "mtime": "2026-09-27T16:36:45.406Z",
-        "note": "注释可能需更新"
-      },
-      "scripts/doc-tree.mjs": {
-        "status": "A",
-        "mtime": "2026-09-27T16:52:56.427Z",
-        "note": "注释可能需更新"
-      },
-      "scripts/gitignore-runtime.cjs": {
-        "status": "A",
-        "mtime": "2026-09-25T19:30:52.764Z",
-        "note": "注释可能需更新"
-      }
-    }
-  },
   "docs/文件树.md": "完整目录结构（doc-tree.mjs 自动维护，README 引用）",
-  "tree-doc.json": "目录树注释映射（doc-tree 索引：路径→一句话介绍）"
+  "tree-doc.json": "目录树注释映射（doc-tree 索引：路径→一句话介绍）",
+  "example/server/tool": "example 组装产物：tool-detect.js 等工具模块（不入库）",
+  "templates/js/server/lib": "模板 js 层 server/lib：auto-update 参数化包装等",
+  "docs/模板化标准手册.md": "模板化标准手册（6 章：油猴参数化/面板拆分/同名比对/实操/止步结论/进度）",
+  "example/server/config/brand.js": "example 组装产物：品牌读取模块（readBrand，从清单 brand 段读）",
+  "example/server/public/fragments/scripts-extra.html": "example 组装产物：系级 scripts.html 的 @frag:scripts-extra 展开点（iwara 侧 partial-refresh）",
+  "example/server/tool/tool-detect.js": "example 组装产物：工具探测模块",
+  "scripts/setup-assemble.sh": "setup 子脚本：组装主流程（--to，含 --dry-run 预演）",
+  "scripts/setup-check.sh": "setup 子脚本：--check 清单一致性检查",
+  "scripts/setup-lib.sh": "setup 子脚本共享库：环境/函数/参数解析（2026-09-28 拆分）",
+  "scripts/setup-list.sh": "setup 子脚本：--list / -h / --help 帮助",
+  "scripts/setup-migrate.sh": "setup 子脚本：--migrate 结构迁移",
+  "scripts/setup-pull.sh": "setup 子脚本：--pull 素材回流",
+  "scripts/setup-untracked.sh": "setup 子脚本：--untracked 清单外文件扫描",
+  "templates/_downloader/_gamebanana-mods/html/scripts-extra.html": "gbmd 独有层 scripts-extra：path-picker.js 引入",
+  "templates/_downloader/_iwara/html/scripts-extra.html": "iwara 独有层 scripts-extra：partial-refresh.js 引入",
+  "templates/_downloader/html/scripts.html": "系级 scripts 骨架：公共 3 行 + @frag:scripts-extra 展开点",
+  "templates/_downloader/html/topbar/badge.html": "系级 badge 占位（setStack 写运行时文本）",
+  "templates/js/config/brand.js": "品牌读取模块：readBrand 从项目根 assemble.json 的 brand 段读取（2026-09-28）",
+  "templates/js/server/lib/auto-update.js": "auto-update 参数化包装：读同目录 auto-update-params.json"
 }
