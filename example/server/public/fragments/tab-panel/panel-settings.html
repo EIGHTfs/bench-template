@@ -16,6 +16,10 @@
       </div>
       <p class="hint" style="margin-top:8px">必须含 <code>{ID}</code>：封面 <code>&lt;id&gt;.jpg</code>、json、视频文件都靠这个 id 对上。其它变量：<code>{TITLE}</code> 标题　<code>{ALIAS}</code> 作者显示名　<code>{AUTHOR}</code> 作者用户名　<code>{QUALITY}</code> 清晰度　<code>{UPLOADTIME}</code> 上传时间　<code>{NOWTIME}</code> 下载时间</p>
         <p class="hint">模板里的 <code>/</code> 是目录分隔：写 <code>{AUTHOR}/Iwara_-_{TITLE}_[{ID}]</code> 即按作者分目录；不写 <code>/</code> 则直接存下载根目录。</p>
+      <div class="row mt">
+        <button class="primary" id="savePathBtn" type="button">💾 保存路径与命名</button>
+        <span class="status" id="pathStatus"></span>
+      </div>
       <h3 style="margin:14px 0 8px;font-size:14px;color:var(--primary)">✏️ 按模板重命名文件</h3>
       <p class="hint" style="margin:4px 0 8px">只认 json/index 里的 id。预览后点确认执行（无弹窗）。目标已存在会失败，可对那一条点「强制执行」覆盖重复。</p>
       <div class="row">
@@ -38,12 +42,19 @@
       <div class="row mt">
         <label><input type="checkbox" id="set-autoFollow"> 下载视频时自动关注作者</label>
       </div>
-
+      <div class="row mt">
+        <button class="primary" id="saveLikedBtn" type="button">💾 保存点赞/关注设置</button>
+        <span class="status" id="likedStatus"></span>
+      </div>
     </div>
     <div class="card">
       <h2>播放</h2>
       <div class="row">
         <label><input type="checkbox" id="set-playPublic" checked> 视频播放公开（选中 = 免登录播放，不选 = 需服务端登录）</label>
+      </div>
+      <div class="row mt">
+        <button class="primary" id="savePlayBtn" type="button">💾 保存播放设置</button>
+        <span class="status" id="playStatus"></span>
       </div>
     </div>
 
@@ -83,6 +94,10 @@
           <input type="text" id="set-aria2Dns" placeholder="192.168.1.1" style="width:100%">
         </label>
       </div>
+      <div class="row mt">
+        <button class="primary" id="saveBackendBtn" type="button">💾 保存下载后端</button>
+        <span class="status" id="backendStatus"></span>
+      </div>
     </div>
 
     <div class="card">
@@ -94,19 +109,17 @@
         </label>
       </div>
       <div class="row mt">
+        <button class="primary" id="saveCredBtn" type="button">💾 保存凭证</button>
+        <span class="status" id="credStatus"></span>
+      </div>
+      <div class="row mt">
         <button id="gbLoginCheckBtn" type="button">检测登录状态</button>
       </div>
       <pre id="gbLoginStatus" class="login-detect"></pre>
     </div>
 
-    <div class="card">
-      <h2>修改密码</h2>
-      <div class="row">
-        <input type="password" id="newPwd" placeholder="新密码（至少 4 位）">
-        <button class="primary" id="changePwdBtn" type="button">修改</button>
-      </div>
-      <div class="status" id="pwdStatus"></div>
-    </div>
+    <!-- 修改密码：纯通用卡，系级 panel-settings/ 提供（与 auto-update-card 同模式） -->
+    <!-- @frag:tab-panel/panel-settings/pwd -->
 
     <div class="card">
       <h2>视频索引</h2>
@@ -120,16 +133,8 @@
       <div class="status" id="indexStatus"></div>
     </div>
 
-    <div class="card">
-      <h2>📦 数据备份 / 恢复</h2>
-      <p class="hint">导出为 zip：包含全部用户数据（配置、搜索记录、下载任务、CDN 状态等，按 <code>userdata-manifest.json</code> 清单）。换机/重装后导入即可恢复。</p>
-      <div class="row">
-        <button class="primary" id="exportDataBtn" type="button">⬇ 导出用户数据</button>
-        <button class="ghost" id="importDataBtn" type="button">⬆ 导入用户数据</button>
-        <input type="file" id="importDataFile" accept=".zip" style="display:none">
-      </div>
-      <div class="status" id="dataStatus"></div>
-    </div>
+    <!-- 数据备份：纯通用卡，系级 panel-settings/ 提供 -->
+    <!-- @frag:tab-panel/panel-settings/backup -->
 
     <div class="row mt">
       <button class="primary" id="saveSettingsBtn" type="button">💾 保存设置</button>
