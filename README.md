@@ -42,7 +42,7 @@ cd ..
 
 | 概念 | 位置 | 该放什么 |
 |---|---|---|
-| **素材树** | `templates/` | 按**通用程度**分层：根级 `styles/html/js/json/assets` 最通用（所有项目共用）；`_downloader/`、`_gallery/` 是系级；`_downloader/_iwara/`、`_downloader/_gamebanana-mods/` 是项目独有层。每层内部按类型子目录（`styles/html/js/json/assets`），js/css/html 保留内部层级 |
+| **素材树** | `templates/` | 按**通用程度**分层：根级 `styles/html/js/json/assets` 最通用（所有项目共用）；`_downloader/`、`_gallery/` 是系级；`_downloader/_iwara/`、`_downloader/_gamebanana-mods/` 是项目独有层。每层内部按类型子目录（`styles/html/js/json/assets`），js/css/html 保留内部层级。**风格层也是项目独有层**：如 `_downloader/_ktoolbox/` 承载一整套路子界面（登录页/侧边栏/全局配置/更新卡 + 配套 CSS），与业务项目层同级，由项目清单选配 |
 | **lib** | `lib/` | **通用运行支撑件**：启停脚本、CJS 劫持等「不是业务逻辑、但每个项目都要有」的文件。下发到项目后同样落在 `lib/`（与项目自有业务 JS 同目录，靠文件名区分） |
 | **组装产物** | 项目侧 `server/public/`、`server/app.js`、`server/config.schema.json` | 由 setup.sh 按清单生成，**不入库**，可反复重装 |
 
@@ -55,6 +55,7 @@ cd ..
 | 通用 html / css / json | `templates/` 根级类型目录 | 所有项目共用、且不是 JS |
 | 系级通用（任意类型） | `templates/_<系>/` | 下载器系 / 画廊系内部共用，各系内容不同 |
 | 项目独有（任意类型） | `templates/_<系>/_<项目>/` | 只有该项目用（如 `_downloader/_iwara/`） |
+| 风格层（整套前端界面） | `templates/_<系>/_<风格>/` | 一整套路子界面（登录/侧边栏/配置/更新卡 + 配套 CSS），与业务项目层同级；项目按喜好选配混搭（如 `_downloader/_ktoolbox/`） |
 
 **`lib/` 的判据**：放进来的文件应满足「所有项目内容完全一致」，
 且与风格、业务无关——改它等于改所有项目。项目自有的业务 JS 也放 `lib/`，
