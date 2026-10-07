@@ -1,15 +1,4 @@
-    function jwtExpMs(token) {
-        try {
-            const p = JSON.parse(atob(String(token).split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
-            return p && p.exp ? p.exp * 1000 : 0;
-        } catch (_) { return 0; }
-    }
 
-    function toMs(n) {
-        n = Number(n) || 0;
-        if (n <= 0) return 0;
-        return n < 1e12 ? n * 1000 : n;
-    }
 
     function cacheGet(key) {
         try { return GM_getValue(key, null) || null; } catch (_) { return null; }

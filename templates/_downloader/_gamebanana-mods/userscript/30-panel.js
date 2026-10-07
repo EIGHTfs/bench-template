@@ -110,6 +110,8 @@
             }
             session = lg.session;
         }
+        // 同步当前浏览器 UA 到服务器（GB 会话绑定完整 UA）
+        syncUserAgent(p.base, session);
         const acc = await serverAccount(p.base, session);
         panelEl.classList.toggle("server-ok", !!(acc.ok && acc.info && acc.info.cookieSet));
         if (acc.ok && acc.info && acc.info.loggedIn) {

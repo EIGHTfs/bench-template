@@ -27,12 +27,21 @@
 
     /** 服务器账号状态：GET /api/gb-login-status（需 session） */
     async function serverAccount(base, session) {
-        // 会话 cookie 名由内核 sessionHeaders 按服务端实际名拼接（本项目是 gbmd_session，
+        // 会话 cookie 名由内核 sessionHeaders 按服务端实际名拼接（本项目是 gbmd_session；
         // 旧写法硬编码 "session=" 会让服务端登录后带不上会话，表现为 401/未登录）
         const headers = sessionHeaders(session);
         const r = await gmRequest("GET", base + "/api/gb-login-status", undefined, 8000, headers);
         if (r.ok && r.json && r.json.ok) return { ok: true, info: r.json, status: r.status };
         return { ok: false, error: (r.json && r.json.error) || r.error || ("HTTP " + r.status), status: r.status };
+    }
+
+    /** 同步浏览器 UA 到服务器（GB 会话绑定完整 UA，不匹配则登录检测失败） */
+    async function syncUserAgent(base, session) {
+        try {
+            // 会话 cookie 名走内核 sessionHeaders（同 serverAccount/sendModToServer，不硬编码 "session="）
+            const headers = Object.assign({ "Content-Type": "application/json" }, sessionHeaders(session));
+            await gmRequest("POST", base + "/api/settings", { gbUserAgent: navigator.userAgent }, 6000, headers);
+        } catch (_) {}
     }
 
     /** 发送当前 mod 页链接：POST /api/receive { url } */

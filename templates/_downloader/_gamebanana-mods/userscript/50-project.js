@@ -9,7 +9,7 @@
 
     /** 本机 {{SITE_DOMAIN}} 登录态（网页本身，不发给服务器） */
     async function sendModToServer(base, modUrl, session) {
-        // 会话 cookie 名由内核 sessionHeaders 按服务端实际名拼接（本项目是 gbmd_session，
+        // 会话 cookie 名由内核 sessionHeaders 按服务端实际名拼接（本项目是 gbmd_session；
         // 旧写法硬编码 "session=" 会让服务端登录后带不上会话，表现为 401/未登录）
         const headers = sessionHeaders(session);
         const r = await gmRequest("POST", base + "/api/receive", { url: modUrl }, 12000, headers);
@@ -50,6 +50,8 @@
                 if (!lg.ok) { srvSetStatus("发送失败：服务器设有密码 " + lg.error, "err"); return; }
                 session = lg.session;
             }
+            // 同步当前浏览器 UA 到服务器（GB 会话绑定完整 UA）
+            syncUserAgent(base, session);
             const r = await sendModToServer(base, u, session);
             if (r.ok) {
                 srvSetStatus(`✅ 已发送，服务器已添加 ${r.received} 个下载任务`, "ok");
