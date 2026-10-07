@@ -31,7 +31,8 @@ rm -rf "$TMP/tpl/.git"
 cd "$TMP/tpl" || { echo "✗ 进入副本失败"; exit 1; }
 
 # --- ① 组装（普通项目方式，与 README 一致）---
-OUT="$(./setup.sh --to example/assemble.json 2>&1)" || { bad "组装失败：$OUT"; }
+# 注：一律用 bash 调用（不依赖执行位）——副本复制/ NFS noexec 挂载都可能丢执行位
+OUT="$(bash setup.sh --to example/assemble.json 2>&1)" || { bad "组装失败：$OUT"; }
 if echo "$OUT" | grep -q "缺失 0"; then ok "组装成功、无缺失"; else bad "组装有缺失"; fi
 
 # --- ② 自研代码 / 假数据：组装后仍在（不受组装影响）---
@@ -53,7 +54,7 @@ else
 fi
 
 # --- 重装后自研不被覆盖（清单里没有它们，重跑也不该动）---
-./setup.sh --to example/assemble.json >/dev/null 2>&1
+bash setup.sh --to example/assemble.json >/dev/null 2>&1
 if grep -q "GET /api/items" example/server/routes/items.js && grep -q "itemsRoutes" example/server/app.js &&
    grep -q '"port".*8090' example/server/config.schema.json; then
   ok "重装后自研代码与配置（端口 8090）仍保留"
@@ -70,7 +71,7 @@ else
 fi
 
 # --- ④ 启动 + API 探测（公开端点，无需登录）---
-(cd example && ./start.sh restart >/dev/null 2>&1) || bad "start.sh 启动失败"
+(cd example && bash start.sh restart >/dev/null 2>&1) || bad "start.sh 启动失败"
 ready=0
 for _ in $(seq 1 30); do
   if curl -fs "http://127.0.0.1:$PORT/api/status" >/dev/null 2>&1; then ready=1; break; fi
@@ -89,7 +90,7 @@ else
 fi
 
 # 停止（start.sh 自带停服务逻辑）
-(cd example && ./start.sh stop >/dev/null 2>&1) || true
+(cd example && bash start.sh stop >/dev/null 2>&1) || true
 
 echo "── 结果：通过 $pass / 失败 $fail ──"
 [ "$fail" -eq 0 ]

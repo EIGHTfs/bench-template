@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # ============================================================
-# setup.sh 系列共享库（2026-09-28 拆分自 setup.sh）
+# setup.sh 系列共享库
 #
-# 职责：环境初始化 + 公共函数。被 scripts/setup-*.sh 子脚本 source，
-# 也兼容旧 SETUP_LIB_ONLY=1 source 用法（只定义函数、不执行动作）。
+# 职责：环境初始化 + 公共函数。被 scripts/setup-*.sh 子脚本 source。
 # 本文件不执行任何命令（除变量初始化），可被反复 source。
 #
 # 提供：
@@ -25,7 +24,6 @@ ROOT="${SETUP_LIB_DIR%/scripts}"
 TEMPLATES_DIR="$ROOT/templates"
 
 # 清单解析唯一实现（scripts/assemble-manifest.js）——
-# 此前 files 展开 / brand 导出 / init 判定各自内嵌一份 python，口径易漂移。
 # 清单解析工具的定位：优先同级（项目里随 setup.sh 一起同步过来的副本），
 # 回落到模板仓库的 scripts/。setup.sh 会被复制进项目独立运行，项目不一定
 # 有 scripts/ 目录（也可能有自己的同名目录），所以工具必须跟着 setup.sh 走。
@@ -49,7 +47,7 @@ NODE_BIN=""
 
 # 清单「键」的源基准（键统一写成 server/... 形式）：
 #   判定统一交给 scripts/assemble-manifest.js（resolve-base）。
-# 没有 node 时回落旧判定（保持可用，不让组装整体失败）。
+# 没有 node 时回落到根目录（保持可用，不让组装整体失败）。
 if find_node "$ROOT/tool/node/bin/node"; then
   SRC_BASE="$("$NODE_BIN" "$MANIFEST_TOOL" resolve-base "$ROOT")"
 else
@@ -80,7 +78,7 @@ _detect_styles() {
       _*) out="$out ${name#_}" ;;
     esac
   done
-  # 去重 + 排序后输出（词间以空格分隔，与旧 STYLES 变量格式一致）
+  # 去重 + 排序后输出（词间以空格分隔，供 --list 与提示复用）
   echo "$out" | tr ' ' '\n' | sed '/^$/d' | sort -u | tr '\n' ' ' | sed 's/ $//'
 }
 STYLES="$(_detect_styles)"
@@ -95,6 +93,7 @@ usage() {
   echo "  ./setup.sh --migrate <旧清单> --to <新清单> --dry-run   # 迁移预演（不改盘）"
   echo "  ./setup.sh --to <项目清单> --pull             # 回流预演：列出项目侧改过的素材"
   echo "  ./setup.sh --to <项目清单> --pull --write     # 回流：把改动写回模板（写前备份）"
+  echo "  ./setup.sh --fix-perm [<仓库路径>]            # 修复执行位：按版本库记录恢复丢失的可执行位"
   echo ""
   echo "  ./setup.sh --list                             # 列出可用风格素材目录"
   echo "  ./setup.sh, -h, --help                        # 输出本帮助"
@@ -118,9 +117,7 @@ usage() {
 #   - --to 指定项目目标：必须用自己的 assemble.json（声明要取哪些模板文件），缺失报错
 # 清单定位：TARGET 已是清单文件路径（参数区已解析 --to）。
 find_assemble() {
-  # 只认 --to 给的清单。此前这里还会依次兜底 example/、blueprint/、project/ ——
-  # 结果是「没给 --to」时静默组装某个内置清单，用户以为在操作自己的项目。
-  # 现在没有 --to 就报错（见下方调用处），example 也只是一份普通清单。
+  # 只认 --to 给的清单；没给 --to 就报错（见调用处）
   if [ -n "$TARGET" ] && [ -f "$TARGET" ]; then echo "$TARGET"; return 0; fi
   return 1
 }
@@ -146,7 +143,7 @@ find_assemble() {
 setup_parse_args() {
   MANIFEST_FILE=""    # --to <清单文件> 指定的 assemble.json
   CHECK_ONLY=0
-  SYNC_MODE=""        # 空=组装 | template=回流改动到模板（下发/--sync 已废除，组装即下发）
+  SYNC_MODE=""        # 空=组装 | template=回流改动到模板（--pull）
   PULL_WRITE=0        # --pull 缺省只预演；--write 才真写回模板（写前备份）
   MIGRATE_FROM=""     # --migrate <旧清单>：按新清单整理文件（迁移结构 + 改引用）
   UNTRACKED_ONLY=0    # --untracked：扫清单目录，列出不在清单里的文件（按 .gitignore 排除）
@@ -163,9 +160,7 @@ setup_parse_args() {
       --check) CHECK_ONLY=1; shift ;;
       --pull) SYNC_MODE="template"; shift ;;
       --write) PULL_WRITE=1; shift ;;
-      # 未知选项必须报错。原先这里 `-*) shift` 静默吞掉：敲错一个参数（或用了已
-      # 移除的 --self-test）不会报错，脚本照跑，还会因 find_assemble 的兜底
-      # 组装到 example/ —— 表现为「命令打错了，却真把某个项目组了一遍」。
+      # 未知选项必须报错（不静默吞掉）
       -*) err "❌ 未知参数: $1（可用 --help 查看）"; exit 1 ;;
       *) err "❌ 多余的位置参数: $1（--to 直接收清单文件路径，不需要单独给项目根）"; exit 1 ;;
     esac
@@ -189,18 +184,6 @@ setup_parse_args() {
 # 目标以 / 结尾 = 目录整体拷贝（含点文件），否则单文件拷贝。
 #
 # 落点一律按清单 **dst**——清单是唯一真相，dst 声明了什么就落到哪里。
-#
-# 【已废除的 tree 模式】早先还有个 COPY_LAYOUT=tree：落点改用 src，
-# 声称「把素材备进项目的素材树（server/templates/…）供之后组装」。这是设计错误：
-#   · 清单里 templates/ 只作为 **src** 出现（取素材的来处），从不出现在 dst——
-#     即清单从未声明过任何文件该落到 templates/。tree 模式却凭空往那里写文件，
-#     于是项目里长出 server/templates/_<风格>-style/ 整个目录。实测 gbmd/iwara
-#     都有这个目录，而 gallery 没有——三者清单写法一致，差异只是跑没跑过 --sync。
-#   · 对 src==dst 的素材条目，tree 与 out 恰好同路，所以问题长期只显现在产出条目上：
-#     `templates/_gbmd-style/public/app.js` 本该产出到 server/public/app.js，
-#     tree 模式却写回它自己，产出位置反而没拿到文件。
-#   · 落点改回 dst 后，tree 与组装完全等价——这条命令没有存在理由，故连同
-#     setup.sh 的 --sync、scripts/sync-to-project.sh 一并废除。
 # 判据：**清单 dst 没声明的地方，项目里就不该有文件。**
 _setup_copy_manifest() {
   local src dst src_path dst_path n_dir=0 n_file=0 missing=0 line
@@ -215,7 +198,7 @@ _setup_copy_manifest() {
   while IFS=$'\t' read -r src dst; do
     [ -n "$src" ] || continue
     src_path="$SRC_BASE/$src"
-    # 落点一律按清单 dst（见上方函数头注释：tree 模式已废除）
+    # 落点一律按清单 dst
     copy_dst="$dst"
     dst_path="$PROJECT_ROOT/$copy_dst"
     case "$copy_dst" in

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ============================================================
 # setup 子脚本：--list / -h / --help / 无参数（帮助与素材目录）
-# 拆自 setup.sh（2026-09-28），逻辑零改动；由总入口 setup.sh 分发调用，
+# 由总入口 setup.sh 分发调用，
 # 也可独立执行：bash scripts/setup-list.sh [--list|-h|--help]
 # ============================================================
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/setup-lib.sh"

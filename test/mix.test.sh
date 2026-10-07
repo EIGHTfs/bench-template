@@ -55,7 +55,7 @@ d["files"] = new
 json.dump(d, open(dst, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 PYEOF
 
-OUT="$(cd "$TMP/tpl" && timeout 30 ./setup.sh --to "$revdir/assemble.json" 2>&1)"
+OUT="$(cd "$TMP/tpl" && timeout 30 bash setup.sh --to "$revdir/assemble.json" 2>&1)"
 REVPANEL="$revdir/$PANEL_DST"
 if [ -f "$REVPANEL" ] && grep -q "下载视频" "$REVPANEL"; then
   ok "混搭反序：iwara 版本胜出（确认覆盖由清单顺序决定）"

@@ -46,14 +46,14 @@ run_case() {
   local dir="$TMP/case-$RANDOM$RANDOM"
   mkdir -p "$dir/server"
   [ -n "$manifest" ] && printf '%s' "$manifest" > "$dir/assemble.json"
-  OUT="$(cd "$TMP/tpl" && timeout 30 ./setup.sh --to "$dir/assemble.json" 2>&1)"; RC=$?
+  OUT="$(cd "$TMP/tpl" && timeout 30 bash setup.sh --to "$dir/assemble.json" 2>&1)"; RC=$?
   CASE_DIR="$dir"
 }
 
 # 在模板副本里按自定义参数跑 setup.sh：$@ 原样传给 setup.sh
 # 返回 stdout→$OUT，退出码→$RC
 run_setup() {
-  OUT="$(cd "$TMP/tpl" && timeout 30 ./setup.sh "$@" 2>&1)"; RC=$?
+  OUT="$(cd "$TMP/tpl" && timeout 30 bash setup.sh "$@" 2>&1)"; RC=$?
 }
 
 # ── 从清单 JSON 读路径（结构变动时测试不失效）──────────────────

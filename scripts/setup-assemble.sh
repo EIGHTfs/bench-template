@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # ============================================================
 # setup 子脚本：组装（--to <项目清单>，含 --dry-run 预演）
-# 拆自 setup.sh（2026-09-28），逻辑零改动 + brand 从清单 json 直接获取
-# （不再生成/读取独立 brand.json——品牌配置是清单 brand 段的直接来源）。
+# 按清单逐项复制到 dst；品牌由运行期从清单 brand 段读取；清单 commands 作为
+# 组装后钩子执行（生成 .user.js 等下游产物）。
 # 由总入口 setup.sh 分发调用，也可独立执行：
 #   bash scripts/setup-assemble.sh --to <项目清单> [--dry-run]
 # ============================================================
@@ -18,14 +18,8 @@ echo "══ 组装 → $PROJECT_ROOT ══"
 #   · --dry-run 只打印不执行；任一命令失败 → 本次组装以非 0 退出（便于 CI 发现）
 run_manifest_commands() {
   local cmds
-  cmds=$("${NODE_BIN:-node}" -e '
-    const fs = require("fs");
-    try {
-      const m = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
-      const c = Array.isArray(m.commands) ? m.commands : (m.commands ? [m.commands] : []);
-      for (const x of c) if (typeof x === "string" && x.trim()) console.log(x.trim());
-    } catch (_) {}
-  ' "$ASSEMBLE_FILE" 2>/dev/null)
+  # 解析走清单唯一实现（assemble-manifest.js 的 commands 子命令），不另内嵌 JSON 解析
+  cmds=$("$NODE_BIN" "$MANIFEST_TOOL" commands "$ASSEMBLE_FILE" 2>/dev/null)
   [ -z "$cmds" ] && return 0
   echo ""
   echo "── 清单 commands（下游构建钩子）──"
@@ -53,9 +47,6 @@ run_manifest_commands() {
 
 ASSEMBLE_FILE="$(find_assemble || true)"
 if [ -z "$ASSEMBLE_FILE" ]; then
-  # 生成位置与 find_assemble 的首选查找位置保持一致：
-    # 生成位置 = 项目根下的 assemble.json（与 find_assemble 首查位置一致）。
-    # 历史缺陷：曾写成 "$TARGET/.." 多退一层，提示的 cp 目标落到幽灵位置。
   GEN_PATH="$PROJECT_ROOT/assemble.json"
 
   err "❌ 未找到 assemble.json"
@@ -133,9 +124,8 @@ else
 fi
 if [ $? -ne 0 ]; then exit 1; fi
 
-# 品牌配置：清单 brand 段由运行期直接读取（fragment-assembler 装配时取值），
-# 不再生成/读取 server/public/brand.json（2026-09-28 简化：brand 是清单的一部分，
-# 与「清单即唯一真相」一致；也免去 setup 生成额外文件）。
+# 品牌配置：清单 brand 段由运行期直接读取（fragment-assembler 装配时取 brand 值，
+# 实现见 templates/js/config/brand.js）——品牌是清单的一部分，setup 不生成额外文件。
 
 # 清单 commands：组装后钩子（在项目根执行；--dry-run 只打印，不写盘）
 CMD_FAILED=0

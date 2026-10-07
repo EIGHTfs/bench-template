@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ============================================================
 # setup 子脚本：--untracked（清单外文件扫描）
-# 拆自 setup.sh（2026-09-28），逻辑零改动；由总入口 setup.sh 分发调用，
+# 由总入口 setup.sh 分发调用，
 # 也可独立执行：bash scripts/setup-untracked.sh --to <项目清单>
 # ============================================================
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/setup-lib.sh"

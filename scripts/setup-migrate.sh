@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ============================================================
 # setup 子脚本：--migrate（结构迁移）+ --to <新清单>
-# 拆自 setup.sh（2026-09-28），逻辑零改动；由总入口 setup.sh 分发调用，
+# 由总入口 setup.sh 分发调用，
 # 也可独立执行：bash scripts/setup-migrate.sh --migrate <旧清单> --to <新清单>
 # ============================================================
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/setup-lib.sh"

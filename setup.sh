@@ -16,6 +16,7 @@
 #   ./setup.sh --migrate <旧清单> --to <新清单>  迁移：按新结构搬文件并自动改引用
 #   ./setup.sh --to <项目清单> --pull           回流预演：列出项目侧改过的素材
 #   ./setup.sh --to <项目清单> --pull --write   回流：把改动写回模板（写前备份）
+#   ./setup.sh --fix-perm [<仓库路径>]          修复执行位：按版本库记录恢复丢失的可执行位
 #   ./setup.sh --list                           列出可用风格素材目录
 #   ./setup.sh                                  输出帮助（等同 --help）
 #
@@ -65,20 +66,15 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$ROOT/scripts/setup-lib.sh"
 
-# 只加载模式（历史兼容：SETUP_LIB_ONLY=1 时只加载函数不跑主流程；
-# sync-to-project.sh 已废除，保留兼容供旧引用不报错）
-if [ "${SETUP_LIB_ONLY:-0}" = "1" ]; then
-  return 0 2>/dev/null || exit 0
-fi
-
 # 无参数 / --list / -h / --help：一律输出用法（无参数 = 帮助）
 if [ $# -eq 0 ] || [ "$1" = "--list" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
   exec bash "$ROOT/scripts/setup-list.sh"
 fi
 
 # 命令分发：按动作参数决定调用哪个子脚本（参数原样透传，子脚本自行解析）。
-# 优先级与旧 setup.sh 分支顺序一致：check → untracked → migrate → pull → 组装。
+# 优先级与旧 setup.sh 分支顺序一致：fix-perm → check → untracked → migrate → pull → 组装。
 case " $* " in
+  *" --fix-perm "*)   exec bash "$ROOT/scripts/setup-fixperm.sh" "$@" ;;
   *" --check "*)      exec bash "$ROOT/scripts/setup-check.sh" "$@" ;;
   *" --untracked "*)  exec bash "$ROOT/scripts/setup-untracked.sh" "$@" ;;
   *" --migrate "*)    exec bash "$ROOT/scripts/setup-migrate.sh" "$@" ;;

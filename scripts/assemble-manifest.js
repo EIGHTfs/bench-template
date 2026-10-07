@@ -800,7 +800,7 @@ function cmdListCli(rest) {
 const USAGE =
   "assemble-manifest —— 清单解析唯一实现\n" +
   "用法: assemble-manifest <命令> [参数]\n" +
-  "命令: resolve-base | asset-roots | list | brand | init-flag | generate | validate | check" +
+  "命令: resolve-base | asset-roots | list | brand | init-flag | commands | generate | validate | check" +
   " | untracked | migrate | pull";
 
 function main(argv) {
@@ -816,6 +816,8 @@ function main(argv) {
       return cmdBrandCli(rest);
     case "init-flag":
       return cmdInitFlag(rest);
+    case "commands":
+      return cmdCommands(rest);
     case "generate":
       return cmdGenerate(rest[0]);
     case "validate":
@@ -857,6 +859,20 @@ function cmdInitFlag(rest) {
     process.stdout.write(loadManifest(rest[0]).init ? "1\n" : "0\n");
   } catch {
     process.stdout.write("1\n");               // 读不了时按既有行为回落为 1
+  }
+  return 0;
+}
+
+/**
+ * 打印清单 `commands` 段（每行一条，供 setup 组装后的下游构建钩子执行）。
+ * 支持字符串或字符串数组；空/非字符串项跳过。没有该段则无输出（退出码 0）。
+ */
+function cmdCommands(rest) {
+  if (!rest[0]) die("用法: assemble-manifest commands <清单>");
+  const c = loadManifest(rest[0]).manifest.commands;
+  const arr = Array.isArray(c) ? c : (c ? [c] : []);
+  for (const x of arr) {
+    if (typeof x === "string" && x.trim()) process.stdout.write(x.trim() + "\n");
   }
   return 0;
 }

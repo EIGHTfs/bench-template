@@ -26,6 +26,7 @@ generatedBy: deepseek-v4-flash
 ./setup.sh --migrate <旧清单> --to <新清单> --dry-run   迁移预演（不改盘）
 ./setup.sh --to <项目清单> --pull             回流预演：列出项目侧改过的素材（项目 → 模板）
 ./setup.sh --to <项目清单> --pull --write     回流：把改动写回模板（写前备份模板原文件）
+./setup.sh --fix-perm [<仓库路径>]            修复执行位：按版本库记录恢复可执行位
 ./setup.sh --list                             列出可用风格素材目录
 ./setup.sh  /  -h  /  --help                  输出帮助
 ```
@@ -35,10 +36,10 @@ generatedBy: deepseek-v4-flash
 - 未知参数、多余位置参数**直接报错退出**（不再静默吞掉、不再兜底组装内置清单）。
 - `--check` 只比对清单两端（报不一致 / 缺失），**不扫清单外文件**（实测输出会提示「查清单外请用 --untracked」）；`--untracked` 扫整棵树回答「目录里还有什么没进清单」（按 .gitignore 排除）——两者分工不同。
 - `--migrate` 按落点**文件名配对**搬文件（结构重排只改目录层级），搬后自动改写被搬文件的相对引用；缺省即真迁移，`--dry-run` 才预演。
+- `--fix-perm` 按 `git ls-files -s` 里记录为 `100755` 的文件逐个恢复工作区执行位（只动权限位、不改内容/索引），修完 `git status` 的 `mode change` 噪音清零；幂等。参数传仓库路径（缺省当前仓库）。跨挂载点搬运（NFS/CIFS、整目录拷贝、解包）会丢执行位，换环境后先跑一次。若目标落在 `noexec` 挂载点，执行位恢复了 `./x.sh` 仍会被内核拒绝——命令会探测并提示改用 `bash x.sh`。判断「有无执行位」必须用 `stat -c '%A'`，`[ -x file ]` 在 noexec 下恒为假（实测踩坑）。
 - `--pull` 只处理素材条目（src==dst）；产出条目（src!=dst）不参与双向同步，产物由组装生成。
 - `DRY_VERBOSE=1` 配合组装预演可展开目录条目下的逐个文件；`SETUP_SKIP_PRECHECK=1` 跳过分发前预检（CI 批量组装用）。
 - 无 `--to` 时不静默组装，报错并提示（交互式可回答 y 生成空白清单骨架；非交互 `cp example/assemble.json <项目根>/assemble.json`）。
-- `SETUP_LIB_ONLY=1` 时只加载函数不做主流程（`setup-lib.sh` 供其它脚本复用组装逻辑）。
 
 组装流程顺序（理解输出日志）：
 1. 定位清单（`--to` 唯一入口）→ 校验可解析（JSON 语法/结构，提前失败防半成品目录）
@@ -68,7 +69,7 @@ generatedBy: deepseek-v4-flash
 
 - **键** = 模板仓库内的相对路径（模板里有什么）
 - **值** = 项目内的相对路径（放到哪里；以 `/` 结尾 = 整目录拷贝）
-- `app.js` / `config.schema.json` 是**清单素材**：由 `files` 条目显式声明 src 下发（旧 `init` 字段已不生效——setup 不再做蓝图骨架初始化复制）
+- `app.js` / `config.schema.json` 是**清单素材**：由 `files` 条目显式声明 src 下发
 - `"brand": {...}` = 品牌配置，运行期从本项目根 `assemble.json` 的 `brand` 段直接读取（详见下节）
 
 **整目录取件 vs 逐文件显式列出**（两种写法可混用）：
@@ -98,8 +99,8 @@ generatedBy: deepseek-v4-flash
 ## 顶层其它段
 
 - `brand`: 可选（建议写全四键）。**不导出任何文件**——运行期由 `templates/js/config/brand.js` 的 `readBrand(serverDir)` 从项目根 `assemble.json` 的 `brand` 段读取，替换页面里 fragment-assembler 的 `@brand:key` 占位符（标题/logo/icon）。缺键或缺整段时返回空并提示，不阻断组装。
-- `init`: 已废除（不再生效）。`app.js` / `config.schema.json` 是清单素材，由 `files` 条目显式声明 src 下发，setup 不再做蓝图骨架初始化复制。
-- boot.cjs 与 cjs-bootstrap.cjs 改由清单下发（写死在项目清单里：`templates/js/boot.cjs` → `server/boot.cjs`、`lib/cjs-bootstrap.cjs` → `server/lib/cjs-bootstrap.cjs`），路径对不上时 `--check` 直接报「缺失」，不再悄悄跳过。
+- `commands`: 可选（字符串或字符串数组）。组装完成后在**项目根**逐条执行的钩子命令，用于生成下游产物（如油猴脚本 `node "$SETUP_TEMPLATE_ROOT/scripts/build-userscript.js" ...`）；注入 `SETUP_TEMPLATE_ROOT`（模板仓库根）/ `SETUP_PROJECT_ROOT`（项目根）两个环境变量。`--dry-run` 只打印不执行；任一命令失败则该次组装以非 0 退出（便于 CI 发现）。
+- boot.cjs 与 cjs-bootstrap.cjs 由清单下发（`templates/js/boot.cjs` → `server/boot.cjs`、`lib/cjs-bootstrap.cjs` → `server/lib/cjs-bootstrap.cjs`），路径对不上时 `--check` 直接报「缺失」。
 
 # 三、素材源布局（模板仓库内）
 

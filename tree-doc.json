@@ -12,13 +12,6 @@
   "example/server/core": "example 组装产物（框架下发+自研，入库作测试基准）",
   "example/server/http": "example 组装产物（框架下发+自研，入库作测试基准）",
   "example/server/lib": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/styles": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/topbar": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/index.html/downloader": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/index.html": "example 组装产物（框架下发+自研，入库作测试基准）",
   "example/server/public/fragments": "example 组装产物前端（入库作测试基准）",
   "example/server/public/fragments/styles": "example 组装产物前端（入库作测试基准）",
   "example/server/public/fragments/styles/themes": "example 组装产物前端（入库作测试基准）",
@@ -93,7 +86,7 @@
   "scripts/gitignore-runtime.cjs": "运行态文件 .gitignore 自动维护",
   ".auditignore": "审计豁免清单",
   ".gitignore": "忽略规则（产物/运行态/回收站）",
-  "README.md": "仓库 README（功能/用法/版本记录）",
+  "README.md": "仓库 README（功能概览/安装用法/命令示例，功能详情见 docs/功能说明.md）",
   "docs/前端片段化改造指南.md": "整份 HTML 拆片段实测",
   "docs/命令参数总览.md": "setup.sh 与清单工具全部参数",
   "docs/旧项目模板化改造指南.md": "扁平架构改模板架构实操",
@@ -102,15 +95,9 @@
   "example/.gitignore": "example 忽略规则",
   "example/.test": "example 自检标记文件",
   "example/ASSEMBLE-COVERAGE.md": "组装覆盖面速查（通用规则 + example 实例）",
-  "example/README.md": "example 说明（= 根 README 副本）",
   "example/assemble.json": "example 清单（混搭示例：iwara 骨架 + gbmd 面板）",
-  "example/docs/前端片段化改造指南.md": "example 内嵌的模板文档副本",
-  "example/docs/命令参数总览.md": "example 内嵌的模板文档副本",
-  "example/docs/旧项目模板化改造指南.md": "example 内嵌的模板文档副本",
-  "example/docs/清单驱动重构.md": "example 内嵌的模板文档副本",
   "example/docs/组装反思-nexus-20260926.md": "example 内嵌的模板文档副本",
   "example/json/items.json": "example 假数据（items.json，不受组装影响）",
-  "example/package.json": "example 的 CJS 声明",
   "example/self-test.sh": "example 自检：组装→自研→启动→API 探测",
   "example/server/app.js": "example 组装产物（框架下发+自研，入库作测试基准）",
   "example/server/assemble/fragment-assembler.js": "example 组装产物（框架下发+自研，入库作测试基准）",
@@ -128,46 +115,6 @@
   "example/server/http/require-sibling.js": "example 组装产物（框架下发+自研，入库作测试基准）",
   "example/server/lib/cjs-bootstrap.cjs": "example 组装产物（框架下发+自研，入库作测试基准）",
   "example/server/lib/start.sh": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/README.md": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/app.js": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/assemble.json": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/auto-update-card.js": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/boot.cjs": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/config.schema.json": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/auto-update-card.html": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/browse-mask.html": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/global-hud.html": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/head-extra.html": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/no-pwd-warn.html": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/styles/auth.css": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/styles/base.css": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/styles/combo.css": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/styles/components.css": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/styles/diff.css": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/styles/hud.css": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/styles/login-detect.css": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/styles/mobile.css": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/styles/modal.css": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/styles/progress.css": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/styles/result-list.css": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/styles/row-thumb.css": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/styles/task-list.css": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/styles/toast.css": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/styles/topbar-badge.css": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/styles/topbar.css": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/styles/variables.css": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/tabs.html": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/topbar.html": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/topbar/brand.html": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/fragments/topbar/time.html": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/index.html/downloader/index.html": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/login.html": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/login.js": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/search-date-range.js": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/setup-init.js": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/setup.html": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/style.css": "example 组装产物（框架下发+自研，入库作测试基准）",
-  "example/server/project/blueprint/theme-init.js": "example 组装产物（框架下发+自研，入库作测试基准）",
   "example/server/public/app.js": "example 组装产物前端（入库作测试基准）",
   "example/server/public/auto-update-card.js": "example 组装产物前端（入库作测试基准）",
   "example/server/public/fragments/auto-update-card.html": "example 组装产物前端（入库作测试基准）",
@@ -246,7 +193,6 @@
   "lib/preview/start-preview.mjs": "独立预览反代（真实后端垫片）",
   "lib/preview/start.sh": "独立预览反代（真实后端垫片）",
   "lib/start.sh": "通用启停脚本",
-  "package.json": "零依赖声明（仅 type=commonjs 与 test 入口）",
   "scripts/assemble-manifest.js": "清单解析唯一实现（list/check/migrate/pull 等）",
   "scripts/bench-html-assembly.js": "HTML 组装基准评测",
   "scripts/check-auth.cjs": "鉴权自检",
@@ -416,7 +362,7 @@
   "test/manifest-comments.test.sh": "清单注释键测试",
   "test/manifest-invalid.test.sh": "清单错误结构测试",
   "test/mix.test.sh": "风格混搭覆盖顺序测试",
-  "test/run-all.sh": "测试总入口（npm test）",
+  "test/run-all.sh": "测试总入口（bash test/run-all.sh）",
   "test/scan-sh-commands.test.sh": "sh 命令扫描测试",
   "docs/文件树.md": "完整目录结构（doc-tree.mjs 自动维护，README 引用）",
   "tree-doc.json": "目录树注释映射（doc-tree 索引：路径→一句话介绍）",
@@ -439,47 +385,413 @@
   "templates/_downloader/html/topbar/badge.html": "系级 badge 占位（setStack 写运行时文本）",
   "templates/js/config/brand.js": "品牌读取模块：readBrand 从项目根 assemble.json 的 brand 段读取（2026-09-28）",
   "templates/js/server/lib/auto-update.js": "auto-update 参数化包装：读同目录 auto-update-params.json",
-  "example/server/public/fragments/tab-panel/panel-settings": "（待注释）",
+  "example/server/public/fragments/tab-panel/panel-settings": "example 组装产物：设置面板片段目录（pwd/backup/cookie 系级卡的展开落点）",
   "templates/_downloader/html/tab-panel/panel-settings": "系级设置面板通用卡目录（pwd.html 修改密码 / backup.html 数据备份，与 auto-update-card 同模式）",
-  "templates/_downloader/html/tab-panel": "（待注释）",
-  "example/server/public/fragments/tab-panel/panel-settings/backup.html": "（待注释）",
-  "example/server/public/fragments/tab-panel/panel-settings/pwd.html": "（待注释）",
+  "templates/_downloader/html/tab-panel": "系级面板片段目录（panel-settings/ 下的通用卡）",
+  "example/server/public/fragments/tab-panel/panel-settings/backup.html": "example 组装产物：数据备份卡（系级下发）",
+  "example/server/public/fragments/tab-panel/panel-settings/pwd.html": "example 组装产物：修改密码卡（系级下发）",
   "templates/_downloader/html/tab-panel/panel-settings/backup.html": "系级数据备份/恢复卡（导出/导入 zip，2026-09-28 上提）",
   "templates/_downloader/html/tab-panel/panel-settings/pwd.html": "系级修改密码卡（oldPwd + newPwd + 修改按钮，2026-09-28 上提）",
   "_meta": {
     "worktree": {
+      "README.md": {
+        "status": "M",
+        "mtime": "2026-10-07T19:50:10.045Z",
+        "note": "注释可能需更新"
+      },
+      "docs/命令参数总览.md": {
+        "status": "M",
+        "mtime": "2026-10-07T19:25:41.678Z",
+        "note": "注释可能需更新"
+      },
+      "docs/文件树.md": {
+        "status": "M",
+        "mtime": "2026-10-07T19:50:00.684Z",
+        "note": "注释可能需更新"
+      },
       "docs/模板化标准手册.md": {
         "status": "M",
-        "mtime": "2026-09-27T23:50:37.836Z",
+        "mtime": "2026-10-07T19:26:53.725Z",
         "note": "注释可能需更新"
       },
-      "example/server/public/fragments/tab-panel/panel-settings.html": {
+      "example/README.md": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/docs/前端片段化改造指南.md": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/docs/命令参数总览.md": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/docs/旧项目模板化改造指南.md": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/docs/清单驱动重构.md": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/package.json": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/self-test.sh": {
         "status": "M",
-        "mtime": "2026-09-27T23:50:04.114Z",
+        "mtime": "2026-10-07T19:23:17.158Z",
         "note": "注释可能需更新"
       },
-      "templates/_downloader/_gamebanana-mods/html/tab-panel/panel-settings.html": {
+      "example/server/project/blueprint/README.md": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/app.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/assemble.json": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/auto-update-card.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/boot.cjs": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/config.schema.json": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/fragments/auto-update-card.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/fragments/browse-mask.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/fragments/global-hud.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/fragments/head-extra.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/fragments/no-pwd-warn.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/fragments/styles/auth.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/fragments/styles/base.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/fragments/styles/combo.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/fragments/styles/components.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/fragments/styles/diff.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/fragments/styles/hud.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/fragments/styles/login-detect.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/fragments/styles/mobile.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/fragments/styles/modal.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/fragments/styles/progress.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/fragments/styles/result-list.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/fragments/styles/row-thumb.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/fragments/styles/task-list.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/fragments/styles/toast.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/fragments/styles/topbar-badge.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/fragments/styles/topbar.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/fragments/styles/variables.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/fragments/tabs.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/fragments/topbar.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/fragments/topbar/brand.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/fragments/topbar/time.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/index.html/downloader/index.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/login.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/login.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/search-date-range.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/setup-init.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/setup.html": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/style.css": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "example/server/project/blueprint/theme-init.js": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "package.json": {
+        "status": "D",
+        "mtime": "",
+        "note": "注释可能需更新"
+      },
+      "scripts/assemble-manifest.js": {
         "status": "M",
-        "mtime": "2026-09-27T23:48:08.974Z",
+        "mtime": "2026-10-07T19:33:16.237Z",
         "note": "注释可能需更新"
       },
-      "templates/_downloader/_iwara/html/tab-panel/panel-settings.html": {
+      "scripts/setup-assemble.sh": {
         "status": "M",
-        "mtime": "2026-09-27T23:47:56.125Z",
+        "mtime": "2026-10-07T19:33:35.617Z",
         "note": "注释可能需更新"
       },
-      "example/server/public/fragments/tab-panel/panel-settings/cookie.html": {
+      "scripts/setup-check.sh": {
+        "status": "M",
+        "mtime": "2026-10-07T19:34:08.491Z",
+        "note": "注释可能需更新"
+      },
+      "scripts/setup-lib.sh": {
+        "status": "M",
+        "mtime": "2026-10-07T19:34:08.494Z",
+        "note": "注释可能需更新"
+      },
+      "scripts/setup-list.sh": {
+        "status": "M",
+        "mtime": "2026-10-07T19:34:08.493Z",
+        "note": "注释可能需更新"
+      },
+      "scripts/setup-migrate.sh": {
+        "status": "M",
+        "mtime": "2026-10-07T19:34:08.492Z",
+        "note": "注释可能需更新"
+      },
+      "scripts/setup-pull.sh": {
+        "status": "M",
+        "mtime": "2026-10-07T19:34:08.492Z",
+        "note": "注释可能需更新"
+      },
+      "scripts/setup-untracked.sh": {
+        "status": "M",
+        "mtime": "2026-10-07T19:34:08.493Z",
+        "note": "注释可能需更新"
+      },
+      "setup.sh": {
+        "status": "M",
+        "mtime": "2026-10-07T19:30:54.622Z",
+        "note": "注释可能需更新"
+      },
+      "skills/setup-assemble.md": {
+        "status": "M",
+        "mtime": "2026-10-07T19:34:15.818Z",
+        "note": "注释可能需更新"
+      },
+      "test/args.test.sh": {
+        "status": "M",
+        "mtime": "2026-10-07T19:47:10.613Z",
+        "note": "注释可能需更新"
+      },
+      "test/lib-test.sh": {
+        "status": "M",
+        "mtime": "2026-10-07T19:47:10.614Z",
+        "note": "注释可能需更新"
+      },
+      "test/mix.test.sh": {
+        "status": "M",
+        "mtime": "2026-10-07T19:47:10.613Z",
+        "note": "注释可能需更新"
+      },
+      "docs/函数列表.md": {
         "status": "A",
-        "mtime": "2026-09-27T23:50:04.213Z",
+        "mtime": "2026-10-07T19:49:24.579Z",
         "note": "注释可能需更新"
       },
-      "templates/_downloader/html/tab-panel/panel-settings/cookie.html": {
+      "docs/功能说明.md": {
         "status": "A",
-        "mtime": "2026-09-27T23:47:40.822Z",
+        "mtime": "2026-10-07T19:48:14.609Z",
+        "note": "注释可能需更新"
+      },
+      "scripts/doc-func.mjs": {
+        "status": "A",
+        "mtime": "2026-10-07T19:39:54.115Z",
+        "note": "注释可能需更新"
+      },
+      "scripts/setup-fixperm.sh": {
+        "status": "A",
+        "mtime": "2026-10-07T19:21:18.438Z",
+        "note": "注释可能需更新"
+      },
+      "test/doc-func.test.sh": {
+        "status": "A",
+        "mtime": "2026-10-07T19:41:34.250Z",
+        "note": "注释可能需更新"
+      },
+      "test/doc-tree.test.sh": {
+        "status": "A",
+        "mtime": "2026-10-07T19:45:05.951Z",
         "note": "注释可能需更新"
       }
     }
   },
-  "example/server/public/fragments/tab-panel/panel-settings/cookie.html": "（待注释）",
-  "templates/_downloader/html/tab-panel/panel-settings/cookie.html": "系级登录凭证卡（textarea 组合文本实现，2026-09-28 上提，统一 id cookieInput/saveCookieBtn）"
+  "example/server/public/fragments/tab-panel/panel-settings/cookie.html": "example 组装产物：登录凭证卡（系级下发）",
+  "templates/_downloader/html/tab-panel/panel-settings/cookie.html": "系级登录凭证卡（textarea 组合文本实现，2026-09-28 上提，统一 id cookieInput/saveCookieBtn）",
+  "templates/_downloader/_gamebanana-mods/userscript": "gbmd 项目层油猴片段（config/常量/面板/账号/项目钩子）",
+  "templates/_downloader/_iwara/userscript": "iwara 项目层油猴片段（config/常量/面板/账号/项目钩子）",
+  "templates/_downloader/_ktoolbox/html": "KToolBox 页面片段",
+  "templates/_downloader/_ktoolbox": "KToolBox 项目独有层（登录/侧栏/系统页 + 样式；模板已备、尚未接入清单）",
+  "templates/_downloader/_ktoolbox/styles": "KToolBox 样式",
+  "templates/userscript": "通用油猴脚本模板（Cookie 采集/注入，跨项目复用）",
+  "templates/userscript/cookie-fetch": "通用油猴内核（header.tpl + 20-core/25-style/28-ui）",
+  "templates/userscript/test": "油猴脚本端到端测试（环境变量参数化，一套测多站点）",
+  "docs/20261008-自动更新间隔与失败退避.MD": "自动更新间隔治理与失败退避方案（默认 3600s、失败退避 ×2 最多 3 次）",
+  "docs/函数列表.md": "函数列表（doc-func.mjs 自动维护，标记块 dshgp-functions）",
+  "scripts/doc-func.mjs": "函数列表生成器（扫 lib/scripts/test 提取函数写入标记块）",
+  "scripts/setup-fixperm.sh": "setup 子脚本：--fix-perm 一键修复执行位",
+  "templates/_downloader/test/auto-update-backoff.test.cjs": "自动更新失败退避测试",
+  "templates/_downloader/test/auto-update-interval.test.cjs": "自动更新间隔测试",
+  "test/doc-func.test.sh": "函数列表漂移测试（同步通过/改源码拦截/缺标记块提示）",
+  "scripts/build-userscript.js": "油猴脚本组装器（通用+项目片段按数字前缀拼接，占位符取自 00-config.json）",
+  "templates/_downloader/_gamebanana-mods/userscript/00-config.json": "gbmd 油猴配置（版本/站点/域列表等占位符取值）",
+  "templates/_downloader/_gamebanana-mods/userscript/10-consts.js": "gbmd 油猴常量",
+  "templates/_downloader/_gamebanana-mods/userscript/30-panel.js": "gbmd 油猴面板 DOM 与事件绑定",
+  "templates/_downloader/_gamebanana-mods/userscript/40-account.js": "gbmd 油猴账号检测与渲染",
+  "templates/_downloader/_gamebanana-mods/userscript/50-project.js": "gbmd 油猴项目钩子（openPanel/buildPanelHtml/bindPanelEvents）",
+  "templates/_downloader/_iwara/test/iwara-login-flow.cjs": "iwara 凭证刷新脚本（无头浏览器过 CF 挑战，抓 Token/cf_clearance 回传）",
+  "templates/_downloader/_iwara/test/verify-api-http-guard.cjs": "iwara HTTP 请求层回归测试",
+  "templates/_downloader/_iwara/test/verify-userscript-panel.cjs": "iwara 油猴面板端到端测试（真实脚本 + 伪造页面）",
+  "templates/_downloader/_iwara/userscript/00-config.json": "iwara 油猴配置（版本/站点/存储前缀等占位符取值）",
+  "templates/_downloader/_iwara/userscript/10-consts.js": "iwara 油猴常量",
+  "templates/_downloader/_iwara/userscript/30-panel.js": "iwara 油猴面板 DOM 与事件绑定",
+  "templates/_downloader/_iwara/userscript/40-account.js": "iwara 油猴账号检测与渲染",
+  "templates/_downloader/_iwara/userscript/50-project.js": "iwara 油猴项目钩子（openPanel/buildPanelHtml/bindPanelEvents）",
+  "templates/_downloader/_ktoolbox/html/login.html": "KToolBox 登录页片段",
+  "templates/_downloader/_ktoolbox/html/sidebar.html": "KToolBox 侧栏片段",
+  "templates/_downloader/_ktoolbox/html/system.html": "KToolBox 系统页片段",
+  "templates/_downloader/_ktoolbox/styles/app.css": "KToolBox 样式表",
+  "templates/userscript/README.md": "通用油猴模板说明（分层/占位符/接入方式）",
+  "templates/userscript/cookie-fetch/20-core.js": "油猴内核：网络/存储/服务器列表/Cookie 采集/复制/写回",
+  "templates/userscript/cookie-fetch/25-style.js": "油猴面板 CSS",
+  "templates/userscript/cookie-fetch/28-ui.js": "油猴通用 UI 骨架（FAB/Toast/状态提示）",
+  "templates/userscript/cookie-fetch/header.tpl": "油猴元数据模板（@name/@match/@grant 占位符）",
+  "templates/userscript/test/verify-userscript-panel.cjs": "油猴面板端到端测试（系级，环境变量参数化）",
+  "test/doc-tree.test.sh": "（待注释）",
+  "docs/功能说明.md": "功能说明（按功能模块描述能力/设计/边界，取代版本记录）"
 }

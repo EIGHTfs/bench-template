@@ -16,7 +16,7 @@ echo "══ setup.sh 参数契约 ══"
 
 # --- --to 指向不存在的清单：非交互下不挂起、退出非 0、不擅自生成 ---
 dir="$TMP/no-manifest"; mkdir -p "$dir/server"
-OUT="$(cd "$TMP/tpl" && echo "" | timeout 20 ./setup.sh --to "$dir/assemble.json" 2>&1)"; RC=$?
+OUT="$(cd "$TMP/tpl" && echo "" | timeout 20 bash setup.sh --to "$dir/assemble.json" 2>&1)"; RC=$?
 if [ $RC -ne 0 ] && grep -q "清单文件不存在" <<<"$OUT"; then ok "--to 清单不存在：报错退出"; else bad "--to 清单不存在：行为不符"; fi
 if [ ! -f "$dir/assemble.json" ]; then ok "--to 清单不存在：未擅自生成"; else bad "--to 清单不存在：擅自生成了文件"; fi
 
