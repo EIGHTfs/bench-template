@@ -13,18 +13,28 @@
 | 一键发送到服务端（注入服务端） | ✅ 需要 | `POST /api/settings` 保存；服务端不在时面板降级为「仅采集+复制」 |
 | 服务器探活/登录/账号状态 | ✅ 需要 | `/api/status` `/api/login` `/api/account-check` |
 
-## 结构
+## 结构（通用 / 特化 分层）
+
+**模板里只放真正通用的**；项目特化的 UI 与业务逻辑作为**项目侧片段**，由组装器一起拼接：
 
 ```
-templates/userscript/
-  README.md                    本文档
-  cookie-fetch/                模板本体（片段，按数字前缀拼接）
-    10-config.default.json     通用默认配置（键名/文案/样式开关等）
-    20-core.js                 通用内核（存储/服务器列表/GM 请求/探活/登录/Cookie 采集/复制/注入）
-    30-panel.js                通用面板 UI（浮动按钮 + 底部面板 + toast + 样式）
-    40-account.js              通用账号状态渲染（到期提醒/用户名/id）
-    90-boot.js                 启动（挂 UI、SPA 钩子、首次探活）
+templates/userscript/cookie-fetch/        ← 通用（所有项目共用）
+    header.tpl      UserScript 头模板（{{name}}/{{match}}/{{grant}} 占位）
+    20-core.js      网络与数据层：GM 请求、服务器列表、探活/登录、Cookie 采集、复制、写回浏览器
+    25-style.js     面板 CSS 常量（id 前缀走 {{IDP}} 占位）
+templates/_downloader/_iwara/userscript/  ← 项目特化（iwara）
+    00-config.json  项目配置（站名/匹配/键名/id 前缀/文案/图标/域列表）
+    10-consts.js    常量（VER/键名/图标等，值走占位符）
+    30-panel.js     该项目的面板 DOM 与事件绑定
+    40-account.js   该项目的账号状态检测与渲染（端点各项目不同）
+    50-project.js   项目专属业务（如 iwara 的视频发送、SPA 钩子）
 ```
+
+组装器**不区分**通用与特化 —— 它把两侧片段按**文件名数字前缀**统一排序拼接，所以上例自然得到
+`10-consts → 20-core → 25-style → 30-panel → 40-account → 50-project`。
+新项目接入时：复用 `20-core`/`25-style`，自己写 `00-config.json` + 面板/账号/业务片段即可。
+
+> 若某项目的面板与账号逻辑足够通用，再上提到模板 `cookie-fetch/` 即可（换个目录，组装器无感）。
 
 ## 项目接入
 

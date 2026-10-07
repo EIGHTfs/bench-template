@@ -11,6 +11,46 @@ setup_parse_args "$@"
 
 echo "══ 组装 → $PROJECT_ROOT ══"
 
+# ── 清单 commands：下游仓库的「组装后钩子」（如油猴脚本由模板 build 出成品）──
+# 清单里写：  "commands": ["node \"$SETUP_TEMPLATE_ROOT/scripts/build-userscript.js\" <项目userscript目录> <输出.user.js>"]
+#   · 在**项目根**（清单所在目录）执行 —— 产出落在下游仓库，命令本身写在清单里（setup 不硬编码任何项目）
+#   · 注入环境变量 SETUP_TEMPLATE_ROOT（模板仓库根）/ SETUP_PROJECT_ROOT（项目根），命令不必写死绝对路径
+#   · --dry-run 只打印不执行；任一命令失败 → 本次组装以非 0 退出（便于 CI 发现）
+run_manifest_commands() {
+  local cmds
+  cmds=$("${NODE_BIN:-node}" -e '
+    const fs = require("fs");
+    try {
+      const m = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+      const c = Array.isArray(m.commands) ? m.commands : (m.commands ? [m.commands] : []);
+      for (const x of c) if (typeof x === "string" && x.trim()) console.log(x.trim());
+    } catch (_) {}
+  ' "$ASSEMBLE_FILE" 2>/dev/null)
+  [ -z "$cmds" ] && return 0
+  echo ""
+  echo "── 清单 commands（下游构建钩子）──"
+  local failed=0
+  while IFS= read -r cmd; do
+    [ -z "$cmd" ] && continue
+    if [ "${DRY_RUN:-0}" = "1" ]; then
+      echo "  [dry-run] $cmd"
+      continue
+    fi
+    echo "  ▸ $cmd"
+    if ( cd "$PROJECT_ROOT" && SETUP_TEMPLATE_ROOT="$ROOT" SETUP_PROJECT_ROOT="$PROJECT_ROOT" bash -c "$cmd" ); then
+      ok "    ✓ 完成"
+    else
+      err "    ❌ 失败: $cmd"
+      failed=1
+    fi
+  done <<< "$cmds"
+  if [ "$failed" = "1" ]; then
+    err "  ⚠️ 有 command 失败，组装未完全成功"
+    return 1
+  fi
+  return 0
+}
+
 ASSEMBLE_FILE="$(find_assemble || true)"
 if [ -z "$ASSEMBLE_FILE" ]; then
   # 生成位置与 find_assemble 的首选查找位置保持一致：
@@ -97,6 +137,10 @@ if [ $? -ne 0 ]; then exit 1; fi
 # 不再生成/读取 server/public/brand.json（2026-09-28 简化：brand 是清单的一部分，
 # 与「清单即唯一真相」一致；也免去 setup 生成额外文件）。
 
+# 清单 commands：组装后钩子（在项目根执行；--dry-run 只打印，不写盘）
+CMD_FAILED=0
+run_manifest_commands || CMD_FAILED=1
+
 echo ""
 ok "✅ 前端组装完成"
 echo "   目标: $PROJECT_ROOT"
@@ -107,3 +151,6 @@ echo "  1. 前端 public/ 即插即用（静态文件直接 serve）"
 echo "  2. 后端 JS 不在模板：通用 JS 在 templates/js/（createServer/createRoute 接口），"
 echo "     业务后端 JS 由项目自己实现"
 echo "  3. ./start.sh start 启动验证"
+echo ""
+[ "$CMD_FAILED" = "1" ] && exit 1
+exit 0

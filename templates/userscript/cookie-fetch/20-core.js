@@ -118,52 +118,55 @@
         showPanel();
     }
 
-    /** Cookie 缓存是否仍有效（提前 SKEW_MS 视为过期）。打开面板不走这里。 */
+    /** 读本机 Cookie：GM_cookie 优先（含 HttpOnly 项），不可用时回退 document.cookie。
+     *  【差异取优合并】到期计算取 iwara 侧（cf_clearance > 各 cookie 最早到期 > token exp），
+     *  诊断文案取 gbmd 侧（diag 说明为什么读不到：未装 GM_cookie / 未授权 / 返回 0 个），
+     *  这样「读不到」时用户能直接看到原因，而不是只看到一段空文本。 */
     function readCookieGM() {
         return new Promise((resolve) => {
-            const fallback = () => {
+            const fallback = (why) => {
                 const text = document.cookie || "";
                 const tokenExp = jwtExpMs(ls("token"));
                 resolve({
                     text,
                     count: text ? text.split(";").filter(Boolean).length : 0,
                     source: "document.cookie",
+                    diag: why || "GM_cookie 不可用，回退 document.cookie（HttpOnly 项读不到）",
                     expiresAt: tokenExp || (Date.now() + 6 * 3600 * 1000),
                     fetchedAt: Date.now()
                 });
             };
             try {
-                if (typeof GM_cookie !== "undefined" && GM_cookie && typeof GM_cookie.list === "function") {
-                    GM_cookie.list({}, (cookies, error) => {
-                        if (error) { log("GM_cookie.list error:", error); return fallback(); }
-                        if (!Array.isArray(cookies) || cookies.length === 0) return fallback();
-                        const iw = cookies.filter((c) => c && c.domain && String(c.domain).indexOf("{{SITE_DOMAIN}}") >= 0);
-                        const listSrc = iw.length > 0 ? iw : cookies;
-                        const list = listSrc
-                            .map((c) => (c && c.name) ? c.name + "=" + (c.value || "") : "")
-                            .filter(Boolean);
-                        const text = list.join("; ");
-                        const exps = listSrc.map((c) => toMs(c && c.expirationDate)).filter((n) => n > Date.now());
-                        const cf = listSrc.find((c) => c && c.name === "cf_clearance");
-                        const cfExp = toMs(cf && cf.expirationDate);
-                        const tokenExp = jwtExpMs(ls("token"));
-                        let expiresAt = 0;
-                        if (cfExp) expiresAt = cfExp;
-                        else if (exps.length) expiresAt = Math.min.apply(null, exps);
-                        else if (tokenExp) expiresAt = tokenExp;
-                        else expiresAt = Date.now() + 6 * 3600 * 1000;
-                        resolve({
-                            text,
-                            count: text ? text.split("; ").length : 0,
-                            source: "GM_cookie",
-                            expiresAt,
-                            fetchedAt: Date.now()
-                        });
-                    });
-                    return;
+                if (typeof GM_cookie === "undefined" || !GM_cookie || typeof GM_cookie.list !== "function") {
+                    return fallback("GM_cookie 未定义（Chrome Tampermonkey 读不到 HttpOnly；请用 Violentmonkey 或 Firefox Tampermonkey）");
                 }
-            } catch (e) { log("GM_cookie exception:", e); }
-            fallback();
+                GM_cookie.list({}, (cookies, error) => {
+                    if (error) { log("GM_cookie.list error:", error); return fallback("GM_cookie.list 报错：" + JSON.stringify(error)); }
+                    if (!Array.isArray(cookies)) return fallback("GM_cookie.list 返回非数组");
+                    if (cookies.length === 0) return fallback("GM_cookie.list 返回 0 个（可能未授予 cookie 权限）");
+                    const hit = cookies.filter((c) => c && c.domain && String(c.domain).indexOf("{{SITE_DOMAIN}}") >= 0);
+                    const listSrc = hit.length > 0 ? hit : cookies;
+                    const list = listSrc.map((c) => (c && c.name) ? c.name + "=" + (c.value || "") : "").filter(Boolean);
+                    const text = list.join("; ");
+                    const exps = listSrc.map((c) => toMs(c && c.expirationDate)).filter((n) => n > Date.now());
+                    const cf = listSrc.find((c) => c && c.name === "cf_clearance");
+                    const cfExp = toMs(cf && cf.expirationDate);
+                    const tokenExp = jwtExpMs(ls("token"));
+                    let expiresAt = 0;
+                    if (cfExp) expiresAt = cfExp;
+                    else if (exps.length) expiresAt = Math.min.apply(null, exps);
+                    else if (tokenExp) expiresAt = tokenExp;
+                    else expiresAt = Date.now() + 6 * 3600 * 1000;
+                    resolve({
+                        text,
+                        count: list.length,
+                        source: "GM_cookie（" + listSrc.length + " 个）",
+                        diag: "OK",
+                        expiresAt,
+                        fetchedAt: Date.now()
+                    });
+                });
+            } catch (e) { log("GM_cookie exception:", e); fallback("GM_cookie 异常：" + (e && e.message || e)); }
         });
     }
 
@@ -222,15 +225,19 @@
         return { ok: false, error: (r.json && r.json.error) || r.error || ("HTTP " + r.status) };
     }
 
+    /** 复制到剪贴板：GM_setClipboard 优先，退 navigator.clipboard。
+     *  【差异取优合并】提示统一走面板内 showToast（gbmd 侧做法，面板里能看见），
+     *  不再用页面级 GM_notification —— 两条提示路径并存时行为不一致（一个在系统通知、一个在面板）。 */
     function copyText(text, okMsg) {
         return new Promise((resolve) => {
+            const done = () => { if (okMsg) showToast(okMsg); resolve(true); };
             try {
                 if (typeof GM_setClipboard === "function") {
                     GM_setClipboard(text, { type: "text", mimetype: "text/plain" });
-                    notify(okMsg); resolve(true); return;
+                    done(); return;
                 }
                 if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(text).then(() => { notify(okMsg); resolve(true); }, () => resolve(false));
+                    navigator.clipboard.writeText(text).then(done, () => resolve(false));
                     return;
                 }
             } catch (_) {}
@@ -275,9 +282,12 @@
         return { ok: true, cred: r.json };
     }
 
-    /** 把 Cookie 项逐个写进当前域（document.cookie；HttpOnly 项 GM_cookie.set 兜底）。 */
+    /** 把 Cookie 项写回浏览器：document.cookie 写当前域，GM_cookie.set 兜底 HttpOnly 项。
+     *  【差异取优合并】站点可能有多个域（如 gamebanana.com 与 www.gamebanana.com 要双写），
+     *  域列表取配置 SITE_DOMAINS（逗号分隔）；单域项目照常工作（gbmd 侧的多域写法下沉到内核）。 */
     function applyCookieToBrowser(cookieText) {
         const items = String(cookieText || "").split(";").map((s) => s.trim()).filter((p) => p && !/^=/.test(p) && !/deleted/i.test(p));
+        const hosts = String("{{SITE_DOMAINS}}").split(",").map((s) => s.trim()).filter(Boolean);
         let written = 0;
         for (const item of items) {
             const eq = item.indexOf("=");
@@ -286,11 +296,13 @@
             const value = item.slice(eq + 1).trim();
             if (!name || !value) continue;
             try { document.cookie = name + "=" + value + "; path=/"; written++; } catch (_) {}
-            // HttpOnly（如 cf_clearance）document.cookie 写不进，用 GM_cookie.set 兜底
+            // HttpOnly（如 cf_clearance / sess / rmc）document.cookie 写不进，用 GM_cookie.set 逐域兜底
             if (typeof GM_cookie !== "undefined" && GM_cookie && typeof GM_cookie.set === "function") {
-                try {
-                    GM_cookie.set({ url: location.origin + "/", name, value, path: "/" }, () => {});
-                } catch (_) {}
+                for (const host of hosts) {
+                    try {
+                        GM_cookie.set({ url: "https://" + host + "/", name, value, path: "/" }, () => {});
+                    } catch (_) {}
+                }
             }
         }
         return written;
