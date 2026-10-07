@@ -102,7 +102,7 @@
         panelEl.querySelector("#{{IDP}}add-form").style.display = "none";
         fillServerSelect();
         srvSetStatus("已添加 " + url, "ok");
-        showPanel();
+        openPanel();
     }
     function deleteSelectedServer() {
         const sel = panelEl.querySelector("#{{IDP}}server");
@@ -115,7 +115,7 @@
         storeSet(SRV_PWD_KEY, next.password);
         fillServerSelect();
         srvSetStatus("已删除 " + url, "ok");
-        showPanel();
+        openPanel();
     }
 
     /** 读本机 Cookie：GM_cookie 优先（含 HttpOnly 项），不可用时回退 document.cookie。
@@ -189,7 +189,7 @@
                         let setCookie = "";
                         try {
                             const hdrs = r.responseHeaders || "";
-                            // 会话 cookie 名可能带项目前缀（如 iwara_session —— 同机多项目各用一名，
+                            // 会话 cookie 名可能带项目前缀（如 <项目>_session —— 同机多项目各用一名，
                             // 避免 iwara/gbmd/gallery 互相覆盖会话）。这里连名字一起取，存完整 name=value，
                             // 后续请求头直接可用；同时兼容旧的无前缀 session。
                             const m = hdrs.match(/Set-Cookie:\s*([A-Za-z0-9_-]*session)=([^;\s]+)/i);
@@ -276,6 +276,12 @@
     }
     function srvInput() { return panelEl ? panelEl.querySelector("#{{IDP}}server") : null; }
 
+    /** 会话串 → 请求头。会话串已是完整 name=value（gmRequest 解析 Set-Cookie 时连 cookie 名一起取），
+     *  直接用作 Cookie 头——不再拼 "session="，否则会话名带项目前缀（如 gbmd_session）时服务端认不出。 */
+    function sessionHeaders(session) {
+        return session ? { Cookie: session } : {};
+    }
+
     async function fetchServerCreds(base, session) {
         const r = await gmRequest("GET", base + "/api/cred", undefined, 12000, sessionHeaders(session));
         if (!r.ok || !r.json || !r.json.ok) return { ok: false, error: (r.json && r.json.error) || r.error || ("HTTP " + r.status) };
@@ -283,7 +289,7 @@
     }
 
     /** 把 Cookie 项写回浏览器：document.cookie 写当前域，GM_cookie.set 兜底 HttpOnly 项。
-     *  【差异取优合并】站点可能有多个域（如 gamebanana.com 与 www.gamebanana.com 要双写），
+     *  【差异取优合并】站点可能有多个域（主域与 www 子域都要写回），
      *  域列表取配置 SITE_DOMAINS（逗号分隔）；单域项目照常工作（gbmd 侧的多域写法下沉到内核）。 */
     function applyCookieToBrowser(cookieText) {
         const items = String(cookieText || "").split(";").map((s) => s.trim()).filter((p) => p && !/^=/.test(p) && !/deleted/i.test(p));

@@ -1,32 +1,5 @@
-            function notify(msg) {
-                try { if (typeof GM_notification === "function") GM_notification({ text: msg, title: "{{NOTIFY_TITLE}}", timeout: 5000 }); } catch (_) {}
-            }
-    function uiHost() { return document.documentElement; }
-
-    function mountUi(el) {
-        const host = uiHost();
-        if (!host || !el) return;
-        if (el.parentNode !== host) host.appendChild(el);
-    }
-
-    /** 浮动按钮：创建 + 挂载（幂等；SPA 换页后 DOM 被替换会重新挂） */
-    function ensureFab() {
-        if (fabEl && document.documentElement.contains(fabEl)) return;
-        if (!fabEl) {
-            fabEl = document.createElement("button");
-            fabEl.id = "{{IDP}}fab";
-            fabEl.title = "Iwara 下载助手";
-            const img = document.createElement("img");
-            img.src = IWARA_ICON;
-            img.alt = "Iwara";
-            fabEl.appendChild(img);
-            fabEl.addEventListener("click", showPanel);
-        }
-        mountUi(fabEl);
-    }
-
-    /** 面板 DOM 骨架（id 统一 {{IDP}} 前缀，组装时替换） */
-    function panelHtml() {
+    /** 面板 DOM 骨架（本项目特化；由模板 28-ui.js 的 ensureUi 通过 buildPanelHtml 钩子调用） */
+    function buildPanelHtml() {
         return `
 <div id="{{IDP}}head"><b>Iwara 下载助手</b><span id="{{IDP}}close">✕</span></div>
 <div id="{{IDP}}userbar">打开即可发送；凭证按失效时间缓存</div>
@@ -98,42 +71,13 @@
             if (!hit) return;
             storeSet(SRV_KEY, hit.url);
             storeSet(SRV_PWD_KEY, hit.password);
-            showPanel();
+            openPanel();
         });
         panelEl.querySelector("#{{IDP}}inject").addEventListener("click", srvInjectFlow);
     }
 
     /** 底部提示条：创建 + 挂载（幂等） */
-    function ensureToast() {
-        if (toastEl && document.documentElement.contains(toastEl)) return;
-        if (!toastEl) {
-            toastEl = document.createElement("div");
-            toastEl.id = "{{IDP}}toast";
-        }
-        mountUi(toastEl);
-    }
-
-    /** 组装 UI：样式 + 浮动按钮 + 面板 + 提示条（幂等；供各处调用，只建一次） */
-    function ensureUi() {
-        if (!document.documentElement) return false;
-        injectStyle();
-        ensureFab();
-        if (!panelEl || !document.documentElement.contains(panelEl)) {
-            if (!panelEl) {
-                panelEl = document.createElement("div");
-                panelEl.id = "{{IDP}}panel";
-                panelEl.innerHTML = panelHtml();
-                panelEl.style.display = "none";
-                panelEl.classList.add("server-ok");
-                bindPanelEvents();
-            }
-            mountUi(panelEl);
-        }
-        ensureToast();
-        return true;
-    }
-
-    function showPanel() {
+    function openPanel() {
         if (!ensureUi()) return;
         panelEl.style.display = "block";
         try { fillInstant(); } catch (e) { log("fillInstant", e); }
@@ -144,13 +88,6 @@
         setTimeout(() => { syncFromServer(false).catch((e) => log("syncFromServer", e)); }, 0);
     }
 
-    function setStatus(msg, cls) {
-        if (!panelEl) return;
-        const el = panelEl.querySelector("#{{IDP}}status");
-        el.textContent = msg;
-        el.className = cls || "";
-        setTimeout(() => { el.textContent = ""; el.className = ""; }, 3500);
-    }
     function hideCtxMenu() {
         const m = document.getElementById("{{IDP}}ctx");
         if (m && m.parentNode) m.parentNode.removeChild(m);

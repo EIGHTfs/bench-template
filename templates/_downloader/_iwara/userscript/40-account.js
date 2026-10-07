@@ -69,10 +69,6 @@
         return { ok: false, loggedIn: false };
     }
 
-    function sessionHeaders(session) {
-        // session 已是完整 name=value（会话 cookie 名可能带项目前缀，如 iwara_session）
-        return session ? { Cookie: session } : {};
-    }
 
     /** 拿服务器 session cookie。有密码则 POST /api/login，session 缓存约 70 小时。 */
     async function ensureServerSession(base) {

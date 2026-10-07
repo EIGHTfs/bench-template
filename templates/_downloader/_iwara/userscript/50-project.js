@@ -100,7 +100,7 @@
         const cur = currentServer();
         const base = cur ? cur.url : "";
         if (!base) {
-            showPanel();
+            openPanel();
             srvSetStatus("没有服务器地址：请先点「添加」写入服务端", "err");
             showToast("请先在面板添加服务器");
             return;
