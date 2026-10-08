@@ -484,11 +484,17 @@ PID 写在项目根 `<项目目录名>.pid`。
 node scripts/page-shot.mjs                                    # 自动推导端口 + 自动登录 + 逐标签截图
 node scripts/page-shot.mjs --base http://<host>:8642 --password <访问密码>
 node scripts/page-shot.mjs --tabs search,settings --plan shots.json
+node scripts/page-shot.mjs --theme dark                       # 切夜间模式再截（模板家族：data-theme="night" + #themeBtn）
+node scripts/page-shot.mjs --tabs progress \
+  --redact-text "gamebanana\.com|\.zip|/volume|来自" --redact-images --redact-exclude ".brand-block"
+  # 打码：对外宣传时「看得出在下载、看不出下的具体是什么」（模糊命中元素，排除自己的 logo）
 ```
 
 - 浏览器来源与 `headless-browser-env.mjs` 同一套约定（`DSH_PAGE_*` 环境变量 → `<DSH_HOME>/browser-env.json` → 自动探测），不硬编码任何本机路径
 - 默认流程：打开 → 页面有 `#pwd` 就自动登录 → 截首屏 → 自动发现 `.tab[data-tab=…]` 逐个切换截图 → 写 `index.json`（含 `console.error` / `pageerror` 收集，前端报错一眼可见）
-- 默认输出到**系统临时目录**（不碰仓库、无需改 `.gitignore`），`--out` 可改；`--plan` 加自定义步骤（`goto`/`click`/`fill`/`wait`/`shot`）
+- 默认输出到**系统临时目录**（不碰仓库、无需改 `.gitignore`），`--out` 可改；`--plan` 加自定义步骤（`goto`/`click`/`fill`/`select`/`scroll`/`wait`/`shot`，`shot` 可加 `"full":false` 只截视口）
+- `--theme dark|light` 切主题（无切换按钮的页面如登录页直接设 `data-theme`，不依赖页面自己加载 `theme-init.js`）
+- 打码：`--redact <css>` / `--redact-text <正则>` / `--redact-images` / `--redact-exclude <css>` / `--redact-blur <px>`
 - 为什么需要：`curl` 只能拿到原始 HTML，SPA 要浏览器执行 JS 后才有内容（配合 `frontend-render-selfcheck`、`browser-error-observability`）
 
 ---
