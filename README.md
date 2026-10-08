@@ -472,6 +472,27 @@ PID 写在项目根 `<项目目录名>.pid`。
 
 ---
 
+## 可选工具：网页截图（`templates/tools/page-shot.mjs`）
+
+改完前端做「真实渲染自检」用的通用截图脚本，**按需接入**（不登记就不下发）。接入方式是在项目 `assemble.json` 的 `files` 里加一行：
+
+```json
+"templates/tools/page-shot.mjs": "scripts/page-shot.mjs"
+```
+
+```bash
+node scripts/page-shot.mjs                                    # 自动推导端口 + 自动登录 + 逐标签截图
+node scripts/page-shot.mjs --base http://<host>:8642 --password <访问密码>
+node scripts/page-shot.mjs --tabs search,settings --plan shots.json
+```
+
+- 浏览器来源与 `headless-browser-env.mjs` 同一套约定（`DSH_PAGE_*` 环境变量 → `<DSH_HOME>/browser-env.json` → 自动探测），不硬编码任何本机路径
+- 默认流程：打开 → 页面有 `#pwd` 就自动登录 → 截首屏 → 自动发现 `.tab[data-tab=…]` 逐个切换截图 → 写 `index.json`（含 `console.error` / `pageerror` 收集，前端报错一眼可见）
+- 默认输出到**系统临时目录**（不碰仓库、无需改 `.gitignore`），`--out` 可改；`--plan` 加自定义步骤（`goto`/`click`/`fill`/`wait`/`shot`）
+- 为什么需要：`curl` 只能拿到原始 HTML，SPA 要浏览器执行 JS 后才有内容（配合 `frontend-render-selfcheck`、`browser-error-observability`）
+
+---
+
 ## 框架接口
 
 ### 路由：两种范式，共用一套匹配核心
