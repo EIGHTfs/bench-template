@@ -930,3 +930,31 @@ lib/                       # 通用运行支撑件（cjs-bootstrap / start.sh / 
 
 本仓库不维护版本号与版本记录：功能变更直接更新该文档；目录结构与函数清单见
 [`docs/文件树.md`](docs/文件树.md) / [`docs/函数列表.md`](docs/函数列表.md)，两者由脚本从真实代码自动生成（改完跑对应 `apply` 刷新）。
+
+---
+
+## 下游项目的版本记录约定（doc-version）
+
+模板本身不维护版本号；**下游项目建议把版本记录外置到 `docs/CHANGELOG.md`**，用 dsh-git-push 插件自带的
+`scripts/doc-version.mjs` 维护，避免 README 随每次发版越写越长。
+
+宿主文档（`docs/CHANGELOG.md`）需要包含标记块，工具只写块内、不动块外内容：
+
+```markdown
+<!-- dshgp-version:start -->
+<!-- dshgp-version:end -->
+```
+
+```bash
+node <dsh-git-push>/scripts/doc-version.mjs gen   --root <项目根>   # 只打印
+node <dsh-git-push>/scripts/doc-version.mjs apply --root <项目根>   # 写入标记块
+node <dsh-git-push>/scripts/doc-version.mjs check --root <项目根>   # 查漂移（非零退出，可接 CI）
+```
+
+两条硬约定（实测踩过才写进来）：
+
+1. **只有发版/功能提交的标题写版本号**（如 `fix: 1.3.7 — 搜索列表全选…`）——工具按 `git log --format=%s` 聚合，标题里的 `X.Y.Z` 才会进表；
+2. **簿记类提交（同步文档、修权限、清理）标题里不要出现 `X.Y.Z`**——否则每提交一次就让标记块漂移、`check` 非零退出。
+
+迁移旧的手写版本表：把原表**原样**搬到标记块之外（如「历史版本（工具启用前，人工维护）」段），块内交给工具；
+搬运后按三条校验——表体逐字节一致、README 章节列表不变、`check` 退出码 0。
