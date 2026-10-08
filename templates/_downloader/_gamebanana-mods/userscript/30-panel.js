@@ -124,6 +124,19 @@
             const u = currentModUrl();
             if (u) info.textContent += "\n当前 mod: " + u;
         } else if (acc.ok && acc.info) {
+            // 2026-10-08 修：原来「没有凭证」和「有凭证但 GB 会话失效」共用同一句
+            //   「○ 服务器未配置凭证」——服务端明明已存 2096 字符 Cookie（cookieSet=true）却报未配置，
+            //   排查时会被带偏（实测：/api/cred ok=true，/api/gb-login-status loggedIn=false）。
+            //   现在按 cookieSet 分流，并把服务端的 detail 原样带出来。
+            if (acc.info.cookieSet) {
+                ub.textContent = "⚠️ 服务器有凭证但 GB 会话已失效（服务端判定未登录）";
+                ub.className = "{{IDP}}userbar warn";
+                panelEl.classList.remove("server-ok");
+                info.textContent = "服务端已存 Cookie，但 GameBanana 判定未登录：请重新复制完整 Cookie（含 HttpOnly 的 sess/rmc）粘到服务器设置页。"
+                    + (acc.info.detail ? "\n服务端说明: " + acc.info.detail : "");
+                await refreshLocalCred(st, ta, info);
+                return;
+            }
             ub.textContent = "○ 服务器未配置凭证";
             ub.className = "{{IDP}}userbar err";
             panelEl.classList.remove("server-ok");

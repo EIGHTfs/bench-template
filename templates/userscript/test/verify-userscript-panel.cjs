@@ -17,6 +17,8 @@
 //   IWARA_PWD           服务端访问密码（设置后测试会真实登录；⚠️ 只从环境变量读，禁止写进脚本）
 //   IWARA_PUSH_CRED=1   额外触发「🔄 强制刷新凭证并回传」把本机凭证 POST /api/settings（会写服务端配置，
 //                       测试前请先备份服务端 config.json）
+//   US_INJECT=1         额外验证「🔄 注入登录态到浏览器」：点注入按钮 → 断言浏览器 cookie jar
+//                       拿到了服务端凭证（GM_cookie 垫片已接真实 jar；HttpOnly 项也能写入）
 //   PW_HOME             pwviewer 目录（含 node_modules/playwright 与 browsers/）；默认向上探测
 //   PW_CHROME           chromium 可执行文件；默认 <PW_HOME>/browsers/chromium-*/chrome-linux64/chrome
 //   PW_LIBS             chromium 动态库目录（LD_LIBRARY_PATH）
@@ -43,6 +45,9 @@ const check = (name, ok, detail) => {
 const SERVER = process.env.US_SERVER || process.env.IWARA_SERVER || "";
 const PWD = process.env.US_PWD || process.env.IWARA_PWD || "";
 const PUSH_CRED = (process.env.US_PUSH_CRED || process.env.IWARA_PUSH_CRED) === "1";
+// US_INJECT=1：验证「🔄 注入登录态到浏览器」——服务端已登录、浏览器未登录时，
+//   点注入按钮把服务端凭证写进浏览器 cookie jar（含 HttpOnly），断言 jar 里真的有
+const INJECT = (process.env.US_INJECT || process.env.IWARA_INJECT) === "1";
 if (!SERVER) {
   console.log("跳过：未设置 IWARA_SERVER（例如 IWARA_SERVER=http://10.10.31.59:28463）");
   process.exit(0);
@@ -135,6 +140,28 @@ function nodeRequest(d) {
   const context = await browser.newContext({ viewport: { width: 480, height: 900 }, ignoreHTTPSErrors: true });
 
   await context.exposeBinding("__gmRequest", async (source, details) => await nodeRequest(details));
+  // GM_cookie 真实 jar：桥到 playwright context 的 cookie 存储。
+  //   2026-10-08 加：原实现返回空数组（脚本只能回退 document.cookie），
+  //   导致「🔄 注入登录态到浏览器」这类**写入 HttpOnly cookie** 的链路无法被验证。
+  //   现在 list 读真实 jar、set 写真实 jar → 注入结果可用 context.cookies() 断言。
+  await context.exposeBinding("__gmCookie", async (source, op) => {
+    try {
+      if (op.kind === "list") {
+        const cs = await context.cookies(op.url ? op.url : undefined);
+        return cs.map((c) => ({ name: c.name, value: c.value, domain: c.domain, path: c.path, httpOnly: c.httpOnly, secure: c.secure }));
+      }
+      if (op.kind === "set") {
+        const c = op.cookie || {};
+        const target = c.url ? { url: c.url } : { domain: c.domain || SITE_HOST, path: c.path || "/" };
+        const item = Object.assign({ name: c.name, value: c.value }, target);
+        if (c.secure != null) item.secure = !!c.secure;
+        if (c.httpOnly != null) item.httpOnly = !!c.httpOnly;
+        await context.addCookies([item]);
+        return null;
+      }
+    } catch (_) { /* 单条写失败不影响其它条 */ }
+    return null;
+  });
   await context.addInitScript(() => {
     window.GM_xmlhttpRequest = function (details) {
       Promise.resolve(window.__gmRequest({
@@ -152,7 +179,13 @@ function nodeRequest(d) {
     window.GM_deleteValue = function (k) { delete mem[k]; };
     window.GM_notification = function () {};
     window.GM_setClipboard = function () {};
-    window.GM_cookie = { list: function (o, cb) { cb([], null); }, set: function (o, cb) { cb && cb(); } };
+    window.GM_cookie = {
+      list: function (o, cb) { window.__gmCookie({ kind: "list", url: (o && o.url) || "" }).then(function (c) { cb(c || [], null); }).catch(function (e) { cb([], e); }); },
+      set: function (o, cb) { window.__gmCookie({ kind: "set", cookie: o }).then(function () { cb && cb(null); }).catch(function (e) { cb && cb(e); }); },
+      delete: function (o, cb) { cb && cb(null); }
+    };
+    // 旧垫片（空 jar，保留备查）：GM_cookie 返回空 → 注入类链路测不到
+    // window.GM_cookie = { list: function (o, cb) { cb([], null); }, set: function (o, cb) { cb && cb(); } };
     try {
       localStorage.setItem("token", "TEST_REFRESH_TOKEN");
       localStorage.setItem("accessToken", "TEST_ACCESS_TOKEN");
@@ -219,6 +252,30 @@ function nodeRequest(d) {
       // 服务器已登录时脚本按设计隐藏本机凭证区 → 属预期，不算失败
       check("服务器已登录 → 本机凭证区按设计隐藏（无需回传）", true, "localVisible=" + localVisible);
       await page.screenshot({ path: path.join(OUT, "panel-server-logged-in.png") });
+    }
+  }
+
+  // 可选：验证「🔄 注入登录态到浏览器」——服务端已登录、浏览器未登录时，
+  //   点注入按钮把服务端凭证写进浏览器 cookie jar（含 HttpOnly 项），再断言 jar 里真的有
+  if (INJECT) {
+    const jarBefore = (await context.cookies(SITE_URL)).map((c) => c.name);
+    console.log("  注入前浏览器 jar: " + JSON.stringify(jarBefore));
+    const injectBtn = await page.$("#" + IDP + "inject");
+    check("面板有「注入登录态到浏览器」按钮", !!injectBtn);
+    if (injectBtn) {
+      await injectBtn.click();
+      await page.waitForTimeout(5000);
+      const st = ((await page.textContent("#" + IDP + "status")) || "").trim();
+      const ub3 = ((await page.textContent("#" + IDP + "userbar")) || "").trim();
+      console.log("  注入后 status : " + JSON.stringify(st.slice(0, 200)));
+      console.log("  注入后 userbar: " + JSON.stringify(ub3.slice(0, 160)));
+      const jarAfter = await context.cookies(SITE_URL);
+      const names = jarAfter.map((c) => c.name);
+      console.log("  注入后浏览器 jar: " + JSON.stringify(names));
+      check("注入后浏览器 cookie jar 拿到了服务端凭证（含 HttpOnly 项）",
+        names.length > jarBefore.length && names.some((n) => /^(sess|rmc|cf_clearance|token|accessToken)$/i.test(n)),
+        "before=" + jarBefore.length + " after=" + names.length + " names=" + JSON.stringify(names.slice(0, 6)));
+      await page.screenshot({ path: path.join(OUT, "panel-after-inject.png") });
     }
   }
 
