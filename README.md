@@ -958,3 +958,43 @@ node <dsh-git-push>/scripts/doc-version.mjs check --root <项目根>   # 查漂�
 
 迁移旧的手写版本表：把原表**原样**搬到标记块之外（如「历史版本（工具启用前，人工维护）」段），块内交给工具；
 搬运后按三条校验——表体逐字节一致、README 章节列表不变、`check` 退出码 0。
+
+---
+
+## 通用状态文件存储（`templates/js/store/state-store.js`）
+
+运行态状态整份存进一个 JSON 文件时，这两个工具可直接复用（**按需接入**：登记到 `assemble.json` 才下发）：
+
+```json
+"templates/js/store/state-store.js": "server/store/state-store.js"
+```
+
+```js
+const { writeFileAtomic, createThrottledWriter } = require("./store/state-store");
+
+// ① 原子替换：临时文件 + rename —— 任何时刻文件要么是旧的完整内容、要么是新的完整内容
+writeFileAtomic("json/xxx.json", JSON.stringify(state, null, 2));
+
+// ② 合并写：脏标记 + 500ms 合并；关键节点 flush() 立即落盘；删文件前 cancel()
+const w = createThrottledWriter({
+  filePath: "json/xxx.json",
+  ensureDir: () => ensureJsonDir(),
+  getState: () => state,
+  buildSnapshot: (s) => ({ snapshot: sanitize(s), pruned: removed }),  // 可选：业务净化 + 回传计数
+  throttleMs: 500
+});
+w.save();    // 状态变化时调用（不阻塞）
+w.flush();   // 批次开始/结束/暂停/恢复/进程退出时调用
+w.cancel();  // 删除状态文件前调用（否则节流窗口会把刚删的文件写回来）
+```
+
+**什么时候必须用**（实测判据，来源 gbmd 下载任务 2026-10-11）：
+
+1. 状态文件**单次序列化 ≥ 10ms**，或**条目数 ≥ 1e3** —— 实测 15.4MB 文件 `stringify` 128ms + 写盘 33ms，
+   而它被**每个子项回调**各调一次 ⇒ 主线程被同步写盘占满、页面卡顿；
+2. 落盘点出现在**热循环 / 每项回调**里 —— 先问「这一秒要写几次」，再定节流窗口；
+3. 文件是**唯一状态源** —— 删文件的操作必须同时 `cancel()`，否则节流窗口会把文件写回来（文件"复活"）。
+
+实测收益（gbmd）：200 次 `save()` 入队 **0ms**、实际只写 **1 次**（旧实现 ≈20000ms 同步阻塞）；
+原子写 33ms vs 旧同步写 40ms（不更慢）；落盘内容 sha 逐字节等价。
+模板侧测试：`bash test/state-store.test.sh`。
