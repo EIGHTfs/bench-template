@@ -116,6 +116,31 @@ if [ "$DRY_RUN" = "0" ] && [ "${SETUP_SKIP_PRECHECK:-0}" != "1" ]; then
   echo "  ── 预检结束，开始组装 ──"
 fi
 
+# ── 组装期自动拼接 JS 分片（零依赖）──
+# 为什么在这里：templates/**/js/ 下维护的是**功能域分片源码**，而下游消费的是**单文件产物**。
+# 产物是构建结果，必须每次组装前重新生成，否则分片改了而产物是旧的 ⇒ 下游拿到过期代码。
+# 约定：manifest.json 所在目录的 app.js 即产物（一个 manifest 一个产物，顺序由 manifest.parts 决定）。
+# 缺片 / 清单损坏 / 拼接失败 ⇒ join-js-parts.mjs 非 0 退出 ⇒ **本次组装中止**，绝不把残缺产物发给下游。
+if [ -n "$NODE_BIN" ] && [ -f "$ROOT/scripts/join-js-parts.mjs" ]; then
+  echo "  ── 拼接 JS 分片（功能域分片 → 单文件产物）──"
+  _join_failed=0
+  while IFS= read -r _mf; do
+    [ -z "$_mf" ] && continue
+    _out="$(dirname "$_mf")/app.js"
+    if [ "$DRY_RUN" != "0" ]; then
+      echo "    (dry-run) 将拼接: ${_mf#"$SRC_BASE"/} → ${_out#"$SRC_BASE"/}"
+      continue
+    fi
+    if "$NODE_BIN" "$ROOT/scripts/join-js-parts.mjs" "$_mf" "$_out"; then
+      :
+    else
+      echo "  ❌ 拼接失败: ${_mf#"$SRC_BASE"/}（缺片或清单损坏）—— 中止组装，避免下发残缺产物" >&2
+      _join_failed=1
+    fi
+  done < <(find "$SRC_BASE/templates" -type f -name manifest.json -path "*/js/*" 2>/dev/null | sort)
+  [ "$_join_failed" = "1" ] && exit 1
+fi
+
 if [ -n "$NODE_BIN" ]; then
   _setup_copy_manifest
 else
