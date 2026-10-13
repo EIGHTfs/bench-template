@@ -1,0 +1,30 @@
+  /* ─── DOM refs ─── */
+  const gallery        = document.getElementById("gallery");
+  const breadcrumb     = document.getElementById("breadcrumb");
+  const dirTree        = document.getElementById("dirTree");
+  const lightbox       = document.getElementById("lightbox");
+  const lbImgCur       = document.getElementById("lbImgCur");
+  const lbImgPrev      = document.getElementById("lbImgPrev");
+  const lbImgNext      = document.getElementById("lbImgNext");
+  const lbCarousel     = document.getElementById("lbCarousel");
+  const lbInfo         = document.getElementById("lbInfo");
+  const empty          = document.getElementById("empty");
+  const collapseBtn    = document.getElementById("sidebarToggle");
+  const app            = document.querySelector(".app");
+  const searchInput    = document.getElementById("search");
+  const settingsPanel  = document.getElementById("settingsPanel");
+  const settingsBtn    = document.getElementById("settingsBtn");
+  const loginBtn       = document.getElementById("loginBtn");
+  const loginModal     = document.getElementById("loginModal");
+  const loginClose     = document.getElementById("loginClose");
+  const loginPassword  = document.getElementById("loginPassword");
+  const loginError     = document.getElementById("loginError");
+  const loginSubmit    = document.getElementById("loginSubmit");
+  const galleryTitleInput = document.getElementById("galleryTitleInput");
+  const faviconInput      = document.getElementById("faviconInput");
+  const categoryList   = document.getElementById("categoryList");
+  const dirList        = document.getElementById("dirList");
+  const imageList      = document.getElementById("imageList");
+  const uploadBtn      = document.getElementById("uploadBtn");
+  const fileInput      = document.getElementById("fileInput");
+

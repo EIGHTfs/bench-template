@@ -1,0 +1,25 @@
+{
+  "parts": [
+    "foundation/state.js",
+    "foundation/i18n.js",
+    "foundation/dom.js",
+    "foundation/toast.js",
+    "foundation/slug.js",
+    "shell/tabs.js",
+    "account/login.js",
+    "settings/config.js",
+    "browse/images.js",
+    "shell/nav.js",
+    "shell/tree.js",
+    "browse/filtering.js",
+    "browse/folder.js",
+    "browse/render.js",
+    "shell/breadcrumb.js",
+    "browse/lightbox.js",
+    "shell/events.js",
+    "settings/settings.js",
+    "settings/category.js",
+    "settings/directory.js",
+    "entry.js"
+  ]
+}
