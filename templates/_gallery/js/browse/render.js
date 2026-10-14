@@ -465,9 +465,5 @@
     }
 
     renderBreadcrumb(images, totalImgs);
-    // 2026-10-14 秒出图优化（不依赖缩略图）：首屏图片提优先级并预热解码；位置写进 URL；
-    // 滚动位置由 bindScrollMemory() 持续记录（在 init 里绑定），下次启动会恢复。
-    warmFirstScreen();
-    syncUrlState();
   }
 

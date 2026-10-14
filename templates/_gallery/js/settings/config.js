@@ -22,14 +22,11 @@
     render();
     await loadAPIImages();
     restoreNav();
-    restoreFromUrl();  // URL 里的位置优先（可分享 / 刷新回到原处）；没有参数时沿用 restoreNav 的结果
-    bindScrollMemory();  // 持续记录滚动位置，供下次刷新恢复
     pushNavHistory();  // “顶部导航栏前后加< >实现后退前进”→ 初始状态入历史栈，导航后才能后退
     await loadFavorites();  // 加载收藏列表
     await loadUploaded();   // 加载服务端 uploads/ 目录图片（游客分类）
     renderDirTree();
     render();
-    restoreScrollPos();  // 2026-10-14：渲染完再恢复滚动位置（图片 lazy，跳过去后浏览器按可视区加载）
   }
 
   /* ─── 游客分类图片（服务端 uploads/ 目录，重启后仍可见）─── */
