@@ -23,7 +23,7 @@ function bindSettingsSecurity() {
     st.textContent = "正在导出…";
     st.className = "status";
     try {
-      const r = await fetch("/api/data/export");
+      const r = await fetch("/api/data/export", withAuth({}));
       if (r.status === 401) { location.href = "/login.html"; return; }
       if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || "导出失败"); }
       const blob = await r.blob();

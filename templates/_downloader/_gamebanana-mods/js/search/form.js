@@ -95,7 +95,7 @@ function bindSearchStopClear() {
 function bindSearchExport() {
   $("#exportSearchBtn").addEventListener("click", async () => {
     try {
-      const r = await fetch("/api/search/export");
+      const r = await fetch("/api/search/export", withAuth({}));
       if (r.status === 401) { location.href = "/login.html"; return; }
       const blob = await r.blob();
       const a = document.createElement("a");
