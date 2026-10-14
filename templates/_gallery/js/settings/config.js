@@ -9,6 +9,8 @@
       categories   = Array.isArray(data.categories) ? data.categories : [];
       directories  = Array.isArray(data.directories) ? data.directories : [];
       window.__GALLERY_FS_ROOT = data.fsRoot || "/";
+      // 每行图片数量（服务端下发：.env GALLERY_IMAGES_PER_ROW → /api/gallery；前端不硬编码，取不到时兜底 20）
+      window.__GALLERY_IMAGES_PER_ROW = Number(data.imagesPerRow) > 0 ? Number(data.imagesPerRow) : 20;
     } catch (e) {
       console.warn("API init failed:", e);
     }
