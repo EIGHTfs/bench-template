@@ -282,8 +282,19 @@
             leafSection.appendChild(leafHeader);
             const grid = document.createElement("div");
             grid.className = "dir-grid";
-            const isSeq = detectFramesFromNames(sd.leafImages.map(p => p.name));
-            if (isSeq && sd.root) {
+            // 【2026-10-14 口径修正】目录一律平铺原图；是否合成由规则文件统一判定
+            // （server/lib/rule/gif-rule.js 的 shouldSynthDir()——口径：只认「压缩包 / ini」）。
+            // 原判定把「卡面」这类数字编号图集（tex_support_card_10001.png…）误当动画帧整目录合成
+            // （实测：赛马娘 卡面 489 张被合成为一个 GIF，与口径不符）。
+            // 【原代码】保留痕迹便于回退：
+            // const isSeq = detectFramesFromNames(sd.leafImages.map(p => p.name));
+            // if (isSeq && sd.root) {
+            //   const absDir = sd.root + (sd.relPath ? "/" + sd.relPath : "");
+            //   const gifUrl = dirGifUrl(absDir, 0);
+            //   const gifItem = { src: gifUrl, title: t("gifTitle", { name: sd.name, n: sd.leafImages.length }), name: sd.name, isGif: true, frameCount: sd.leafImages.length, cat: sd.leafImages[0]?.cat };
+            //   grid.appendChild(makeCard(gifItem, { dir: sd.name, lbList: [gifItem] }));
+            // } else {
+            if (globalThis.GifRule.shouldSynthDir()) {
               const absDir = sd.root + (sd.relPath ? "/" + sd.relPath : "");
               const gifUrl = dirGifUrl(absDir, 0);
               const gifItem = { src: gifUrl, title: t("gifTitle", { name: sd.name, n: sd.leafImages.length }), name: sd.name, isGif: true, frameCount: sd.leafImages.length, cat: sd.leafImages[0]?.cat };
@@ -374,9 +385,11 @@
 
       const grid = document.createElement("div");
       grid.className = "dir-grid";
-      // 序列帧检测 → 该文件夹用动画GIF替代帧图
-      const isSeq = detectFramesFromNames(sd.leafImages.map(p => p.name));
-      if (isSeq && sd.root) {
+      // 【2026-10-14 口径修正】目录是否合成统一由规则文件判定（shouldSynthDir()：只认压缩包 / ini）
+      // 【原代码】序列帧检测 → 该文件夹用动画GIF替代帧图：
+      // const isSeq = detectFramesFromNames(sd.leafImages.map(p => p.name));
+      // if (isSeq && sd.root) { ... 合成 GIF 卡 ... } else { 平铺 }
+      if (globalThis.GifRule.shouldSynthDir()) {
         const absDir = sd.root + (sd.relPath ? "/" + sd.relPath : "");
         const gifUrl = dirGifUrl(absDir, 0);
         const gifItem = { src: gifUrl, title: t("gifTitle", { name: sd.name, n: sd.leafImages.length }), name: sd.name, isGif: true, frameCount: sd.leafImages.length, cat: sd.leafImages[0]?.cat };
@@ -392,8 +405,10 @@
     if (images.length) {
       const grid = document.createElement("div");
       grid.className = "dir-grid";
-      const isSeq = detectFramesFromNames(images.map(p => p.name));
-      if (isSeq && activeDir) {
+      // 【2026-10-14 口径修正】目录是否合成统一由规则文件判定（shouldSynthDir()：只认压缩包 / ini）
+      // 【原代码】const isSeq = detectFramesFromNames(images.map(p => p.name));
+      // if (isSeq && activeDir) { ... 合成 GIF 卡 ... } else { 平铺 }
+      if (globalThis.GifRule.shouldSynthDir()) {
         const absDir = activeDir + (currentPath ? "/" + currentPath : "");
         const gifUrl = dirGifUrl(absDir, 0);
         const curName = currentPath.split("/").pop() || t("currentDir");
@@ -424,11 +439,12 @@
           const collapsed = collapsedZips.has(z.path);
           const group = document.createElement("div");
           group.className = "zip-group" + (collapsed ? " collapsed" : "");
-          const durMs = parseFrameMs(z.name);   // 包名带间隔（Pixiv 图包 @40ms / 2s）
-          const isSeq = detectFramesFromNames(z.images.map(i => i.name));
-          // 合成条件（4 条规则）：是序列 且（包名带间隔 或 含 ini 且 ini 有 $speed）。
+          // 合成条件由规则文件统一判定（两条具名规则：mod 合成 / 图包合成）。
           // 含 ini 的包图片由 /api/zip/img 自动翻转 180°，前端不需要处理翻转。
-          const useGif = isSeq && (durMs > 0 || (z.hasIni && z.speed > 0));
+          const gifDecision = globalThis.GifRule.shouldSynthZip({ names: z.images.map(i => i.name), packageName: z.name, hasIni: z.hasIni, speed: z.speed });
+          const durMs = gifDecision.frameMs;   // 图包：包名带间隔（Pixiv 图包 @40ms / 2s）；mod 为 0（帧间隔由 ini $speed 在后端换算）
+          const isSeq = gifDecision.frames.length >= globalThis.GifRule.MIN_FRAMES;
+          const useGif = gifDecision.synth;
           const head = document.createElement("div");
           head.className = "zip-group-head";
           head.innerHTML = `

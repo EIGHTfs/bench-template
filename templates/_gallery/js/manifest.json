@@ -1,5 +1,6 @@
 {
   "parts": [
+    "../server/lib/rule/gif-rule.js",
     "foundation/state.js",
     "foundation/i18n.js",
     "foundation/dom.js",

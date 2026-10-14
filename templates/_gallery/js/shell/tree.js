@@ -182,38 +182,40 @@
     render();
   }
 
-  // ─── 序列帧检测（搬运自 gbmd-gallery）───
-  // names: 图片名数组 → 是否有 ≥3 张“前缀+数字+扩展名”连续帧
-  function detectFramesFromNames(names) {
-    if (!names || names.length < 3) return false;
-    const byPre = {};
-    for (const n of names) {
-      const m = String(n).match(/^(.*?)(\d+)(\.\w+)$/);
-      if (!m) continue;
-      (byPre[m[1]] = byPre[m[1]] || []).push(parseInt(m[2], 10));
-    }
-    let best = 0;
-    for (const ns of Object.values(byPre)) {
-      ns.sort((a, b) => a - b);
-      let run = 1;
-      for (let i = 1; i < ns.length; i++) {
-        if (ns[i] - ns[i - 1] === 1) { run++; if (run > best) best = run; }
-        else run = 1;
-      }
-      if (ns.length && best < 1) best = ns.length ? 1 : 0;
-    }
-    return best >= 3;
-  }
-
-  // 帧播放时间解析："2s"/"500ms"/"@40ms" → 每帧毫秒；无则 0（默认总时长2秒）
-  function parseFrameMs(name) {
-    if (!name) return 0;
-    let m = String(name).match(/(\d+(?:\.\d+)?)\s*(?:s|sec|秒)/i);
-    if (m) { const v = Math.round(parseFloat(m[1]) * 1000); return v > 0 ? v : 0; }
-    m = String(name).match(/(\d+)\s*ms/i);
-    if (m) { const v = parseInt(m[1], 10); return v > 0 ? v : 0; }
-    return 0;
-  }
+  // ─── 序列帧检测 / 帧间隔解析：规则已抽到唯一实现文件 ───
+  // 规则文件：server/lib/rule/gif-rule.js（前端由 js/manifest.json 内联，后端由 assemble.json 映射后 require）
+  // 此处只做转发，保证调用点不变；口径改动请只改规则文件。
+  // 【原实现】保留痕迹便于回退：
+  // function detectFramesFromNames(names) {
+  //   if (!names || names.length < 3) return false;
+  //   const byPre = {};
+  //   for (const n of names) {
+  //     const m = String(n).match(/^(.*?)(\d+)(\.\w+)$/);
+  //     if (!m) continue;
+  //     (byPre[m[1]] = byPre[m[1]] || []).push(parseInt(m[2], 10));
+  //   }
+  //   let best = 0;
+  //   for (const ns of Object.values(byPre)) {
+  //     ns.sort((a, b) => a - b);
+  //     let run = 1;
+  //     for (let i = 1; i < ns.length; i++) {
+  //       if (ns[i] - ns[i - 1] === 1) { run++; if (run > best) best = run; }
+  //       else run = 1;
+  //     }
+  //     if (ns.length && best < 1) best = ns.length ? 1 : 0;
+  //   }
+  //   return best >= 3;
+  // }
+  // function parseFrameMs(name) {
+  //   if (!name) return 0;
+  //   let m = String(name).match(/(\d+(?:\.\d+)?)\s*(?:s|sec|秒)/i);
+  //   if (m) { const v = Math.round(parseFloat(m[1]) * 1000); return v > 0 ? v : 0; }
+  //   m = String(name).match(/(\d+)\s*ms/i);
+  //   if (m) { const v = parseInt(m[1], 10); return v > 0 ? v : 0; }
+  //   return 0;
+  // }
+  function detectFramesFromNames(names) { return globalThis.GifRule.detectFramesFromNames(names); }
+  function parseFrameMs(name) { return globalThis.GifRule.parseFrameMs(name); }
 
   // ─── 压缩包：当前目录下 zip/7z/rar 扫描 + 内图平铺 ───
   const ZIP_EXT_RE = /\.(zip|7z|rar)$/i;
