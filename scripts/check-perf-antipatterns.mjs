@@ -19,7 +19,24 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const SCAN_DIRS = ["server", "crx", "scripts"];
+// 扫描目录：默认这几个（**存在才扫、缺失跳过**）。--root 指向布局不同的项目时，
+// 会自动补上该根下其它「看起来像代码目录」的一级目录（见 resolveScanDirs）⇒ 不绑定某个仓库的布局。
+const SCAN_DIRS = ["server", "crx", "scripts", "public", "src", "lib", "app"];
+const SCAN_SKIP = new Set(["node_modules", "json", "test", "tests", "docs", "doc", "example", "examples",
+  "tool", "tools", "uploads", "cache-gifs", "thumbs", "vendor", "dist", "release", "avatar", "backups", "profile", "tmp"]);
+/** 依据 root 的实际布局决定扫哪些一级目录：显式清单里存在的 + 其它未被排除的一级目录 */
+function resolveScanDirs(root) {
+  const picked = new Set(SCAN_DIRS.filter((d) => fs.existsSync(path.join(root, d))));
+  try {
+    for (const ent of fs.readdirSync(root, { withFileTypes: true })) {
+      if (!ent.isDirectory()) continue;
+      const n = ent.name;
+      if (n.startsWith(".") || SCAN_SKIP.has(n)) continue;
+      picked.add(n);
+    }
+  } catch (_) {}
+  return [...picked];
+}
 const CODE_RE = /\.(js|cjs|mjs|html)$/;
 
 // ---------- 基础工具 ----------
@@ -287,7 +304,7 @@ const rootIdx = argv.indexOf("--root");
 const root = rootIdx >= 0 ? path.resolve(argv[rootIdx + 1]) : ROOT;
 const explicit = argv.filter((a, i) => !a.startsWith("--") && i !== rootIdx + 1);
 let files = explicit.length ? explicit.map((f) => path.resolve(f)) : [];
-if (!files.length) for (const d of SCAN_DIRS) walk(path.join(root, d), files);
+if (!files.length) for (const d of resolveScanDirs(root)) walk(path.join(root, d), files);
 files = files.filter((f) => fs.existsSync(f));
 
 const findings = [];
