@@ -26,3 +26,7 @@ node_modules.orig/
 
 # 编辑工具自动备份
 *.bak
+
+# 按需索引缓存（派生数据，运行期生成；与 cache-gifs 同类处理）
+cache-index/
+templates/_gallery/cache-index/
