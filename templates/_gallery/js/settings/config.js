@@ -4,7 +4,7 @@
     await refreshAuth();
     try {
       const data = await window.API.apiGet("/gallery");
-      galleryTitle = data.title || "崩坏3";
+      galleryTitle = data.title || "";   // 标题只认配置下发；无配置时留空（由页面/浏览器标题兜底），不写死默认标题
       favicon      = data.favicon || "";
       categories   = Array.isArray(data.categories) ? data.categories : [];
       directories  = Array.isArray(data.directories) ? data.directories : [];

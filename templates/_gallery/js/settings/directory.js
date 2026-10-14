@@ -115,7 +115,12 @@
       targetCat = "guest";
     } else {
       // 登录后：可以上传到其他目录（若当前在真实目录，则写文件到该目录；否则存本地）
-      targetCat = activeFilter !== "all" && activeFilter !== "guest" ? activeFilter : (categories[0]?.name || "bh3");
+      // 分类只从配置来（categories 由 /api/gallery 下发）；拿不到就明确报错终止，不写死任何默认分类
+      targetCat = activeFilter !== "all" && activeFilter !== "guest" ? activeFilter : (categories[0]?.name || "");
+      if (!targetCat) {
+        window.alert("请先在设置里创建分类，或先进入某个分类再上传");
+        return;
+      }
       if (activeDir) targetDir = activeDir;
     }
     for (const file of files) {

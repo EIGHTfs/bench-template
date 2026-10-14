@@ -14,7 +14,7 @@
   let favoriteImages = [];       // 收藏图片列表 [{src, name, title, cat, ...}]
   let favoriteSrcs = new Set();  // 收藏 src 集合（快速查找）
   let authedUser = false;        // 是否登录（登录后才能点收藏）
-  let galleryTitle  = "崩坏3";
+  let galleryTitle  = "";   // 标题只由配置下发（/api/gallery → data.title）；不写死任何默认标题
   let favicon       = "";   // 由设置页决定：emoji 或图片 URL
   let loading       = false;
 
