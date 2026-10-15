@@ -12,7 +12,11 @@
       const name = input.value.trim();
       if (!name) { li.remove(); return; }
       const colors = ["#c084fc","#4ade80","#f472b6","#60a5fa","#fbbf24","#fb923c","#38bdf8","#34d399"];
-      categories.push({ name: slugify(name), label: name, color: colors[categories.length % colors.length] });
+      // 分类 id（name）与显示名（label）保持一致（2026-10-15 改）：
+      //   原先 name = slugify(label)，会把「崩坏3」变成 id「bh3」——索引目录按 id 命名
+      //   （cache-index/<id>），于是前端显示「崩坏3」而索引文件夹叫「bh3」，看着对不上。
+      //   目录名由 index-store 的 slugKey() 负责文件系统安全，不需要在这里 slug 化。
+      categories.push({ name: name, label: name, color: colors[categories.length % colors.length] });
       renderCategories(); renderNavBtns(); renderDirTree(); renderDirectories(); render();
       saveSettings();
     }
