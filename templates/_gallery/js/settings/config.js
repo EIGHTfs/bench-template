@@ -18,6 +18,27 @@
     // 必须放在**任何 render() 之前**——实测 loadLang() 内部会触发一次渲染（138ms 时视图为 "(null)|"），
     // 若放在 loadLang() 之后，首屏仍会先闪一下主页再跳回上次位置。
     restoreNav();
+    // 支持 ?dir=<相对路径> 直达指定目录（例如 ?dir=崩坏3/Mods/.Mods/(gamebanana)/女武神/xxx）
+    // 优先级高于 localStorage 里存的导航状态；root 名从 directories 匹配（后缀匹配），剩余部分作为 currentPath
+    try {
+      const urlDir = new URLSearchParams(location.search).get("dir");
+      if (urlDir && directories.length) {
+        for (const d of directories) {
+          const rootBasename = (d.path || "").split("/").pop();
+          if (urlDir.startsWith(rootBasename)) {
+            activeDir = d.path;
+            const rest = urlDir.slice(rootBasename.length).replace(/^\//, "");
+            currentPath = rest;
+            activeFilter = d.category || "all";
+            break;
+          }
+        }
+      }
+    } catch (_) { /* URL 参数解析失败不影响正常加载 */
+    } finally {
+      // 用完即清：地址栏不保留 ?dir=（用户明确要求）
+      try { history.replaceState(null, "", location.pathname); } catch (_) {}
+    }
     await loadLang(lang);
     document.querySelector(".logo-text").textContent = galleryTitle;
     galleryTitleInput.value = galleryTitle;
