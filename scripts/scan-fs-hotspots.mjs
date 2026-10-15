@@ -8,8 +8,11 @@
  * 哪些 stat 是重复的、同一条树被遍历了几遍」静态扫出来，避免凭感觉改。
  *
  * 用法：
- *   node scripts/scan-fs-hotspots.mjs [root] [--json] [--top N] [--include <子串>] [--exclude <子串>]
+ *   node scripts/scan-fs-hotspots.mjs [root] [--json] [--top N] [--include <子串>] [--exclude <子串>] [--include-tests]
  *   默认 root = 当前工作目录；默认跳过 node_modules/.git/dist/.trash 等。
+ *   --include-tests：把 test/ 与 tests/ 一并纳入扫描（默认跳过）。
+ *     用于核对「某函数是否真的没有调用者」——只看产品代码时，仅被测试调用的函数会被误判成死代码
+ *     （实例：server/lib/scan.js::recursiveScanAll 被 test/scan-async.test.cjs 调用）。
  *
  * 输出五类判据（每条都给 文件:行 + 所属函数 + 原始表达式）：
  *   ① stat 热点   ：同一函数里 stat/lstat 调用次数 ≥ 阈值（默认 1，即列出全部，便于对照）
@@ -25,18 +28,22 @@ import fs from "node:fs";
 import path from "node:path";
 
 const SKIP_DIRS = new Set(["node_modules", ".git", "dist", "release", ".trash", ".auto-update-tmp", "cache-index", "cache-gifs", "test", "tests", "__pycache__"]);
+// 这些目录默认跳过，但属于「可放行」集合：加 --include-tests 时照常扫描
+// （用途：核对某个函数是否真的没有调用者 —— 只看产品代码会漏掉仅被测试调用的函数）
+const TEST_DIRS = new Set(["test", "tests"]);
 const EXTS = new Set([".js", ".mjs", ".cjs"]);
 const WALKERS = ["recursiveScanAll", "walkWithIndex", "scanDirShallow", "recursiveScan", "walkDir"];
 
 /** 命令行参数 */
 function parseArgs(argv) {
-  const out = { root: null, json: false, top: 30, includes: [], excludes: [] };
+  const out = { root: null, json: false, top: 30, includes: [], excludes: [], includeTests: false };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--json") out.json = true;
     else if (a === "--top") out.top = parseInt(argv[++i], 10) || 30;
     else if (a === "--include") out.includes.push(argv[++i]);
     else if (a === "--exclude") out.excludes.push(argv[++i]);
+    else if (a === "--include-tests") out.includeTests = true;
     else if (!a.startsWith("--") && !out.root) out.root = a;
   }
   out.root = path.resolve(out.root || process.cwd());
@@ -54,7 +61,11 @@ function collectFiles(root, opts) {
       const rel = path.relative(root, full);
       if (opts.excludes.some((s) => rel.includes(s))) continue;
       if (e.isDirectory()) {
-        if (SKIP_DIRS.has(e.name)) continue;
+        // test/ 与 tests/ 默认跳过（它们是夹具，不是产品代码）；
+        // 但跳过会让「只被测试调用的函数」看起来没有调用者 —— 曾据此把 scan.js::recursiveScanAll
+        // 误判成死代码。核对「是否真的没有调用者」时加 --include-tests 把这些目录纳入扫描。
+        const isTestDir = TEST_DIRS.has(e.name);
+        if (SKIP_DIRS.has(e.name) && !(opts.includeTests && isTestDir)) continue;
         walk(full);
       } else if (e.isFile() && EXTS.has(path.extname(e.name))) {
         if (opts.includes.length && !opts.includes.some((s) => rel.includes(s))) continue;
