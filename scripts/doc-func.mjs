@@ -11,7 +11,7 @@
  *   node scripts/doc-func.mjs check [--root <项目根>]   # 比对宿主块与最新列表（漂移报错）
  *   --include <glob> 可选限定扫描范围（缺省 lib/ scripts/ test/ 下的 .js/.mjs）
  */
-import { readFileSync, writeFileSync, readdirSync, statSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, statSync, existsSync, realpathSync } from 'node:fs';
 import { join, resolve, relative, basename, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findMarkedHostMd } from './doc-tree.mjs';
@@ -171,7 +171,17 @@ export function checkFuncDrift({ hostPath, root, includeDirs = DEFAULT_SCAN_DIRS
 
 /* ─────────── CLI ─────────── */
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+// 入口判定按 **realpath** 归一后再比：临时目录常带符号链接前缀（本机 /var/packages/<pkg>
+// → /volume1/@apptemp/<pkg>），argv[1] 与 import.meta.url 字面不等 ⇒ main 静默不执行、
+// 无输出且退出码 0 —— 对门禁是「假绿」，比报错更危险。realpath 失败时退回 resolve 比较。
+function isEntryModule() {
+  if (!process.argv[1]) return false;
+  const self = fileURLToPath(import.meta.url);
+  try { return realpathSync(process.argv[1]) === realpathSync(self); }
+  catch { return resolve(process.argv[1]) === self; }
+}
+
+if (isEntryModule()) {
   const args = process.argv.slice(2);
   const cmd = args[0];
   const rootIdx = args.indexOf('--root');

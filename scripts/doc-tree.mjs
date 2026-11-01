@@ -25,7 +25,7 @@
  *   node scripts/tree-doc.mjs apply [--readme README.md]   # 覆盖 README 标记块
  */
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync, existsSync, statSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, statSync, readdirSync, realpathSync } from 'node:fs';
 import { join, dirname, resolve, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -379,7 +379,17 @@ export function checkDrift({ readmePath = DEFAULT_README, root = ROOT } = {}) {
 
 /* ───────────────────────── CLI ───────────────────────── */
 // 仅直接运行时执行（测试 import 本文件不应触发 CLI）
-const isMain = process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1]);
+// 判定按 **realpath** 归一后再比：临时目录常带符号链接前缀（本机 /var/packages/<pkg>
+// → /volume1/@apptemp/<pkg>），argv[1] 与 import.meta.url 字面不等 ⇒ CLI 静默不执行、
+// 无输出且退出码 0 —— 对门禁是「假绿」。realpath 失败时退回 resolve 比较。
+function isEntryModule() {
+  if (!process.argv[1]) return false;
+  const self = fileURLToPath(import.meta.url);
+  try { return realpathSync(process.argv[1]) === realpathSync(self); }
+  catch { return resolve(process.argv[1]) === self; }
+}
+
+const isMain = isEntryModule();
 
 if (isMain) {
   const args = process.argv.slice(2);
