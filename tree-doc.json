@@ -215,119 +215,19 @@
   "templates/_downloader/html/tab-panel/panel-settings/pwd.html": "系级修改密码卡（oldPwd + newPwd + 修改按钮，2026-09-28 上提）",
   "_meta": {
     "worktree": {
-      "docs/功能说明.md": {
+      "lib/start.sh": {
         "status": "M",
-        "mtime": "2026-11-01T10:19:55.901Z",
+        "mtime": "2026-11-01T11:53:20.667Z",
         "note": "注释可能需更新"
       },
-      "skills/setup-assemble.md": {
+      "templates/js/core/app.js": {
         "status": "M",
-        "mtime": "2026-11-01T10:19:24.364Z",
+        "mtime": "2026-11-01T11:55:24.170Z",
         "note": "注释可能需更新"
       },
-      "templates/_lumigather/.env": {
+      "templates/js/server/app.js": {
         "status": "M",
-        "mtime": "2026-11-01T10:08:19.320Z",
-        "note": "注释可能需更新"
-      },
-      "templates/_lumigather/.env.example": {
-        "status": "M",
-        "mtime": "2026-11-01T10:08:19.322Z",
-        "note": "注释可能需更新"
-      },
-      "templates/_lumigather/js/api-client.js": {
-        "status": "M",
-        "mtime": "2026-11-01T10:08:08.608Z",
-        "note": "注释可能需更新"
-      },
-      "templates/_lumigather/js/app.js": {
-        "status": "M",
-        "mtime": "2026-11-01T10:15:07.996Z",
-        "note": "注释可能需更新"
-      },
-      "templates/_lumigather/js/browse/render.js": {
-        "status": "M",
-        "mtime": "2026-11-01T10:15:00.162Z",
-        "note": "注释可能需更新"
-      },
-      "templates/_lumigather/js/foundation/state.js": {
-        "status": "M",
-        "mtime": "2026-11-01T10:08:08.667Z",
-        "note": "注释可能需更新"
-      },
-      "templates/_lumigather/js/settings/config.js": {
-        "status": "M",
-        "mtime": "2026-11-01T10:15:00.131Z",
-        "note": "注释可能需更新"
-      },
-      "templates/_lumigather/js/settings/directory.js": {
-        "status": "M",
-        "mtime": "2026-11-01T10:15:00.123Z",
-        "note": "注释可能需更新"
-      },
-      "templates/_lumigather/server/app.js": {
-        "status": "M",
-        "mtime": "2026-11-01T10:08:08.678Z",
-        "note": "注释可能需更新"
-      },
-      "templates/_lumigather/server/lib/config.js": {
-        "status": "M",
-        "mtime": "2026-11-01T10:07:04.159Z",
-        "note": "注释可能需更新"
-      },
-      "templates/_lumigather/server/lib/gif.js": {
-        "status": "M",
-        "mtime": "2026-11-01T10:07:13.997Z",
-        "note": "注释可能需更新"
-      },
-      "templates/_lumigather/server/lib/index-cache.js": {
-        "status": "M",
-        "mtime": "2026-11-01T10:07:13.974Z",
-        "note": "注释可能需更新"
-      },
-      "templates/_lumigather/server/lib/index-store.js": {
-        "status": "M",
-        "mtime": "2026-11-01T10:07:13.985Z",
-        "note": "注释可能需更新"
-      },
-      "templates/_lumigather/server/lib/paths.js": {
-        "status": "M",
-        "mtime": "2026-11-01T10:07:13.968Z",
-        "note": "注释可能需更新"
-      },
-      "templates/_lumigather/server/routes/gallery.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "templates/_lumigather/server/routes/upload.js": {
-        "status": "M",
-        "mtime": "2026-11-01T10:07:14.197Z",
-        "note": "注释可能需更新"
-      },
-      "templates/_lumigather/test/index-cache.test.cjs": {
-        "status": "M",
-        "mtime": "2026-11-01T10:08:52.132Z",
-        "note": "注释可能需更新"
-      },
-      "templates/_lumigather/test/paths.test.cjs": {
-        "status": "M",
-        "mtime": "2026-11-01T10:08:40.046Z",
-        "note": "注释可能需更新"
-      },
-      "templates/_lumigather/server/lib/env.js": {
-        "status": "A",
-        "mtime": "2026-11-01T10:07:03.668Z",
-        "note": "注释可能需更新"
-      },
-      "templates/_lumigather/server/routes/lumigather.js": {
-        "status": "A",
-        "mtime": "2026-11-01T10:07:44.578Z",
-        "note": "注释可能需更新"
-      },
-      "templates/_lumigather/test/env-prefix.test.cjs": {
-        "status": "A",
-        "mtime": "2026-11-01T10:09:03.037Z",
+        "mtime": "2026-11-01T11:50:51.255Z",
         "note": "注释可能需更新"
       }
     }
