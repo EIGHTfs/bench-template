@@ -4,8 +4,9 @@
     await refreshAuth();
     try {
       const data = await window.API.apiGet("/gallery");
-      galleryTitle = data.title || "";   // 标题只认配置下发；无配置时留空（由页面/浏览器标题兜底），不写死默认标题
+      galleryTitle = data.title || "";   // 设置页的值；空 = 没设过（回退品牌链），不写死默认标题
       favicon      = data.favicon || "";
+      brand        = data.brand || {};   // 品牌默认值（env/.env → 清单 brand 段 → 内置默认）
       categories   = Array.isArray(data.categories) ? data.categories : [];
       directories  = Array.isArray(data.directories) ? data.directories : [];
       window.__GALLERY_FS_ROOT = data.fsRoot || "/";
@@ -36,11 +37,11 @@
       }
     } catch (_) { /* URL 参数解析失败不影响正常加载 */
     } finally {
-      // 用完即清：地址栏不保留 ?dir=（用户明确要求）
+      // 用完即清：地址栏不保留 ?dir=（交互约定：直达链接只用于本次跳转，不留在可分享的 URL 里）
       try { history.replaceState(null, "", location.pathname); } catch (_) {}
     }
     await loadLang(lang);
-    document.querySelector(".logo-text").textContent = galleryTitle;
+    applyBrandText();   // 顶部栏文字：设置页 → 品牌 displayTitle → 品牌 title
     galleryTitleInput.value = galleryTitle;
     faviconInput.value = favicon;
     applyTabMeta();

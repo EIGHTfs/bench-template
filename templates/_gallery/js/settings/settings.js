@@ -55,8 +55,8 @@
   loginPassword.addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
 
   galleryTitleInput.addEventListener("input", e => {
-    galleryTitle = e.target.value || "Gallery";
-    document.querySelector(".logo-text").textContent = galleryTitle;
+    galleryTitle = e.target.value;   // 清空 = 没设过 → 回退品牌链，不再写死 "Gallery"
+    applyBrandText();
     applyTabMeta();
     saveSettings();
   });
@@ -68,6 +68,8 @@
 
   function renderSettings() {
     galleryTitleInput.value = galleryTitle;
+    // 输入框空着时用品牌标题做占位提示：空 = 跟随品牌（env/.env/清单/默认）
+    galleryTitleInput.placeholder = String(brand.title || "").trim() || "My Gallery";
     faviconInput.value = favicon;
     renderCategories();
     renderDirectories();

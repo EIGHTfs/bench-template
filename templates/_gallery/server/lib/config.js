@@ -15,7 +15,9 @@ const path = require("path");
 const CONFIG = path.join(__dirname, "..", "config.json");
 
 const DEFAULT_CONFIG = {
-  title: "Gallery",
+  // 标题默认留空：空 = 「设置页没设过」，前端回退到品牌链（env/.env → 清单 brand 段 → 内置默认）。
+  // 这里若写死 "Gallery"，会把品牌链和设置页同时压住——用户看到的水远是 Gallery。
+  title: "",
   categories: [],
   directories: [],
 };

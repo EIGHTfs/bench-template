@@ -387,19 +387,64 @@
   "templates/_downloader/html/tab-panel/panel-settings/pwd.html": "系级修改密码卡（oldPwd + newPwd + 修改按钮，2026-09-28 上提）",
   "_meta": {
     "worktree": {
-      "templates/js/config/brand.js": {
+      "templates/_gallery/.env": {
         "status": "M",
-        "mtime": "2026-11-01T07:32:00.872Z",
+        "mtime": "2026-11-01T07:43:40.705Z",
         "note": "注释可能需更新"
       },
-      "templates/.env.example": {
-        "status": "A",
-        "mtime": "2026-11-01T07:32:00.915Z",
+      "templates/_gallery/html/index.html": {
+        "status": "M",
+        "mtime": "2026-11-01T07:48:21.531Z",
         "note": "注释可能需更新"
       },
-      "test/brand.test.cjs": {
+      "templates/_gallery/js/app.js": {
+        "status": "M",
+        "mtime": "2026-11-01T07:49:54.681Z",
+        "note": "注释可能需更新"
+      },
+      "templates/_gallery/js/foundation/state.js": {
+        "status": "M",
+        "mtime": "2026-11-01T07:49:11.474Z",
+        "note": "注释可能需更新"
+      },
+      "templates/_gallery/js/settings/config.js": {
+        "status": "M",
+        "mtime": "2026-11-01T07:49:03.823Z",
+        "note": "注释可能需更新"
+      },
+      "templates/_gallery/js/settings/settings.js": {
+        "status": "M",
+        "mtime": "2026-11-01T07:49:14.796Z",
+        "note": "注释可能需更新"
+      },
+      "templates/_gallery/js/shell/tabs.js": {
+        "status": "M",
+        "mtime": "2026-11-01T07:48:59.059Z",
+        "note": "注释可能需更新"
+      },
+      "templates/_gallery/json/config.schema.json": {
+        "status": "M",
+        "mtime": "2026-11-01T07:47:39.970Z",
+        "note": "注释可能需更新"
+      },
+      "templates/_gallery/server/app.js": {
+        "status": "M",
+        "mtime": "2026-11-01T07:42:41.882Z",
+        "note": "注释可能需更新"
+      },
+      "templates/_gallery/server/lib/config.js": {
+        "status": "M",
+        "mtime": "2026-11-01T07:47:36.909Z",
+        "note": "注释可能需更新"
+      },
+      "templates/_gallery/server/routes/gallery.js": {
+        "status": "M",
+        "mtime": "2026-11-01T07:47:36.884Z",
+        "note": "注释可能需更新"
+      },
+      "templates/_gallery/.env.example": {
         "status": "A",
-        "mtime": "2026-11-01T07:32:12.100Z",
+        "mtime": "2026-11-01T07:43:40.728Z",
         "note": "注释可能需更新"
       }
     }
@@ -556,5 +601,6 @@
   "test/js-parts.test.cjs": "JS 分片拼接器单测（空片/缺片/顺序/幂等/等价性）",
   "test/state-store.test.sh": "状态文件存储层测试（原子写/合并写/flush/取消）",
   "templates/.env.example": "品牌配置样例（四个 BRAND_* 键 + 取值优先级，复制到项目根 .env 生效）",
-  "test/brand.test.cjs": "品牌四级兜底单测（环境变量/.env/清单/内置默认 + 空值、缓存、无参兜底）"
+  "test/brand.test.cjs": "品牌四级兜底单测（环境变量/.env/清单/内置默认 + 空值、缓存、无参兜底）",
+  "templates/_gallery/.env.example": "画廊品牌配置示例（四个 BRAND_* 键 + 优先级；标题/图标在设置页为空时用它兜底）"
 }
