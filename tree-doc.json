@@ -1,5 +1,5 @@
 {
-  "docs": "开发文档（指南/总览/迁移计划）",
+  "docs": "开发文档（指南/总览/手册）",
   "example/server/public": "example 组装产物前端（入库作测试基准）",
   "example/server": "example 组装产物（框架下发+自研，入库作测试基准）",
   "example": "完整演示项目（组装清单+产物+自研+假数据，入库）",
@@ -24,7 +24,6 @@
   "example/server/update": "example 组装产物（框架下发+自研，入库作测试基准）",
   "example/test": "example 内嵌测试副本",
   "lib": "通用运行支撑件（CJS 引导/启停/预览反代）",
-  "lib/preview": "通用运行支撑件",
   "skills": "技能（setup-assemble：组装规范）",
   "templates": "素材树（按通用程度分层）",
   "templates/_downloader/_gamebanana-mods/assets": "gbmd 项目独有层",
@@ -80,17 +79,16 @@
   "templates/js/update": "最通用 JS 层（framework + 蓝图骨架）",
   "templates/json": "素材树（按通用程度分层）",
   "test": "测试（setup.sh/清单/example 自检链路）",
-  "docs/迁移计划-templates通用层级重构.md": "templates 重构迁移计划（本批次）",
   "example/server/public/partial-refresh.js": "example 组装产物前端（入库作测试基准）",
   "scripts/doc-tree.mjs": "README 目录树维护（gen/check/apply/sync）",
   "scripts/gitignore-runtime.cjs": "运行态文件 .gitignore 自动维护",
   ".auditignore": "审计豁免清单",
   ".gitignore": "忽略规则（产物/运行态/回收站）",
   "README.md": "仓库 README（功能概览/安装用法/命令示例，功能详情见 docs/功能说明.md）",
-  "docs/前端片段化改造指南.md": "整份 HTML 拆片段实测",
+  "docs/前端片段化改造指南.md": "整份 HTML 改「骨架 + @frag 片段」的做法",
   "docs/命令参数总览.md": "setup.sh 与清单工具全部参数",
-  "docs/旧项目模板化改造指南.md": "扁平架构改模板架构实操",
-  "docs/清单驱动重构.md": "多项目重复代码与清单驱动解法",
+  "docs/旧项目模板化改造指南.md": "扁平项目接入模板框架的步骤与接口差异",
+  "docs/清单驱动重构.md": "清单驱动：做法与五条配套能力",
   "example/.auditignore": "example 审计豁免",
   "example/.gitignore": "example 忽略规则",
   "example/.test": "example 自检标记文件",
@@ -190,8 +188,6 @@
   "example/test/run-all.sh": "example 内嵌的测试副本",
   "example/test/scan-sh-commands.test.sh": "example 内嵌的测试副本",
   "lib/cjs-bootstrap.cjs": "CJS 强制引导",
-  "lib/preview/start-preview.mjs": "独立预览反代（真实后端垫片）",
-  "lib/preview/start.sh": "独立预览反代（真实后端垫片）",
   "lib/start.sh": "通用启停脚本",
   "scripts/assemble-manifest.js": "清单解析唯一实现（list/check/migrate/pull 等）",
   "scripts/bench-html-assembly.js": "HTML 组装基准评测",
@@ -250,9 +246,6 @@
   "templates/_downloader/_iwara/styles/row-thumb.css": "iwara 项目独有层",
   "templates/_downloader/_iwara/styles/style.css": "iwara 项目独有层",
   "templates/_downloader/_iwara/test/.test": "iwara 项目独有层",
-  "templates/_downloader/_iwara/test/play-record.cjs": "iwara 项目独有层",
-  "templates/_downloader/_iwara/test/play-test.cjs": "iwara 项目独有层",
-  "templates/_downloader/_iwara/test/test-author-avatar.cjs": "iwara 项目独有层",
   "templates/_downloader/html/auto-update-card.html": "下载器系通用层",
   "templates/_downloader/html/browse-mask.html": "下载器系通用层",
   "templates/_downloader/html/global-hud.html": "下载器系通用层",
@@ -368,7 +361,7 @@
   "tree-doc.json": "目录树注释映射（doc-tree 索引：路径→一句话介绍）",
   "example/server/tool": "example 组装产物：tool-detect.js 等工具模块（不入库）",
   "templates/js/server/lib": "模板 js 层 server/lib：auto-update 参数化包装等",
-  "docs/模板化标准手册.md": "模板化标准手册（6 章：油猴参数化/面板拆分/同名比对/实操/止步结论/进度）",
+  "docs/模板化标准手册.md": "模板化约定集（素材分层/清单/片段/卡片/门禁）",
   "example/server/config/brand.js": "example 组装产物：品牌读取模块（readBrand，从清单 brand 段读）",
   "example/server/public/fragments/scripts-extra.html": "example 组装产物：系级 scripts.html 的 @frag:scripts-extra 展开点（iwara 侧 partial-refresh）",
   "example/server/tool/tool-detect.js": "example 组装产物：工具探测模块",
@@ -394,359 +387,49 @@
   "templates/_downloader/html/tab-panel/panel-settings/pwd.html": "系级修改密码卡（oldPwd + newPwd + 修改按钮，2026-09-28 上提）",
   "_meta": {
     "worktree": {
-      "README.md": {
+      "docs/20261008-自动更新间隔与失败退避.MD": {
         "status": "M",
-        "mtime": "2026-10-07T19:50:10.045Z",
+        "mtime": "2026-11-01T07:15:52.564Z",
+        "note": "注释可能需更新"
+      },
+      "docs/20261014-JS组件化方案.MD": {
+        "status": "M",
+        "mtime": "2026-11-01T07:15:41.811Z",
+        "note": "注释可能需更新"
+      },
+      "docs/前端片段化改造指南.md": {
+        "status": "M",
+        "mtime": "2026-11-01T07:16:50.765Z",
+        "note": "注释可能需更新"
+      },
+      "docs/功能说明.md": {
+        "status": "M",
+        "mtime": "2026-11-01T07:18:16.662Z",
         "note": "注释可能需更新"
       },
       "docs/命令参数总览.md": {
         "status": "M",
-        "mtime": "2026-10-07T19:25:41.678Z",
+        "mtime": "2026-11-01T07:17:59.786Z",
         "note": "注释可能需更新"
       },
-      "docs/文件树.md": {
+      "docs/旧项目模板化改造指南.md": {
         "status": "M",
-        "mtime": "2026-10-07T19:50:00.684Z",
+        "mtime": "2026-11-01T07:17:36.915Z",
         "note": "注释可能需更新"
       },
       "docs/模板化标准手册.md": {
         "status": "M",
-        "mtime": "2026-10-07T19:26:53.725Z",
+        "mtime": "2026-11-01T07:16:22.948Z",
         "note": "注释可能需更新"
       },
-      "example/README.md": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/docs/前端片段化改造指南.md": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/docs/命令参数总览.md": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/docs/旧项目模板化改造指南.md": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/docs/清单驱动重构.md": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/package.json": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/self-test.sh": {
+      "docs/清单驱动重构.md": {
         "status": "M",
-        "mtime": "2026-10-07T19:23:17.158Z",
+        "mtime": "2026-11-01T07:17:45.291Z",
         "note": "注释可能需更新"
       },
-      "example/server/project/blueprint/README.md": {
+      "docs/迁移计划-templates通用层级重构.md": {
         "status": "D",
         "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/app.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/assemble.json": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/auto-update-card.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/boot.cjs": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/config.schema.json": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/fragments/auto-update-card.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/fragments/browse-mask.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/fragments/global-hud.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/fragments/head-extra.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/fragments/no-pwd-warn.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/fragments/styles/auth.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/fragments/styles/base.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/fragments/styles/combo.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/fragments/styles/components.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/fragments/styles/diff.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/fragments/styles/hud.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/fragments/styles/login-detect.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/fragments/styles/mobile.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/fragments/styles/modal.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/fragments/styles/progress.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/fragments/styles/result-list.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/fragments/styles/row-thumb.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/fragments/styles/task-list.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/fragments/styles/toast.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/fragments/styles/topbar-badge.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/fragments/styles/topbar.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/fragments/styles/variables.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/fragments/tabs.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/fragments/topbar.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/fragments/topbar/brand.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/fragments/topbar/time.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/index.html/downloader/index.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/login.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/login.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/search-date-range.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/setup-init.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/setup.html": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/style.css": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "example/server/project/blueprint/theme-init.js": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "package.json": {
-        "status": "D",
-        "mtime": "",
-        "note": "注释可能需更新"
-      },
-      "scripts/assemble-manifest.js": {
-        "status": "M",
-        "mtime": "2026-10-07T19:33:16.237Z",
-        "note": "注释可能需更新"
-      },
-      "scripts/setup-assemble.sh": {
-        "status": "M",
-        "mtime": "2026-10-07T19:33:35.617Z",
-        "note": "注释可能需更新"
-      },
-      "scripts/setup-check.sh": {
-        "status": "M",
-        "mtime": "2026-10-07T19:34:08.491Z",
-        "note": "注释可能需更新"
-      },
-      "scripts/setup-lib.sh": {
-        "status": "M",
-        "mtime": "2026-10-07T19:34:08.494Z",
-        "note": "注释可能需更新"
-      },
-      "scripts/setup-list.sh": {
-        "status": "M",
-        "mtime": "2026-10-07T19:34:08.493Z",
-        "note": "注释可能需更新"
-      },
-      "scripts/setup-migrate.sh": {
-        "status": "M",
-        "mtime": "2026-10-07T19:34:08.492Z",
-        "note": "注释可能需更新"
-      },
-      "scripts/setup-pull.sh": {
-        "status": "M",
-        "mtime": "2026-10-07T19:34:08.492Z",
-        "note": "注释可能需更新"
-      },
-      "scripts/setup-untracked.sh": {
-        "status": "M",
-        "mtime": "2026-10-07T19:34:08.493Z",
-        "note": "注释可能需更新"
-      },
-      "setup.sh": {
-        "status": "M",
-        "mtime": "2026-10-07T19:30:54.622Z",
-        "note": "注释可能需更新"
-      },
-      "skills/setup-assemble.md": {
-        "status": "M",
-        "mtime": "2026-10-07T19:34:15.818Z",
-        "note": "注释可能需更新"
-      },
-      "test/args.test.sh": {
-        "status": "M",
-        "mtime": "2026-10-07T19:47:10.613Z",
-        "note": "注释可能需更新"
-      },
-      "test/lib-test.sh": {
-        "status": "M",
-        "mtime": "2026-10-07T19:47:10.614Z",
-        "note": "注释可能需更新"
-      },
-      "test/mix.test.sh": {
-        "status": "M",
-        "mtime": "2026-10-07T19:47:10.613Z",
-        "note": "注释可能需更新"
-      },
-      "docs/函数列表.md": {
-        "status": "A",
-        "mtime": "2026-10-07T19:49:24.579Z",
-        "note": "注释可能需更新"
-      },
-      "docs/功能说明.md": {
-        "status": "A",
-        "mtime": "2026-10-07T19:48:14.609Z",
-        "note": "注释可能需更新"
-      },
-      "scripts/doc-func.mjs": {
-        "status": "A",
-        "mtime": "2026-10-07T19:39:54.115Z",
-        "note": "注释可能需更新"
-      },
-      "scripts/setup-fixperm.sh": {
-        "status": "A",
-        "mtime": "2026-10-07T19:21:18.438Z",
-        "note": "注释可能需更新"
-      },
-      "test/doc-func.test.sh": {
-        "status": "A",
-        "mtime": "2026-10-07T19:41:34.250Z",
-        "note": "注释可能需更新"
-      },
-      "test/doc-tree.test.sh": {
-        "status": "A",
-        "mtime": "2026-10-07T19:45:05.951Z",
         "note": "注释可能需更新"
       }
     }
@@ -761,7 +444,7 @@
   "templates/userscript": "通用油猴脚本模板（Cookie 采集/注入，跨项目复用）",
   "templates/userscript/cookie-fetch": "通用油猴内核（header.tpl + 20-core/25-style/28-ui）",
   "templates/userscript/test": "油猴脚本端到端测试（环境变量参数化，一套测多站点）",
-  "docs/20261008-自动更新间隔与失败退避.MD": "自动更新间隔治理与失败退避方案（默认 3600s、失败退避 ×2 最多 3 次）",
+  "docs/20261008-自动更新间隔与失败退避.MD": "自动更新：模式、间隔、退避与配置",
   "docs/函数列表.md": "函数列表（doc-func.mjs 自动维护，标记块 dshgp-functions）",
   "scripts/doc-func.mjs": "函数列表生成器（扫 lib/scripts/test 提取函数写入标记块）",
   "scripts/setup-fixperm.sh": "setup 子脚本：--fix-perm 一键修复执行位",
@@ -774,7 +457,6 @@
   "templates/_downloader/_gamebanana-mods/userscript/30-panel.js": "gbmd 油猴面板 DOM 与事件绑定",
   "templates/_downloader/_gamebanana-mods/userscript/40-account.js": "gbmd 油猴账号检测与渲染",
   "templates/_downloader/_gamebanana-mods/userscript/50-project.js": "gbmd 油猴项目钩子（openPanel/buildPanelHtml/bindPanelEvents）",
-  "templates/_downloader/_iwara/test/iwara-login-flow.cjs": "iwara 凭证刷新脚本（无头浏览器过 CF 挑战，抓 Token/cf_clearance 回传）",
   "templates/_downloader/_iwara/test/verify-api-http-guard.cjs": "iwara HTTP 请求层回归测试",
   "templates/_downloader/_iwara/test/verify-userscript-panel.cjs": "iwara 油猴面板端到端测试（真实脚本 + 伪造页面）",
   "templates/_downloader/_iwara/userscript/00-config.json": "iwara 油猴配置（版本/站点/存储前缀等占位符取值）",
@@ -792,6 +474,115 @@
   "templates/userscript/cookie-fetch/28-ui.js": "油猴通用 UI 骨架（FAB/Toast/状态提示）",
   "templates/userscript/cookie-fetch/header.tpl": "油猴元数据模板（@name/@match/@grant 占位符）",
   "templates/userscript/test/verify-userscript-panel.cjs": "油猴面板端到端测试（系级，环境变量参数化）",
-  "test/doc-tree.test.sh": "（待注释）",
-  "docs/功能说明.md": "功能说明（按功能模块描述能力/设计/边界，取代版本记录）"
+  "test/doc-tree.test.sh": "文件树漂移检查（改源码需刷新 / sync 清理失效键）",
+  "docs/功能说明.md": "功能说明（按功能模块描述能力/设计/边界，取代版本记录）",
+  "docs/20261014-JS组件化方案.MD": "JS 组件化约定（分片/拼接顺序/产物）",
+  "templates/_downloader/_gamebanana-mods/js/account": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/download": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/foundation": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/organize": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/search": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/settings": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/shell": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/task": "（待注释）",
+  "templates/_downloader/_iwara/scripts/verify": "（待注释）",
+  "templates/_downloader/_iwara/scripts": "（待注释）",
+  "templates/_gallery/js/account": "（待注释）",
+  "templates/_gallery/js/browse": "（待注释）",
+  "templates/_gallery/js/foundation": "（待注释）",
+  "templates/_gallery/js/settings": "（待注释）",
+  "templates/_gallery/js/shell": "（待注释）",
+  "templates/_gallery/server/lib/rule": "（待注释）",
+  "templates/_gallery/test": "（待注释）",
+  "templates/tools": "索引存储相关工具（对比/迁移/截图，下游可选下发）",
+  "scripts/check-perf-antipatterns.mjs": "性能/健壮性反模式静态检查（blocker / warning 分级）",
+  "scripts/extract-render-points.mjs": "提取前端渲染点作为回归基线（--check 比对）",
+  "scripts/join-js-parts.mjs": "JS 分片拼接器（顺序即依赖 / 缺片报错 / --check）",
+  "scripts/scan-fs-hotspots.mjs": "文件系统热点静态扫描（stat/readdir 次数归因）",
+  "scripts/verify-deploy.mjs": "部署端更新核实（两阶段 md5 + lastSha 比对）",
+  "templates/_downloader/_gamebanana-mods/js/account/login.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/account/logout.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/download/batch.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/download/control.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/download/toggles.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/entry.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/foundation/base.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/manifest.json": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/organize/mapping.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/organize/merge.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/organize/roles.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/search/form.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/search/poll.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/search/results.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/search/run.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/settings/cookie.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/settings/games.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/settings/hash.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/settings/index.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/settings/load.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/settings/scan.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/settings/security.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/settings/task-io.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/shell/lightbox.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/shell/tabs.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/shell/theme.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/task/actions.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/task/group-html.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/task/groups.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/task/poll.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/task/render.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/task/row.js": "（待注释）",
+  "templates/_downloader/_gamebanana-mods/js/task/view.js": "（待注释）",
+  "templates/_downloader/_iwara/scripts/verify/author-avatar.cjs": "（待注释）",
+  "templates/_downloader/_iwara/scripts/verify/iwara-login-flow.cjs": "（待注释）",
+  "templates/_downloader/_iwara/scripts/verify/play-record.cjs": "（待注释）",
+  "templates/_downloader/_iwara/scripts/verify/play-verify.cjs": "（待注释）",
+  "templates/_downloader/test/jsonl-store.test.cjs": "（待注释）",
+  "templates/_gallery/.env": "运行参数样例（每行 KEY=VALUE，服务启动时读取）",
+  "templates/_gallery/js/account/login.js": "（待注释）",
+  "templates/_gallery/js/browse/filtering.js": "（待注释）",
+  "templates/_gallery/js/browse/folder.js": "（待注释）",
+  "templates/_gallery/js/browse/images.js": "（待注释）",
+  "templates/_gallery/js/browse/lightbox.js": "（待注释）",
+  "templates/_gallery/js/browse/render.js": "（待注释）",
+  "templates/_gallery/js/entry.js": "（待注释）",
+  "templates/_gallery/js/foundation/dom.js": "（待注释）",
+  "templates/_gallery/js/foundation/i18n.js": "（待注释）",
+  "templates/_gallery/js/foundation/slug.js": "（待注释）",
+  "templates/_gallery/js/foundation/state.js": "（待注释）",
+  "templates/_gallery/js/foundation/toast.js": "（待注释）",
+  "templates/_gallery/js/manifest.json": "（待注释）",
+  "templates/_gallery/js/settings/category.js": "（待注释）",
+  "templates/_gallery/js/settings/config.js": "（待注释）",
+  "templates/_gallery/js/settings/directory.js": "（待注释）",
+  "templates/_gallery/js/settings/settings.js": "（待注释）",
+  "templates/_gallery/js/shell/breadcrumb.js": "（待注释）",
+  "templates/_gallery/js/shell/events.js": "（待注释）",
+  "templates/_gallery/js/shell/nav.js": "（待注释）",
+  "templates/_gallery/js/shell/tabs.js": "（待注释）",
+  "templates/_gallery/js/shell/tree.js": "（待注释）",
+  "templates/_gallery/server/lib/index-cache.js": "（待注释）",
+  "templates/_gallery/server/lib/index-store.js": "（待注释）",
+  "templates/_gallery/server/lib/paginate.js": "（待注释）",
+  "templates/_gallery/server/lib/rule/flip-rule.js": "（待注释）",
+  "templates/_gallery/server/lib/rule/gif-rule.js": "（待注释）",
+  "templates/_gallery/test/dir-browser-up.test.cjs": "（待注释）",
+  "templates/_gallery/test/gif-rule-dryrun.test.cjs": "（待注释）",
+  "templates/_gallery/test/index-cache.test.cjs": "（待注释）",
+  "templates/_gallery/test/index-store-utf8.test.cjs": "（待注释）",
+  "templates/_gallery/test/paginate.test.cjs": "（待注释）",
+  "templates/_gallery/test/render-points.baseline.json": "（待注释）",
+  "templates/_gallery/test/render-points.test.cjs": "（待注释）",
+  "templates/_gallery/test/zip-ini-gif.test.cjs": "（待注释）",
+  "templates/js/server/lib/index-store.js": "（待注释）",
+  "templates/js/server/lib/jsonl-store.js": "（待注释）",
+  "templates/js/server/lib/task-sqlite-store.js": "（待注释）",
+  "templates/js/store/state-store.js": "（待注释）",
+  "templates/tools/bench-index-store.cjs": "索引后端性能对比（JSONL vs SQLite）",
+  "templates/tools/migrate-index-jsonl-to-sqlite.cjs": "索引 JSONL → SQLite 一次性迁移",
+  "templates/tools/migrate-json-index-to-jsonl.cjs": "索引 JSON → JSONL 一次性迁移",
+  "templates/tools/page-shot.mjs": "通用网页截图（真实渲染自检：登录 + 逐页截图 + 收集错误）",
+  "test/check-perf-antipatterns.test.cjs": "性能反模式规则回归（历史语料）",
+  "test/js-parts.test.cjs": "JS 分片拼接器单测（空片/缺片/顺序/幂等/等价性）",
+  "test/state-store.test.sh": "状态文件存储层测试（原子写/合并写/flush/取消）"
 }
