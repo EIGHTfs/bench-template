@@ -38,7 +38,10 @@ if (!fs.existsSync(SCHEMA_FILE)) {
 }
 
 const config = createConfig({
-  configFile: path.join(__dirname, "..", "config.json"),
+  // config.json 跟数据根：装成 npm 包后 __dirname 是 <...>/node_modules/<pkg>/server，
+  //   写进包目录 ⇒ 升级即丢，且包目录可能只读。DATA_DIR 在本框架里的语义是 **server 目录**
+  //   （见 store/json-dir.js）；未设置时仍是 <项目根>/server，仓库运行行为不变。
+  configFile: path.join((process.env.DATA_DIR || path.join(__dirname, "..")).trim(), "config.json"),
   schema: require(SCHEMA_FILE),
 });
 
