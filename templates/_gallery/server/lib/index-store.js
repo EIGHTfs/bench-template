@@ -37,9 +37,9 @@ function projectRoot() {
   return path.resolve(__dirname, "..", "..");
 }
 
-/** 索引根目录（不存在则在使用时按需创建） */
+/** 索引根目录（不存在则在使用时按需创建）；数据根可由 GALLERY_DATA_DIR / DATA_DIR 指定 */
 function indexRoot() {
-  return path.join(projectRoot(), CACHE_DIRNAME);
+  return path.join(require("./paths").dataRoot(), CACHE_DIRNAME);
 }
 
 /**
