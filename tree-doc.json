@@ -376,7 +376,7 @@
   "templates/_downloader/_iwara/html/scripts-extra.html": "iwara 独有层 scripts-extra：partial-refresh.js 引入",
   "templates/_downloader/html/scripts.html": "系级 scripts 骨架：公共 3 行 + @frag:scripts-extra 展开点",
   "templates/_downloader/html/topbar/badge.html": "系级 badge 占位（setStack 写运行时文本）",
-  "templates/js/config/brand.js": "品牌读取模块：readBrand 从项目根 assemble.json 的 brand 段读取（2026-09-28）",
+  "templates/js/config/brand.js": "品牌读取模块：readBrand 四级兜底（环境变量 > .env > assemble.json 的 brand 段 > 内置默认），恒返回对象",
   "templates/js/server/lib/auto-update.js": "auto-update 参数化包装：读同目录 auto-update-params.json",
   "example/server/public/fragments/tab-panel/panel-settings": "example 组装产物：设置面板片段目录（pwd/backup/cookie 系级卡的展开落点）",
   "templates/_downloader/html/tab-panel/panel-settings": "系级设置面板通用卡目录（pwd.html 修改密码 / backup.html 数据备份，与 auto-update-card 同模式）",
@@ -387,49 +387,19 @@
   "templates/_downloader/html/tab-panel/panel-settings/pwd.html": "系级修改密码卡（oldPwd + newPwd + 修改按钮，2026-09-28 上提）",
   "_meta": {
     "worktree": {
-      "docs/20261008-自动更新间隔与失败退避.MD": {
+      "templates/js/config/brand.js": {
         "status": "M",
-        "mtime": "2026-11-01T07:15:52.564Z",
+        "mtime": "2026-11-01T07:32:00.872Z",
         "note": "注释可能需更新"
       },
-      "docs/20261014-JS组件化方案.MD": {
-        "status": "M",
-        "mtime": "2026-11-01T07:15:41.811Z",
+      "templates/.env.example": {
+        "status": "A",
+        "mtime": "2026-11-01T07:32:00.915Z",
         "note": "注释可能需更新"
       },
-      "docs/前端片段化改造指南.md": {
-        "status": "M",
-        "mtime": "2026-11-01T07:16:50.765Z",
-        "note": "注释可能需更新"
-      },
-      "docs/功能说明.md": {
-        "status": "M",
-        "mtime": "2026-11-01T07:18:16.662Z",
-        "note": "注释可能需更新"
-      },
-      "docs/命令参数总览.md": {
-        "status": "M",
-        "mtime": "2026-11-01T07:17:59.786Z",
-        "note": "注释可能需更新"
-      },
-      "docs/旧项目模板化改造指南.md": {
-        "status": "M",
-        "mtime": "2026-11-01T07:17:36.915Z",
-        "note": "注释可能需更新"
-      },
-      "docs/模板化标准手册.md": {
-        "status": "M",
-        "mtime": "2026-11-01T07:16:22.948Z",
-        "note": "注释可能需更新"
-      },
-      "docs/清单驱动重构.md": {
-        "status": "M",
-        "mtime": "2026-11-01T07:17:45.291Z",
-        "note": "注释可能需更新"
-      },
-      "docs/迁移计划-templates通用层级重构.md": {
-        "status": "D",
-        "mtime": "",
+      "test/brand.test.cjs": {
+        "status": "A",
+        "mtime": "2026-11-01T07:32:12.100Z",
         "note": "注释可能需更新"
       }
     }
@@ -584,5 +554,7 @@
   "templates/tools/page-shot.mjs": "通用网页截图（真实渲染自检：登录 + 逐页截图 + 收集错误）",
   "test/check-perf-antipatterns.test.cjs": "性能反模式规则回归（历史语料）",
   "test/js-parts.test.cjs": "JS 分片拼接器单测（空片/缺片/顺序/幂等/等价性）",
-  "test/state-store.test.sh": "状态文件存储层测试（原子写/合并写/flush/取消）"
+  "test/state-store.test.sh": "状态文件存储层测试（原子写/合并写/flush/取消）",
+  "templates/.env.example": "品牌配置样例（四个 BRAND_* 键 + 取值优先级，复制到项目根 .env 生效）",
+  "test/brand.test.cjs": "品牌四级兜底单测（环境变量/.env/清单/内置默认 + 空值、缓存、无参兜底）"
 }

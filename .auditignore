@@ -10,6 +10,12 @@
 #       因此下面 scripts/ 用 `scripts/*` 逐项豁免，再 `!` 恢复要审计的那一个。
 #
 # ---------------------------------------------------------------------------
+# 品牌配置样例（templates/.env.example）：文件里只有占位值，没有任何真实凭据，
+# 但被 credfile-common 按「.env 文件名」命中——属规则误报，豁免。
+# 真实品牌/敏感值写在项目侧 .env（不入库，见各项目自己的 .gitignore）。
+templates/.env.example
+
+# ---------------------------------------------------------------------------
 # 后端 Node 代码：client-node-builtin-require 等规则对服务端是误报
 # （require('fs'/'path'/'child_process') 是 Node 正常用法，不是浏览器 client）。
 #   templates/js/            ← framework 整树（core/route/http/store/update/auth/config/assemble/tool）

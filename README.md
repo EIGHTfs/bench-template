@@ -102,7 +102,7 @@ bash start.sh start
 | --- | --- |
 | `files` | 取件表：键 = 模板内相对路径，值 = 项目内落点；两端以 `/` 结尾表示整目录 |
 | 条目顺序 | 同一落点有多个源时，**靠后的条目覆盖靠前的**（风格层覆盖底座就是靠这个） |
-| `brand` | 品牌键值（`title` / `logo` / `icon` / `displayTitle`），运行期从项目根清单读取，不生成中间文件 |
+| `brand` | 品牌键值（`title` / `logo` / `icon` / `displayTitle`），运行期由 `readBrand` 四级兜底取值（环境变量 → 项目根 `.env` → 本段 → 内置默认），不生成中间文件 |
 | `commands` | 组装后在项目根逐条执行的钩子；注入 `SETUP_TEMPLATE_ROOT`、`SETUP_PROJECT_ROOT`；任一失败则本次非 0 退出，`--dry-run` 只打印 |
 | `_` 开头键 | 阅读用注释，解析器忽略 |
 | `init` | 历史字段，已不生效 |
@@ -121,8 +121,14 @@ bash start.sh start
 完整可跑的清单见 `example/assemble.json`（54 条，含框架、前端与启停脚本）；新项目从它删改比从零写快。
 上面只是写法示意，实际要把该组件依赖的模块一起列上，否则组装后启动会报找不到模块。
 
+品牌也可以不改清单：用环境变量或项目根 `.env` 覆盖（优先级 `BRAND_*` 环境变量 > `.env` > 清单 `brand` 段 > 内置默认，键名 `BRAND_TITLE` / `BRAND_LOGO` / `BRAND_ICON` / `BRAND_DISPLAY_TITLE`，样例见 `templates/.env.example`）。
+
+```bash
+BRAND_TITLE="My App" BRAND_DISPLAY_TITLE="My<br>App" bash start.sh restart
+```
+
 - 用不上就不填；想补件就加一行；某个文件想自己维护，就从清单里删掉它，此后组装不再覆盖。
-- `@brand:` 未命中的键会**原样留在页面上**（便于发现拼写错误），组装后要核对 `brand` 与 `files` 是否对得上。
+- `@brand:` 的四个标准键始终有值（四级兜底后页面不会残留占位符）；自定义键未命中时**原样留在页面上**，便于发现拼写错误。
 
 ### 3.4 新增一个可复用组件
 

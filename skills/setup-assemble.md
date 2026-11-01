@@ -45,7 +45,7 @@ generatedBy: deepseek-v4-flash
 1. 定位清单（`--to` 唯一入口）→ 校验可解析（JSON 语法/结构，提前失败防半成品目录）
 2. 分发前预检（`--check` 同款比对，亮出将被覆盖的项目改动与将补下发的缺失）
 3. 按清单复制（`setup-assemble.sh` 的 `_setup_copy_manifest`：逐文件 `cp -f`，目录条目逐个 mkdir+cp——保证「后写必覆盖」，多源写同一目标目录时靠后源覆盖靠前源是**设计意图**）
-4. 品牌不导出（无 `brand.json`）：运行期由 `templates/js/config/brand.js` 的 `readBrand(serverDir)` 从项目根 `assemble.json` 的 `brand` 段读取
+4. 品牌不导出（无 `brand.json`）：运行期由 `templates/js/config/brand.js` 的 `readBrand(serverDir)` 四级兜底取值（`BRAND_*` 环境变量 → 项目根 `.env` → `assemble.json` 的 `brand` 段 → 内置默认）
 5. 收尾输出目标与 public/ 文件数
 
 # 二、assemble.json 清单 JSON 规范
@@ -98,7 +98,7 @@ generatedBy: deepseek-v4-flash
 
 ## 顶层其它段
 
-- `brand`: 可选（建议写全四键）。**不导出任何文件**——运行期由 `templates/js/config/brand.js` 的 `readBrand(serverDir)` 从项目根 `assemble.json` 的 `brand` 段读取，替换页面里 fragment-assembler 的 `@brand:key` 占位符（标题/logo/icon）。缺键或缺整段时返回空并提示，不阻断组装。
+- `brand`: 可选（建议写全四键）。**不导出任何文件**——运行期由 `templates/js/config/brand.js` 的 `readBrand(serverDir)` 取值：四级兜底（`BRAND_*` 环境变量 → 项目根 `.env` → 本段 → 内置默认），恒返回对象，替换页面里 fragment-assembler 的 `@brand:key` 占位符（标题/logo/icon）；缺键或缺整段都不阻断组装，页面上也不会残留四个标准键的占位符。
 - `commands`: 可选（字符串或字符串数组）。组装完成后在**项目根**逐条执行的钩子命令，用于生成下游产物（如油猴脚本 `node "$SETUP_TEMPLATE_ROOT/scripts/build-userscript.js" ...`）；注入 `SETUP_TEMPLATE_ROOT`（模板仓库根）/ `SETUP_PROJECT_ROOT`（项目根）两个环境变量。`--dry-run` 只打印不执行；任一命令失败则该次组装以非 0 退出（便于 CI 发现）。
 - boot.cjs 与 cjs-bootstrap.cjs 由清单下发（`templates/js/boot.cjs` → `server/boot.cjs`、`lib/cjs-bootstrap.cjs` → `server/lib/cjs-bootstrap.cjs`），路径对不上时 `--check` 直接报「缺失」。
 
@@ -131,7 +131,7 @@ lib/                       ← cjs-bootstrap.cjs、start.sh、preview/（通用�
 
 - 组装是覆盖式写盘：项目侧对下发件做过定制（端口/脚本）会被重装覆盖。正式跑前先 `--dry-run` + 看 `--check` 预检输出。
 - 「多个源写入同一目标目录」（blueprint 共用底座 + 风格层专属）靠后源覆盖靠前源，是设计意图不是 bug（如 iwara 风格层覆盖 blueprint 的 row-thumb.css）；改清单顺序会改变覆盖结果。
-- 品牌配置没有独立文件：组装不生成 `brand.json`，运行期从项目根 `assemble.json` 的 `brand` 段读取——改品牌只改清单一处，不存在双份漂移。
+- 品牌配置没有独立文件：组装不生成 `brand.json`，运行期四级兜底取值（环境变量 → 项目根 `.env` → 清单 `brand` 段 → 内置默认）——改品牌改清单一处即可，临时换品牌用环境变量，不存在中间文件双份漂移。
 - 改模板源（framework/ 或 templates/）后，三项目要各自 `--to` 重组装同步才会生效——模板源不是自动下发。
 - 漏发体检的候选集合必须是「清单实际引用的源 + 通用件」，否则会把模板仓库自身运行件/其它项目风格误报为漏发。
 - 模块化常识：`assemble-manifest.js` 是清单解析唯一实现（list/check/untracked/migrate/pull/validate/init-flag/brand/resolve-base/asset-roots/generate 子命令）；`setup.sh` 是总入口（source `scripts/setup-lib.sh` + 按动作参数 exec 分发到 `scripts/setup-*.sh`），组装逻辑在 `setup-assemble.sh`（按行复制 + 计数 + 报缺失），不再自行解析 JSON。
