@@ -1,7 +1,7 @@
 ---
 name: setup-assemble
 description: bench-template 模板化组装：setup.sh 命令用法 + assemble.json 清单 JSON 完整规范（组装/检查/扫描/迁移/回流五个动作、文件键规则、brand 段、素材 vs 产出、漏发体检对照法）。处理「跑 setup.sh 组装」「assemble.json 怎么写」「清单漏发检查」「模板怎么同步到项目」「setup 参数用哪个」类场景时加载。
-whenToUse: 组装/检查/扫描/迁移/回流 bench-template 系项目（gallery/gbmd/iwara/example）时、编写或修改其 assemble.json 时、排查「清单声明了但项目缺文件/多处实现」类问题时。
+whenToUse: 组装/检查/扫描/迁移/回流 bench-template 系项目（gallery/gbmd/iwara）时、编写或修改其 assemble.json 时、排查「清单声明了但项目缺文件/多处实现」类问题时。
 generatedBy: deepseek-v4-flash
 ---
 
@@ -39,7 +39,7 @@ generatedBy: deepseek-v4-flash
 - `--fix-perm` 按 `git ls-files -s` 里记录为 `100755` 的文件逐个恢复工作区执行位（只动权限位、不改内容/索引），修完 `git status` 的 `mode change` 噪音清零；幂等。参数传仓库路径（缺省当前仓库）。跨挂载点搬运（NFS/CIFS、整目录拷贝、解包）会丢执行位，换环境后先跑一次。若目标落在 `noexec` 挂载点，执行位恢复了 `./x.sh` 仍会被内核拒绝——命令会探测并提示改用 `bash x.sh`。判断「有无执行位」必须用 `stat -c '%A'`，`[ -x file ]` 在 noexec 下恒为假（实测踩坑）。
 - `--pull` 只处理素材条目（src==dst）；产出条目（src!=dst）不参与双向同步，产物由组装生成。
 - `DRY_VERBOSE=1` 配合组装预演可展开目录条目下的逐个文件；`SETUP_SKIP_PRECHECK=1` 跳过分发前预检（CI 批量组装用）。
-- 无 `--to` 时不静默组装，报错并提示（交互式可回答 y 生成空白清单骨架；非交互 `cp example/assemble.json <项目根>/assemble.json`）。
+- 无 `--to` 时不静默组装，报错并提示（交互式可回答 y 生成空白清单骨架；非交互提示参考下游项目的 `assemble.json`）。
 
 组装流程顺序（理解输出日志）：
 1. 定位清单（`--to` 唯一入口）→ 校验可解析（JSON 语法/结构，提前失败防半成品目录）
@@ -114,7 +114,7 @@ lib/                       ← cjs-bootstrap.cjs、start.sh、preview/（通用�
 
 - 后端业务 JS 不在模板：通用件在 framework/，业务实现由各项目自己维护。
 - `_gallery` 例外：它连同 `server/app.js` + `lib/` + `routes/` 一起带（gallery 全量后端为模板下发件，见 `templates/_gallery/server/`）。
-- `example/` 是模板自带示例项目（组装效果参考 + test/ 测试对象），组装方式与普通项目一致。
+- `test/fixtures/minimal-project/assemble.json` 是**测试用最小清单**（组装行为测试的对象），组装方式与普通项目一致；模板仓库不再自带完整示例项目，真实清单看下游三仓。
 
 # 四、漏发体检（A 类：模板有源、清单漏声明）
 
@@ -138,5 +138,6 @@ lib/                       ← cjs-bootstrap.cjs、start.sh、preview/（通用�
 
 # 修改记录
 
+- 2026-11-01：模板仓库删除 `example/` 演示项目（下游 gbmd / iwara / gallery 已足够作为参考）：新增 `test/fixtures/minimal-project/assemble.json` 作为组装测试夹具，`test/example.test.sh`、`scripts/verify-example-page.js` 随之删除；无 `--to` 时的提示改为引导参考下游项目清单。
 - 2026-09-28：同步三项代码重构——①setup.sh 拆分为总入口 + `scripts/setup-*.sh`（setup-lib/list/check/untracked/migrate/pull/assemble，命令完全不变）；②brand 从清单读取：不再生成 `server/public/brand.json`，运行期由 `templates/js/config/brand.js` 的 `readBrand(serverDir)` 从项目根 `assemble.json` 的 `brand` 段读取；③setup init 初始化复制删除（app.js/config.schema.json 由清单 src 显式下发，init 字段已废除）；另清理 example/setup.sh 与 example/scripts/ 副本（17 个文件 git rm，example 从模板仓库组装）。
 - 2026-09-20：初版固化（基于 setup.sh 616 行 + assemble-manifest.js + 三项目漏发体检实战）。

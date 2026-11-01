@@ -32,7 +32,7 @@ if [ $RC -ne 0 ] && grep -q "未知参数\|用法" <<<"$OUT"; then ok "--self-te
 # --- 已废除 --sync：应被拒绝，不能悄悄当组装跑 ---
 # 原设计落点用 src 而非 dst，会在项目里凭空造出 server/templates/ 目录；
 # 落点改回 dst 后它与组装等价，故连同命令一并废除。
-run_setup --to example/assemble.json --sync
+run_setup --to test/fixtures/minimal-project/assemble.json --sync
 if [ $RC -ne 0 ] && grep -q "未知参数" <<<"$OUT"; then
   ok "--sync：已废除并明确报错（不会静默当组装跑）"
 else

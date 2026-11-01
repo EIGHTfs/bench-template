@@ -58,8 +58,8 @@ if [ -z "$ASSEMBLE_FILE" ]; then
   # 非交互（管道 / CI / 重定向）：不询问，打印提示后退出，避免 read 挂起
   if [ ! -t 0 ]; then
     err ""
-    err "   非交互环境，跳过询问。可复制模板默认清单后按需修改："
-    err "     cp example/assemble.json $GEN_PATH"
+    err "   非交互环境，跳过询问。可先复制下游项目的清单再按需删改："
+    err "     参考 gbmd / iwara / gallery 三个项目根目录的 assemble.json"
     exit 1
   fi
 
@@ -82,14 +82,14 @@ if [ -z "$ASSEMBLE_FILE" ]; then
       exit 0
       ;;
     *)
-      err "   已跳过生成。可手工创建，或复制模板自带示例清单后修改："
-      err "     cp example/assemble.json $GEN_PATH"
+      err "   已跳过生成。可手工创建，或参考下游项目（gbmd / iwara / gallery）的清单后修改："
+      err "     参考 <下游项目根>/assemble.json"
       exit 1
       ;;
   esac
 fi
-if [ "$ASSEMBLE_FILE" = "$ROOT/example/assemble.json" ] && [ "$TO_SPECIFIED" = "0" ]; then
-  warn "  ⚠️ 模板自测：使用 example/assemble.json（示例项目清单）"
+if [ "$TO_SPECIFIED" = "0" ]; then
+  warn "  ⚠️ 未指定 --to，使用当前目录的清单: $ASSEMBLE_FILE"
   warn "     自定义/混搭：在目标项目根建 assemble.json（键=模板内路径，值=项目内路径，按需取用）"
 else
   ok "  ✓ 组装清单: $ASSEMBLE_FILE"

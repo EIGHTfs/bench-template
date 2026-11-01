@@ -1,0 +1,17 @@
+{
+  "_comment": "测试用最小项目清单：只挑几条真实素材，覆盖组装落点/幂等/混搭覆盖；不参与任何项目运行，落点都在临时副本里",
+  "_usage": "测试里用 --to test/fixtures/minimal-project/assemble.json 组装，产物落在 <副本>/test/fixtures/minimal-project/ 下",
+  "brand": {
+    "title": "Fixture App",
+    "logo": "logo.png",
+    "icon": "favicon.png",
+    "displayTitle": "Fixture<br>App"
+  },
+  "files": {
+    "lib/start.sh": "start.sh",
+    "templates/js/app.js": "server/app.js",
+    "templates/_downloader/html/login.html": "server/public/login.html",
+    "templates/_downloader/_iwara/html/tab-panel/panel-download.html": "server/public/fragments/tab-panel/panel-download.html",
+    "templates/_downloader/_gamebanana-mods/html/tab-panel/panel-download.html": "server/public/fragments/tab-panel/panel-download.html"
+  }
+}

@@ -41,10 +41,6 @@ templates/_downloader/_iwara/js/vendor/
 scripts/*
 
 # ---------------------------------------------------------------------------
-# example/server/** 组装产物快照 + 项目示例代码（整体入库，仅作演示/测试基准）
-# 性质：真源在模板 templates/（那里按前端/后端规则分别审计），
-#       此处是下发副本 + example 的项目侧代码（routes/items.js 自研演示）。
-# 为何豁免：client-node-builtin-require 等规则对后端 Node 代码属误报
-#       （require('fs'/'path') 是服务端正常用法，不是浏览器 client）；
-#       副本质量以模板侧为准，真实运行已由 example/self-test.sh 实测验证。
-example/server/
+# 测试夹具清单（test/fixtures/minimal-project/assemble.json）：只声明几条真实素材，
+# 供组装行为测试使用，不参与任何项目运行。
+test/fixtures/

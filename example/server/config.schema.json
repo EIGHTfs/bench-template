@@ -1,6 +1,0 @@
-{
-  "port": { "type": "number", "default": 8090 },
-  "sessionHours": { "type": "number", "default": 72 },
-  "downloadDir": { "type": "string", "default": "" },
-  "autoUpdate": { "type": "object", "default": { "enabled": false, "mode": "watch", "interval": 300 } }
-}

@@ -14,9 +14,9 @@ new_tpl
 
 echo "══ 清单解析：注释键 ══"
 
-# 从 example 清单动态取一对真实存在的 src→dst（结构变动时测试不失效）
-REAL_SRC="$(manifest_lookup "$TMP/tpl/example/assemble.json" login.html src)"
-REAL_DST="$(manifest_lookup "$TMP/tpl/example/assemble.json" login.html dst)"
+# 从夹具清单动态取一对真实存在的 src→dst（结构变动时测试不失效）
+REAL_SRC="$(manifest_lookup "$TMP/tpl/test/fixtures/minimal-project/assemble.json" login.html src)"
+REAL_DST="$(manifest_lookup "$TMP/tpl/test/fixtures/minimal-project/assemble.json" login.html dst)"
 if [ -z "$REAL_SRC" ] || [ -z "$REAL_DST" ]; then
   bad "取真实 src/dst 失败（清单里没有 login.html）"; finish
 fi
