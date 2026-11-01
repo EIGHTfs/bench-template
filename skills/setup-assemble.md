@@ -1,7 +1,7 @@
 ---
 name: setup-assemble
 description: bench-template 模板化组装：setup.sh 命令用法 + assemble.json 清单 JSON 完整规范（组装/检查/扫描/迁移/回流五个动作、文件键规则、brand 段、素材 vs 产出、漏发体检对照法）。处理「跑 setup.sh 组装」「assemble.json 怎么写」「清单漏发检查」「模板怎么同步到项目」「setup 参数用哪个」类场景时加载。
-whenToUse: 组装/检查/扫描/迁移/回流 bench-template 系项目（gallery/gbmd/iwara）时、编写或修改其 assemble.json 时、排查「清单声明了但项目缺文件/多处实现」类问题时。
+whenToUse: 组装/检查/扫描/迁移/回流 bench-template 系项目（lumigather/gbmd/iwara）时、编写或修改其 assemble.json 时、排查「清单声明了但项目缺文件/多处实现」类问题时。
 generatedBy: deepseek-v4-flash
 ---
 
@@ -107,13 +107,13 @@ generatedBy: deepseek-v4-flash
 ```
 templates/styles|html|js|json|assets ← 最通用层（所有项目共用，可为空）
 templates/_downloader/     ← 下载器系（_iwara/ _gamebanana-mods/ 为项目独有层）
-templates/_gallery/        ← 画廊系（含 server/ 后端）
+templates/_lumigather/     ← 画廊系（含 server/ 后端）
 templates/js/              ← 通用 JS（framework 整树：core/route/http/store/update/auth/assemble/tool/config）
 lib/                       ← cjs-bootstrap.cjs、start.sh、preview/（通用支撑件）
 ```
 
 - 后端业务 JS 不在模板：通用件在 framework/，业务实现由各项目自己维护。
-- `_gallery` 例外：它连同 `server/app.js` + `lib/` + `routes/` 一起带（gallery 全量后端为模板下发件，见 `templates/_gallery/server/`）。
+- `_lumigather` 例外：它连同 `server/app.js` + `lib/` + `routes/` 一起带（Lumigather 全量后端为模板下发件，见 `templates/_lumigather/server/`）。
 - `test/fixtures/minimal-project/assemble.json` 是**测试用最小清单**（组装行为测试的对象），组装方式与普通项目一致；模板仓库不再自带完整示例项目，真实清单看下游三仓。
 
 # 四、漏发体检（A 类：模板有源、清单漏声明）
@@ -121,7 +121,7 @@ lib/                       ← cjs-bootstrap.cjs、start.sh、preview/（通用�
 模板每个源目录下所有文件都应有清单条目覆盖（或所属目录条目覆盖）。对照法（通用件 + 本项目实际使用的风格）：
 
 1. 通用件候选 = `templates/js/**`（framework 整树）+ `templates/` 根级类型目录 + `lib/` 的 `cjs-bootstrap.cjs`/`start.sh`/`preview/**`。
-2. 系级候选 = 清单实际声明的 `templates/<系>/` 目录下全部文件（只对照本项目用到的系；gallery 用 `_gallery`，gbmd 用 `_downloader/_gamebanana-mods`，iwara 用 `_downloader/_iwara`）。
+2. 系级候选 = 清单实际声明的 `templates/<系>/` 目录下全部文件（只对照本项目用到的系；lumigather 用 `_lumigather`，gbmd 用 `_downloader/_gamebanana-mods`，iwara 用 `_downloader/_iwara`）。
 3. 漏发 = 候选 − 清单声明（目录条目按前缀展开覆盖）。
 4. ✗ 误报要排除：模板仓库自身运行件（项目侧 `server/log`、`sessions.json` 等非模板源）、其它项目素材文件、自研件（清单无源但项目有文件，如 iwara 的 `public/app.js`）、旧源未切（接入项需用户定夺，勿擅自切）。
 

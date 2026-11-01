@@ -3,15 +3,15 @@
     loadCollapsed();
     await refreshAuth();
     try {
-      const data = await window.API.apiGet("/gallery");
+      const data = await window.API.apiGet("/lumigather");
       galleryTitle = data.title || "";   // 设置页的值；空 = 没设过（回退品牌链），不写死默认标题
       favicon      = data.favicon || "";
       brand        = data.brand || {};   // 品牌默认值（env/.env → 清单 brand 段 → 内置默认）
       categories   = Array.isArray(data.categories) ? data.categories : [];
       directories  = Array.isArray(data.directories) ? data.directories : [];
-      window.__GALLERY_FS_ROOT = data.fsRoot || "/";
-      // 每行图片数量（服务端下发：.env GALLERY_IMAGES_PER_ROW → /api/gallery；前端不硬编码，取不到时兜底 20）
-      window.__GALLERY_IMAGES_PER_ROW = Number(data.imagesPerRow) > 0 ? Number(data.imagesPerRow) : 20;
+      window.__LUMIGATHER_FS_ROOT = data.fsRoot || "/";
+      // 每行图片数量（服务端下发：.env LUMIGATHER_IMAGES_PER_ROW → /api/lumigather；前端不硬编码，取不到时兜底 20）
+      window.__LUMIGATHER_IMAGES_PER_ROW = Number(data.imagesPerRow) > 0 ? Number(data.imagesPerRow) : 20;
     } catch (e) {
       console.warn("API init failed:", e);
     }

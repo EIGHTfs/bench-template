@@ -215,9 +215,14 @@
   "templates/_downloader/html/tab-panel/panel-settings/pwd.html": "系级修改密码卡（oldPwd + newPwd + 修改按钮，2026-09-28 上提）",
   "_meta": {
     "worktree": {
-      "README.md": {
+      "docs/功能说明.md": {
         "status": "M",
-        "mtime": "2026-11-01T10:10:24.788Z",
+        "mtime": "2026-11-01T10:19:55.901Z",
+        "note": "注释可能需更新"
+      },
+      "skills/setup-assemble.md": {
+        "status": "M",
+        "mtime": "2026-11-01T10:19:24.364Z",
         "note": "注释可能需更新"
       },
       "templates/_lumigather/.env": {
@@ -237,12 +242,12 @@
       },
       "templates/_lumigather/js/app.js": {
         "status": "M",
-        "mtime": "2026-11-01T10:09:50.126Z",
+        "mtime": "2026-11-01T10:15:07.996Z",
         "note": "注释可能需更新"
       },
       "templates/_lumigather/js/browse/render.js": {
         "status": "M",
-        "mtime": "2026-11-01T10:08:08.673Z",
+        "mtime": "2026-11-01T10:15:00.162Z",
         "note": "注释可能需更新"
       },
       "templates/_lumigather/js/foundation/state.js": {
@@ -252,12 +257,12 @@
       },
       "templates/_lumigather/js/settings/config.js": {
         "status": "M",
-        "mtime": "2026-11-01T10:08:08.615Z",
+        "mtime": "2026-11-01T10:15:00.131Z",
         "note": "注释可能需更新"
       },
       "templates/_lumigather/js/settings/directory.js": {
         "status": "M",
-        "mtime": "2026-11-01T10:08:08.649Z",
+        "mtime": "2026-11-01T10:15:00.123Z",
         "note": "注释可能需更新"
       },
       "templates/_lumigather/server/app.js": {
@@ -308,11 +313,6 @@
       "templates/_lumigather/test/paths.test.cjs": {
         "status": "M",
         "mtime": "2026-11-01T10:08:40.046Z",
-        "note": "注释可能需更新"
-      },
-      "docs/项目结构与工程约定.MD": {
-        "status": "A",
-        "mtime": "2026-11-01T10:08:59.418Z",
         "note": "注释可能需更新"
       },
       "templates/_lumigather/server/lib/env.js": {
@@ -445,9 +445,9 @@
   "test/fixtures": "测试夹具（只放测试清单，不参与任何项目运行）",
   "test/fixtures/minimal-project/assemble.json": "最小测试清单：几条真实素材，覆盖落点/幂等/混搭覆盖",
   "templates/_lumigather/server/lib": "（待注释）",
-  "templates/_lumigather/server": "（待注释）",
-  "templates/_lumigather": "（待注释）",
-  "templates/_lumigather/server/routes": "（待注释）",
+  "templates/_lumigather": "Lumigather 系素材（画廊：前端 + server 后端）",
+  "templates/_lumigather/server": "Lumigather 后端实现（随系下发到项目 server/）",
+  "templates/_lumigather/server/routes": "Lumigather 业务路由（站点配置/浏览/上传/收藏等）",
   "templates/_lumigather/test": "（待注释）",
   "templates/_lumigather/assets": "（待注释）",
   "templates/_lumigather/html": "（待注释）",
@@ -463,9 +463,9 @@
   "templates/_lumigather/styles": "（待注释）",
   "templates/_lumigather/styles/themes": "（待注释）",
   "docs/项目结构与工程约定.MD": "目录结构、素材分层、工程约定、新增组件流程与行为细节（README 下沉内容）",
-  "templates/_lumigather/server/lib/env.js": "（待注释）",
-  "templates/_lumigather/server/routes/lumigather.js": "（待注释）",
-  "templates/_lumigather/test/env-prefix.test.cjs": "（待注释）",
+  "templates/_lumigather/server/lib/env.js": "环境变量读取（新前缀 LUMIGATHER_* 优先，旧前缀回退）",
+  "templates/_lumigather/server/routes/lumigather.js": "站点配置路由（/api/lumigather，保留兼容别名）",
+  "templates/_lumigather/test/env-prefix.test.cjs": "环境变量前缀兼容测试",
   "templates/_lumigather/.env": "（待注释）",
   "templates/_lumigather/.env.example": "（待注释）",
   "templates/_lumigather/assets/favicon.png": "（待注释）",
@@ -517,7 +517,7 @@
   "templates/_lumigather/server/routes/favorites.js": "（待注释）",
   "templates/_lumigather/server/routes/upload.js": "（待注释）",
   "templates/_lumigather/styles/base.css": "（待注释）",
-  "templates/_lumigather/styles/gallery.css": "（待注释）",
+  "templates/_lumigather/styles/gallery.css": "画廊页主样式（布局与卡片）",
   "templates/_lumigather/styles/lightbox.css": "（待注释）",
   "templates/_lumigather/styles/settings.css": "（待注释）",
   "templates/_lumigather/styles/sidebar.css": "（待注释）",

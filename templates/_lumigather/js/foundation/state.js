@@ -14,9 +14,9 @@
   let favoriteImages = [];       // 收藏图片列表 [{src, name, title, cat, ...}]
   let favoriteSrcs = new Set();  // 收藏 src 集合（快速查找）
   let authedUser = false;        // 是否登录（登录后才能点收藏）
-  let galleryTitle  = "";   // 设置页的标题（/api/gallery → data.title）；空 = 没设过，回退品牌链
+  let galleryTitle  = "";   // 设置页的标题（/api/lumigather → data.title）；空 = 没设过，回退品牌链
   let favicon       = "";   // 由设置页决定：emoji 或图片 URL
-  let brand         = {};   // 品牌默认值（/api/gallery → data.brand）：只做兜底，绝不覆盖设置页的值
+  let brand         = {};   // 品牌默认值（/api/lumigather → data.brand）：只做兜底，绝不覆盖设置页的值
   let loading       = false;
 
   let categories = [];          // [{ name, label, color }]

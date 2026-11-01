@@ -20,7 +20,7 @@
       </div>
     `;
     dirList.appendChild(li);
-    let cwd = window.__GALLERY_FS_ROOT || "/";
+    let cwd = window.__LUMIGATHER_FS_ROOT || "/";
     const upBtn = li.querySelector(".db-up");
     async function loadDirList(root) {
       try {
@@ -64,7 +64,7 @@
     clearTimeout(saveTimer);
     saveTimer = setTimeout(async () => {
       try {
-        await window.API.apiPost("/gallery", { title: galleryTitle, categories, directories });
+        await window.API.apiPost("/lumigather", { title: galleryTitle, categories, directories });
         showNotification(t("settingsSaved"), "success");
         if (reload) await loadAPIImages();
       } catch (e) {
@@ -115,7 +115,7 @@
       targetCat = "guest";
     } else {
       // 登录后：可以上传到其他目录（若当前在真实目录，则写文件到该目录；否则存本地）
-      // 分类只从配置来（categories 由 /api/gallery 下发）；拿不到就明确报错终止，不写死任何默认分类
+      // 分类只从配置来（categories 由 /api/lumigather 下发）；拿不到就明确报错终止，不写死任何默认分类
       targetCat = activeFilter !== "all" && activeFilter !== "guest" ? activeFilter : (categories[0]?.name || "");
       if (!targetCat) {
         window.alert("请先在设置里创建分类，或先进入某个分类再上传");

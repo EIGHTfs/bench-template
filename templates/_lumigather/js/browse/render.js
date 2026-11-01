@@ -34,7 +34,7 @@
    *  包进 `.dir-rows`（竖向多行）结构 —— 行数 = ceil(张数 / N)。
    *  为什么放在 render 末尾做一次后处理：图片行有 6 个生成点（叶子文件夹/分组/当前文件夹/压缩包分组…），
    *  统一后处理可一次覆盖全部，且不动任何卡片尺寸语义（卡片样式与尺寸完全不变，只是分行）。
-   *  N 由服务端下发（.env GALLERY_IMAGES_PER_ROW），前端不硬编码；<=1 行时原样不动。 */
+   *  N 由服务端下发（.env LUMIGATHER_IMAGES_PER_ROW），前端不硬编码；<=1 行时原样不动。 */
   function applyImageRowWrap(perRow) {
     const n = Number(perRow) > 0 ? Math.floor(Number(perRow)) : 20;
     const grids = Array.from(document.querySelectorAll("#gallery .dir-grid"));
@@ -505,6 +505,6 @@
 
     renderBreadcrumb(images, totalImgs);
     // 2026-10-14 新增：按「每行图片数量」把每个图片行切块成多行（行数 = ceil(张数/N)）
-    applyImageRowWrap(window.__GALLERY_IMAGES_PER_ROW);
+    applyImageRowWrap(window.__LUMIGATHER_IMAGES_PER_ROW);
   }
 
