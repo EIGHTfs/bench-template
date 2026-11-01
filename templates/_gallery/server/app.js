@@ -139,6 +139,8 @@ const galleryRoutes = createRoute({
   "GET /io": (req, res, c) => gallery.apiIo(req, res, ctx),
   "GET /gallery": (req, res) => gallery.apiGetGallery(req, res, ctx),
   "POST /gallery": (req, res) => gallery.apiPostGallery(req, res, ctx),
+  // 索引缓存统计：gallery 专属端点（index-cache 这个 lib 只有本系才有），免鉴权由下方 publicRoutes 放行
+  "GET /index-cache": (req, res) => gallery.apiIndexCache(req, res, ctx),
 });
 
 // 上传路由不经 createRoute：它需要原始请求流做 multipart 解析，

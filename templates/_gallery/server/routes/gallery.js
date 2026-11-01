@@ -24,6 +24,17 @@ function apiGetGallery(req, res, ctx) {
   jsonRes(res, 200, { ...publicConfig(loadConfig()), brand: brandOf() });
 }
 
+// GET /api/index-cache —— 索引缓存统计（免鉴权：只含计数与上限，不含任何路径或条目内容）
+// 用途：让调用方（含自动化巡检）能直接读出「缓存是否真在生效」，不必用耗时间接推断。
+// 契约：ok / enabled / hit / miss / hitRate / stale / evict / invalidate / entries / bytes / limitBytes
+// enabled=false 表示已用 GALLERY_INDEX_CACHE=0 关闭，此时 hit/miss 不增长属正常现象。
+// 为什么放在 gallery 专属路由：index-cache 这个 lib 只有 gallery 系才有（templates/_gallery/server/lib/），
+// 挂在共用级 routes-auth.js 会让 gbmd/iwara 也拿到一条指向不存在模块的公开端点（必然 500）。
+function apiIndexCache(req, res, ctx) {
+  const indexCache = require("../lib/index-cache");
+  jsonRes(res, 200, Object.assign({ ok: true }, indexCache.stats()));
+}
+
 // GET /api/io —— 2026-10-12：扫描/IO 归因（byLabel + bySite，站点为 file:line）
 function apiIo(req, res, ctx) {
   if (!ctx.requireAuth(req, res)) return;   // 含本机绝对路径与调用点，不对外开放
@@ -46,4 +57,4 @@ async function apiPostGallery(req, res, ctx) {
   jsonRes(res, 200, { ok: true, ...publicConfig(cfg), brand: brandOf() });
 }
 
-module.exports = { apiGetGallery, apiPostGallery, apiIo };
+module.exports = { apiGetGallery, apiPostGallery, apiIo, apiIndexCache };
