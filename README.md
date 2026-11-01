@@ -57,13 +57,13 @@ mkdir my-service && cd my-service
 # 或按 3.3 的字段说明写一份最小清单：{"files":{"templates/...":"server/..."}}
 cp <下游项目根>/assemble.json ./assemble.json
 
-# 2. 预演：先看这一跑会写哪些文件（新增 / 覆盖 / 相同）
-bash <模板仓库>/setup.sh --to assemble.json --dry-run
+# 2~3. 预演 + 正式组装：切到模板仓库根目录执行（<模板仓库> 换成模板仓库实际路径）
+cd <模板仓库>
+bash setup.sh --to ../my-service/assemble.json --dry-run   # 预演：新增 / 覆盖 / 相同
+bash setup.sh --to ../my-service/assemble.json             # 正式组装（幂等，可反复跑；落点按清单 dst）
 
-# 3. 正式组装（幂等，可反复跑；落点按清单 dst）
-bash <模板仓库>/setup.sh --to assemble.json
-
-# 4. 写业务入口：从骨架复制，再填自己的路由
+# 4. 回到项目目录：写业务入口（从骨架复制，再填自己的路由）
+cd ../my-service
 cp <模板仓库>/templates/js/app.js server/app.js
 
 # 5. 启动
