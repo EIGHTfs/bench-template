@@ -44,12 +44,12 @@
 # ── 素材布局（2026-09-27 重构：templates 上提到根，按通用程度分目录）──
 #   templates/styles|html|js|json|assets ← 最通用层（所有项目共用，可为空）
 #   templates/_downloader/        ← 下载器系（_iwara/ _gamebanana-mods/ 为项目独有层）
-#   templates/_gallery/           ← 画廊系
+#   templates/_lumigather/           ← 画廊系
 #   每层内部按类型子目录（styles/html/js/json/assets），js/css/html 保留内部层级
 #   lib/                          ← 通用支撑件（cjs-bootstrap.cjs / start.sh / preview/）
 #
 # 后端业务 JS 不在模板：通用件在 templates/js/（core/route/http/...），
-# 业务实现由各项目自己维护（_gallery 例外：连同 server/ 一起带，见 templates/_gallery/server/）。
+# 业务实现由各项目自己维护（_lumigather 例外：连同 server/ 一起带，见 templates/_lumigather/server/）。
 #
 # ── 结构（2026-09-28 拆分）────────────────────────────
 #   本文件是纯总入口：共享库与各功能拆到 scripts/ 下独立脚本，行为不变。

@@ -1151,7 +1151,7 @@ function cmdMigrate(oldManifestPath, newManifestPath, opts = {}) {
  * 收集「可能引用到被搬文件」的 js/cjs 清单。
  *
  * 为什么不能只按迁移清单枚举：
- *   ① 清单常用【整目录条目】（如 "server/templates/_gallery-style/server/routes/":
+ *   ① 清单常用【整目录条目】（如 "server/templates/_lumigather-style/server/routes/":
  *      "server/routes/"），这些目录下的文件同样会 require("../framework")，
  *      但逐文件展开不到——实测漏了它们导致启动报 "Cannot find module '../framework'"。
  *   ② 项目自己的业务代码（server/app.js、server/routes/*.js、server/lib/*.js）

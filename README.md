@@ -40,9 +40,9 @@ bench-template/
 | 层级 | 位置 | 放什么 |
 | --- | --- | --- |
 | 最通用层 | `templates/js/`、`templates/json/`、`templates/tools/`、`templates/userscript/` | 所有项目共用；后端框架整树在 `templates/js/` |
-| 系级 | `templates/_downloader/`、`templates/_gallery/` | 某系共用：html / js / styles / json / assets |
+| 系级 | `templates/_downloader/`、`templates/_lumigather/` | 某系共用：html / js / styles / json / assets |
 | 项目独有 / 风格层 | `templates/_downloader/_iwara/`、`_gamebanana-mods/`、`_ktoolbox/` | 单项目专用；`_ktoolbox` 是整套界面风格层，与项目层同级、按清单选配 |
-| 后端随系分发 | `templates/_gallery/server/` | 该系连业务后端一起下发的形态 |
+| 后端随系分发 | `templates/_lumigather/server/` | 该系连业务后端一起下发的形态 |
 
 素材里的引用按「组装后在项目里的位置」写（`require("./x")`、`<script src>`、`<!-- @frag:x -->`），不按素材当前所在目录写。
 
