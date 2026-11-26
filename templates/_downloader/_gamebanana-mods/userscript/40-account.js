@@ -44,6 +44,55 @@
         } catch (_) {}
     }
 
+    /** 采集本机 Cookie 回传到服务器（服务端不可用时自动调用）
+     *
+     *  设计要点：
+     *  · Cookie 与 UA 必须同一批提交 —— GameBanana 会话绑定登录时的完整 UA，
+     *    两者分两次发会出现「Cookie 是手机的、UA 是服务器的」这种失配状态，
+     *    服务端侧对跨设备 UA 覆盖有拦截，分开发会被拦或留下错误组合。
+     *  · 缺 sess 直接返回失败、不发请求 —— sess 是 HttpOnly 登录票据，
+     *    拿不到就说明当前环境读不全（如 Tampermonkey 正式版），
+     *    此时发上去只会把服务端已有的完整凭证覆盖成残缺串。
+     */
+    async function pushLocalCreds(base, session) {
+        const c = await readCookieGM();
+        const cookieText = (c && c.text) || "";
+        const hasSess = /(?:^|;\s*)sess=[^;\s]/.test(cookieText);
+        if (!hasSess) {
+            return {
+                ok: false,
+                reason: "no-sess",
+                cookie: c,
+                error: "本机 Cookie 不含 sess（" + (c && c.diag || "读取失败") + "），已跳过自动回传，避免覆盖服务端已有的完整凭证"
+            };
+        }
+        const body = { gbCookie: cookieText, gbUserAgent: navigator.userAgent || "" };
+        const r = await gmRequest("POST", base + "/api/settings", body, 12000, sessionHeaders(session));
+        return {
+            ok: !!(r.ok && r.json && r.json.ok),
+            error: (r.json && r.json.error) || r.error || ("HTTP " + r.status),
+            cookie: c
+        };
+    }
+
+    /** 服务端不可用（没凭证 / 凭证失效）时：采集本机凭证自动回传并复检
+     *
+     *  只做「采集→回传→复检」并返回结果，不碰 DOM —— 面板渲染由调用方（openPanel）负责，
+     *  避免把展示逻辑耦合进凭证层。
+     *  @returns {Promise<{ok:boolean, reason?:string, error?:string, info?:object, recheckError?:string}>}
+     */
+    async function pushCredsAndRecheck(base, session) {
+        const pushed = await pushLocalCreds(base, session);
+        if (!pushed.ok) return { ok: false, reason: pushed.reason, error: pushed.error };
+        // 回传成功后复检一次：确认服务端真的能登录，而不是只把字符串写进了配置
+        const again = await serverAccount(base, session);
+        return {
+            ok: true,
+            info: again.ok ? again.info : null,
+            recheckError: again.ok ? "" : (again.error || "复检失败")
+        };
+    }
+
     /** 发送当前 mod 页链接：POST /api/receive { url } */
     async function refreshLocalCred(st, ta, info) {
         st.textContent = "读取本机 Cookie…"; st.className = "";

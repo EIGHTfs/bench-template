@@ -128,19 +128,32 @@
             //   「○ 服务器未配置凭证」——服务端明明已存 2096 字符 Cookie（cookieSet=true）却报未配置，
             //   排查时会被带偏（实测：/api/cred ok=true，/api/gb-login-status loggedIn=false）。
             //   现在按 cookieSet 分流，并把服务端的 detail 原样带出来。
-            if (acc.info.cookieSet) {
-                ub.textContent = "⚠️ 服务器有凭证但 GB 会话已失效（服务端判定未登录）";
-                ub.className = "{{IDP}}userbar warn";
-                panelEl.classList.remove("server-ok");
-                info.textContent = "服务端已存 Cookie，但 GameBanana 判定未登录：请重新复制完整 Cookie（含 HttpOnly 的 sess/rmc）粘到服务器设置页。"
-                    + (acc.info.detail ? "\n服务端说明: " + acc.info.detail : "");
-                await refreshLocalCred(st, ta, info);
+            // 2026-11-27：两种「服务端不可用」都先尝试本机自动回传，成功就不用用户手动粘 Cookie。
+            const stale = !!acc.info.cookieSet;
+            ub.textContent = stale ? "⚠️ 服务器凭证失效，正在本机采集并自动回传…" : "○ 服务器未配置凭证，正在本机采集并自动回传…";
+            ub.className = "{{IDP}}userbar warn";
+            panelEl.classList.remove("server-ok");
+            const pushed = await pushCredsAndRecheck(p.base, session);
+            if (pushed.ok && pushed.info && pushed.info.loggedIn) {
+                // 回传并复检成功：按已登录渲染
+                const days = pushed.info.remainingDays !== null && pushed.info.remainingDays !== undefined ? `（剩 ${pushed.info.remainingDays} 天）` : "";
+                ub.textContent = `✅ 已自动回传并登录: ${pushed.info.username}${days}`;
+                ub.className = "{{IDP}}userbar " + (pushed.info.warnLevel === "warn" ? "warn" : "ok");
+                info.textContent = "已从本机自动采集 Cookie 回传服务器，服务端复检登录成功。";
+                panelEl.classList.add("server-ok");
+                const u = currentModUrl();
+                if (u) info.textContent += "\n当前 mod: " + u;
                 return;
             }
-            ub.textContent = "○ 服务器未配置凭证";
-            ub.className = "{{IDP}}userbar err";
-            panelEl.classList.remove("server-ok");
-            info.textContent = "服务器还没凭证：先点「📋 复制完整 Cookie」把本机 Cookie 粘到服务器设置页，或直接发送（服务器会提示需要 Cookie）。";
+            // 自动回传没成功：说清是「本机读不全」还是「回传/复检失败」，再退回手动路径
+            const why = pushed.reason === "no-sess"
+                ? "本机读不到 sess（HttpOnly 登录票据），无法自动回传"
+                : (pushed.error || pushed.recheckError || "自动回传失败");
+            ub.textContent = stale ? "⚠️ 服务器有凭证但 GB 会话已失效（自动回传未成功）" : "○ 服务器未配置凭证（自动回传未成功）";
+            ub.className = "{{IDP}}userbar " + (stale ? "warn" : "err");
+            info.textContent = "自动回传未成功：" + why
+                + (stale ? "\n服务端说明: " + (acc.info.detail || "") : "")
+                + "\n可手动复制完整 Cookie（含 HttpOnly 的 sess）粘到服务器设置页。";
             await refreshLocalCred(st, ta, info);
         } else {
             ub.textContent = "❌ 服务器状态获取失败: " + (acc.error || "");
