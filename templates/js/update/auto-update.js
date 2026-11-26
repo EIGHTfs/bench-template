@@ -448,7 +448,10 @@ function createAutoUpdate(opts) { // dsh-skip-func-length 既有超长工厂函�
         return;
       }
       _log(`github 检测到新版本: ${fmtVersion(state)} → ${newSha.slice(0, 8)}${newDate ? " (" + fmtDateCn(newDate) + " 北京时间)" : ""}`);
-      applyGitHubUpdate(repo, branch, token, newSha).then(() => {
+      // 必须 return：调度器的 settle() 靠这个 Promise 落定后才读 lastCheck.result 决定成败。
+      // 不 return 时外层 Promise 会在下载/解压尚未完成时立即 resolve，
+      // 此时 lastCheck 还是上一轮的值（首次运行为 undefined）⇒ 被判 error ⇒ 白退避 6000s。
+      return applyGitHubUpdate(repo, branch, token, newSha).then(() => {
         saveState({ lastSha: newSha, lastCommitDate: newDate, updatedAt: Date.now() });
         const msg = `已更新到 ${newSha.slice(0, 8)}（${fmtDateCn(newDate)} 北京时间），2 秒后重启`;
         _log("github 代码已更新，2 秒后重启");
@@ -660,21 +663,40 @@ function createAutoUpdate(opts) { // dsh-skip-func-length 既有超长工厂函�
     try { fs.writeFileSync(STATE_FILE, JSON.stringify(obj, null, 2), "utf8"); } catch (_) {}
   }
 
-  /** 零依赖 HTTPS GET，跟随 301/302（最多 5 跳），返回 Buffer */
-  function httpsGet(url, headers, redirects) {
+  /** 零依赖 HTTPS GET，跟随 301/302（最多 5 跳），返回 Buffer
+   *
+   *  token 失效自动回退匿名（2026-11-26）：公开仓库匿名读是通的，但配了过期/作废的
+   *  githubToken 时反而读不到，且两层状态码不一样——
+   *    · api.github.com 带无效 token → 401
+   *    · codeload.github.com 带无效 token → 404（内容域名不暴露仓库是否存在）
+   *  实测同一 tarball URL：不带 token 200 / 带无效 token 404。
+   *  因此带 Authorization 收到 401/403/404 时，去掉该头重试一次；只回退一次，避免无谓循环。
+   *  API 层真正的 404（仓库/分支不存在）也会多走一次匿名，结果仍是 404，无副作用。
+   */
+  function httpsGet(url, headers, redirects, authRetried) {
     redirects = redirects || 0;
     if (redirects > 5) return Promise.reject(new Error("重定向次数过多"));
+    const usedAuth = Boolean(headers && headers.Authorization);
     return new Promise((resolve, reject) => {
       const req = https.get(url, { headers: headers || {} }, (res) => {
         const loc = res.headers.location;
         if (res.statusCode >= 300 && res.statusCode < 400 && loc) {
           res.resume();
           const next = new URL(loc, url).toString();
-          httpsGet(next, headers, redirects + 1).then(resolve, reject);
+          httpsGet(next, headers, redirects + 1, authRetried).then(resolve, reject);
           return;
         }
         if (res.statusCode !== 200) {
           res.resume();
+          // token 无效时回退匿名再试一次：401/403 来自 API，404 来自 codeload
+          const tokenRejected = res.statusCode === 401 || res.statusCode === 403 || res.statusCode === 404;
+          if (usedAuth && !authRetried && tokenRejected) {
+            const anonHeaders = Object.assign({}, headers);
+            delete anonHeaders.Authorization;
+            _log("GitHub token 无效（HTTP " + res.statusCode + "），回退匿名访问重试");
+            httpsGet(url, anonHeaders, redirects, true).then(resolve, reject);
+            return;
+          }
           reject(new Error("HTTP " + res.statusCode + " " + url));
           return;
         }
