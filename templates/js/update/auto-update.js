@@ -580,6 +580,8 @@ function createAutoUpdate(opts) { // dsh-skip-func-length 既有超长工厂函�
     if (isWinCompat()) {
       // Windows：Win10 1803+ 自带 bsdtar（支持 -xzf/-C/--strip-components）；
       //   git for windows 的 tar 兜底。stdio ignore 避免 >/dev/null 在 cmd 下失效。
+      // dsh-skip-paths 下列两条是 Windows 上 Git for Windows 自带 tar 的固定安装位置（工具自探测兜底，
+      //   非业务配置）；本机为 Linux 无法验证 Windows 行为，改探测策略留待专项处理
       const winCandidates = [
         "tar",
         "C:\\Program Files\\Git\\usr\\bin\\tar.exe",
