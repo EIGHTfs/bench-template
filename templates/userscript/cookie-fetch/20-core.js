@@ -12,8 +12,10 @@
  *   4. 服务器没有凭证：才 GM_cookie 采集，POST /api/settings 回传保存
  *   5. 发送视频：只 POST /api/receive { url }，服务器自己解析下载，不读 Cookie
  *
- * Chrome Tampermonkey 没有 GM_cookie，读不到 HttpOnly 的 cf_clearance。
- * 需要完整 Cookie 时请用 Violentmonkey 或 Firefox Tampermonkey。
+ * 读取 HttpOnly cookie 需要 GM_cookie API。Tampermonkey 官方文档写明
+ * 「httpOnly cookies are supported at the BETA versions of Tampermonkey only」——
+ * 即正式版拿不到 sess / cf_clearance，必须用 BETA 版或 Violentmonkey。
+ * 用 document.cookie 兜底只能读到非 HttpOnly 项，缺 sess 的串写回服务端会让登录永久失效。
  * ============================================================ */
 
     function ls(key) { try { return localStorage.getItem(key) || ""; } catch (_) { return ""; } }
@@ -138,7 +140,7 @@
             };
             try {
                 if (typeof GM_cookie === "undefined" || !GM_cookie || typeof GM_cookie.list !== "function") {
-                    return fallback("GM_cookie 未定义（Chrome Tampermonkey 读不到 HttpOnly；请用 Violentmonkey 或 Firefox Tampermonkey）");
+                    return fallback("GM_cookie 未定义。Tampermonkey 正式版不提供该 API，且官方文档写明 httpOnly cookie 仅 BETA 版支持——请改装 Tampermonkey BETA 版，或改用 Violentmonkey");
                 }
                 GM_cookie.list({}, (cookies, error) => {
                     if (error) { log("GM_cookie.list error:", error); return fallback("GM_cookie.list 报错：" + JSON.stringify(error)); }

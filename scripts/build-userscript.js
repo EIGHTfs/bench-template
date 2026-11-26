@@ -29,7 +29,9 @@ const REPO_ROOT = path.resolve(__dirname, "..");
 const DEFAULT_TPL_DIR = path.join(REPO_ROOT, "templates", "userscript", "cookie-fetch");
 const DEFAULT_GRANTS = [
   "GM_setClipboard", "GM_getValue", "GM_setValue", "GM_notification",
-  "GM_cookie.list", "GM_cookie.set", "GM_xmlhttpRequest"
+  // GM_cookie 是对象（list/set/delete 为它的方法），对象级与方法级同时声明：
+  // 各管理器对 grant 名解析宽严不一，多写一条不冲突，少写则可能整个对象都不注入
+  "GM_cookie", "GM_cookie.list", "GM_cookie.set", "GM_xmlhttpRequest"
 ];
 
 function die(msg) { console.error("❌ " + msg); process.exit(1); }

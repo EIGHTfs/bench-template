@@ -57,7 +57,7 @@
         st.className = c.count > 0 ? "ok" : "err";
         ta.value = c.text;
         if (info) info.textContent += "\n" + L.slice(1).join("\n");
-        if (c.diag !== "OK") info.textContent = "如果 GM_cookie 诊断显示『未定义/0 个』：请用 Violentmonkey 或 Firefox 的 Tampermonkey，并给脚本开启 cookie 权限后重试。";
+        if (c.diag !== "OK") info.textContent = "GM_cookie 显示『未定义/0 个』时的原因与做法：Tampermonkey 正式版不提供该 API，且官方文档写明 httpOnly cookie 仅 BETA 版支持。装 Tampermonkey BETA 版，或改用 Violentmonkey。缺 sess 的 Cookie 不要发到服务器——服务端会拒绝写入，避免把已有完整凭证覆盖掉。";
     }
 
     /** 发送当前 mod 页链接到服务器 */
