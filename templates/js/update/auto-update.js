@@ -575,34 +575,41 @@ function createAutoUpdate(opts) { // dsh-skip-func-length 既有超长工厂函�
     }).then((v) => { done(); return v; }, (e) => { done(); throw e; });
   }
 
-  /** 找到系统 tar（github 模式解压用） */
+  /** 找到系统 tar（github 模式解压用）
+   *
+   *  探测顺序：环境变量覆盖 → PATH → 平台标准路径；都不行就显式报错并给修复建议。
+   *  2026-11-26：去掉原先写死的两条 Git for Windows 默认安装目录候选——
+   *  那是「猜安装位置」，用户装到非默认盘/绿色版就失效，且新版本根本不带 tar。
+   *  Git for Windows 安装时本就会把 tar 加进 PATH，因此走 PATH 即可；
+   *  PATH 里没有的非常规部署，用 AUTO_UPDATE_TAR 指定。
+   */
   function findTar() {
-    if (isWinCompat()) {
-      // Windows：Win10 1803+ 自带 bsdtar（支持 -xzf/-C/--strip-components）；
-      //   git for windows 的 tar 兜底。stdio ignore 避免 >/dev/null 在 cmd 下失效。
-      // dsh-skip-paths 下列两条是 Windows 上 Git for Windows 自带 tar 的固定安装位置（工具自探测兜底，
-      //   非业务配置）；本机为 Linux 无法验证 Windows 行为，改探测策略留待专项处理
-      const winCandidates = [
-        "tar",
-        "C:\\Program Files\\Git\\usr\\bin\\tar.exe",
-        "C:\\Program Files (x86)\\Git\\usr\\bin\\tar.exe",
-      ];
-      for (const c of winCandidates) {
-        try {
-          execSync(`"${c}" --version`, { timeout: 3000, stdio: "ignore" });
-          return c;
-        } catch (_) { /* 下一个 */ }
-      }
-      return "tar";
-    }
-    const candidates = ["/usr/bin/tar", "/bin/tar", "/usr/local/bin/tar", "tar"];
-    for (const c of candidates) {
+    /** 探测某个候选是否真的能跑（只看 --version 是否成功） */
+    function usable(candidate) {
       try {
-        execSync(`"${c}" --version`, { timeout: 3000, stdio: "ignore" });
-        return c;
-      } catch (_) { /* 下一个 */ }
+        execSync(`"${candidate}" --version`, { timeout: 3000, stdio: "ignore" });
+        return true;
+      } catch (_) { return false; }
     }
-    return "tar";
+    // ① 环境变量覆盖：便携部署 / PATH 里没有 tar 的机器
+    const override = String(process.env.AUTO_UPDATE_TAR || "").trim();
+    if (override) {
+      if (usable(override)) return override;
+      _log("AUTO_UPDATE_TAR 指定的 tar 不可用，继续自动探测: " + override);
+    }
+    // ② PATH（Windows 上 Win10 1803+ 自带 bsdtar；装了 Git for Windows 也会进 PATH）
+    if (usable("tar")) return "tar";
+    // ③ 类 Unix 的标准安装位置（FHS 规定，不是猜）
+    if (!isWinCompat()) {
+      for (const candidate of ["/usr/bin/tar", "/bin/tar", "/usr/local/bin/tar"]) {
+        if (usable(candidate)) return candidate;
+      }
+    }
+    throw new Error(
+      "未找到可用的 tar，自动更新无法解压源码包。" +
+      "Windows：确认系统为 Win10 1803+（自带 bsdtar）或已装 Git for Windows（其 tar 会加入 PATH）；" +
+      "其他情况：设置环境变量 AUTO_UPDATE_TAR 指向 tar 可执行文件的完整路径后重启服务"
+    );
   }
 
   /** 安全复制：把 src 下的代码树复制到 dst（覆盖/新增），跳过运行态与敏感路径
